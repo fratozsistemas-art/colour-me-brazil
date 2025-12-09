@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Undo, Redo, Eraser, Save, Download, X, Paintbrush, Grid3x3 } from 'lucide-react';
+import { Undo, Redo, Eraser, Save, Download, X, Paintbrush, Grid3x3, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const COLORS = [
@@ -24,18 +24,24 @@ export default function ColoringCanvas({
 }) {
   const canvasRef = useRef(null);
   const fillCanvasRef = useRef(null);
+  const containerRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentColor, setCurrentColor] = useState(COLORS[0]);
   const [brushSize, setBrushSize] = useState(5);
   const [strokes, setStrokes] = useState(initialStrokes);
   const [currentStroke, setCurrentStroke] = useState([]);
-  const [undoStack, setUndoStack] = useState([]);
-  const [redoStack, setRedoStack] = useState([]);
+  const [history, setHistory] = useState([{ strokes: initialStrokes, fills: [] }]);
+  const [historyIndex, setHistoryIndex] = useState(0);
   const [isErasing, setIsErasing] = useState(false);
   const [backgroundImage, setBackgroundImage] = useState(null);
   const [startTime] = useState(Date.now());
-  const [paintMode, setPaintMode] = useState('freeform'); // 'freeform' or 'fill'
+  const [paintMode, setPaintMode] = useState('freeform');
   const [fillHistory, setFillHistory] = useState([]);
+  const [recentColors, setRecentColors] = useState([]);
+  const [scale, setScale] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
 
   // Load background image
   useEffect(() => {
@@ -105,11 +111,18 @@ export default function ColoringCanvas({
     ctx.globalCompositeOperation = 'source-over';
   };
 
+  const addToRecentColors = (color) => {
+    setRecentColors(prev => {
+      const filtered = prev.filter(c => c !== color);
+      return [color, ...filtered].slice(0, 8);
+    });
+  };
+
   const getCanvasPoint = (e) => {
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
+    const scaleX = canvas.width / (rect.width * scale);
+    const scaleY = canvas.height / (rect.height * scale);
 
     let clientX, clientY;
     if (e.touches) {
@@ -121,9 +134,16 @@ export default function ColoringCanvas({
     }
 
     return {
-      x: (clientX - rect.left) * scaleX,
-      y: (clientY - rect.top) * scaleY
+      x: ((clientX - rect.left) / scale - pan.x) * scaleX,
+      y: ((clientY - rect.top) / scale - pan.y) * scaleY
     };
+  };
+
+  const saveToHistory = (newStrokes, newFills) => {
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push({ strokes: newStrokes, fills: newFills });
+    setHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
   };
 
   const handleCanvasClick = (e) => {
@@ -134,12 +154,13 @@ export default function ColoringCanvas({
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
       
-      // Save fill action for undo
       const newFill = { x: Math.floor(point.x), y: Math.floor(point.y), color: currentColor };
       const newFillHistory = [...fillHistory, newFill];
       setFillHistory(newFillHistory);
       
-      // Perform flood fill
+      saveToHistory(strokes, newFillHistory);
+      addToRecentColors(currentColor);
+      
       floodFill(ctx, Math.floor(point.x), Math.floor(point.y), currentColor, true);
     }
   };
@@ -269,29 +290,67 @@ export default function ColoringCanvas({
       
       const newStrokes = [...strokes, newStroke];
       setStrokes(newStrokes);
-      setUndoStack([...undoStack, newStrokes]);
-      setRedoStack([]);
+      saveToHistory(newStrokes, fillHistory);
+      addToRecentColors(currentColor);
       setCurrentStroke([]);
     }
     setIsDrawing(false);
   };
 
   const handleUndo = () => {
-    if (paintMode === 'freeform' && strokes.length > 0) {
-      const newStrokes = strokes.slice(0, -1);
-      setRedoStack([...redoStack, strokes]);
-      setStrokes(newStrokes);
-    } else if (paintMode === 'fill' && fillHistory.length > 0) {
-      setFillHistory(fillHistory.slice(0, -1));
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1;
+      setHistoryIndex(newIndex);
+      setStrokes(history[newIndex].strokes);
+      setFillHistory(history[newIndex].fills);
     }
   };
 
   const handleRedo = () => {
-    if (redoStack.length === 0) return;
-    
-    const lastState = redoStack[redoStack.length - 1];
-    setStrokes(lastState);
-    setRedoStack(redoStack.slice(0, -1));
+    if (historyIndex < history.length - 1) {
+      const newIndex = historyIndex + 1;
+      setHistoryIndex(newIndex);
+      setStrokes(history[newIndex].strokes);
+      setFillHistory(history[newIndex].fills);
+    }
+  };
+
+  const handleZoomIn = () => {
+    setScale(prev => Math.min(prev + 0.5, 3));
+  };
+
+  const handleZoomOut = () => {
+    setScale(prev => Math.max(prev - 0.5, 0.5));
+  };
+
+  const handleResetView = () => {
+    setScale(1);
+    setPan({ x: 0, y: 0 });
+  };
+
+  const startPanning = (e) => {
+    if (e.ctrlKey || e.metaKey || e.button === 1) {
+      e.preventDefault();
+      setIsPanning(true);
+      setPanStart({ 
+        x: e.clientX - pan.x, 
+        y: e.clientY - pan.y 
+      });
+    }
+  };
+
+  const doPan = (e) => {
+    if (isPanning) {
+      e.preventDefault();
+      setPan({
+        x: e.clientX - panStart.x,
+        y: e.clientY - panStart.y
+      });
+    }
+  };
+
+  const stopPanning = () => {
+    setIsPanning(false);
   };
 
   const handleSave = async () => {
@@ -336,17 +395,80 @@ export default function ColoringCanvas({
         {/* Main Content */}
         <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
           {/* Canvas Area */}
-          <div className="flex-1 flex items-center justify-center p-4 bg-gray-100">
-            <div className="relative max-w-3xl w-full aspect-square bg-white rounded-lg shadow-lg overflow-hidden">
+          <div className="flex-1 flex items-center justify-center p-4 bg-gray-100 relative">
+            <div className="absolute top-6 right-6 flex flex-col gap-2 z-10">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleZoomIn}
+                className="bg-white shadow-lg"
+                title="Zoom In (Ctrl + Scroll)"
+              >
+                <ZoomIn className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleZoomOut}
+                className="bg-white shadow-lg"
+                title="Zoom Out"
+              >
+                <ZoomOut className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleResetView}
+                className="bg-white shadow-lg"
+                title="Reset View"
+              >
+                <Maximize2 className="w-4 h-4" />
+              </Button>
+            </div>
+            <div 
+              ref={containerRef}
+              className="relative max-w-3xl w-full aspect-square bg-white rounded-lg shadow-lg overflow-hidden"
+              style={{ cursor: isPanning ? 'grabbing' : (paintMode === 'fill' ? 'pointer' : 'crosshair') }}
+            >
               <canvas
                 ref={canvasRef}
                 width={1024}
                 height={1024}
-                className={`w-full h-full touch-none ${paintMode === 'fill' ? 'cursor-pointer' : 'cursor-crosshair'}`}
-                onMouseDown={paintMode === 'fill' ? handleCanvasClick : startDrawing}
-                onMouseMove={paintMode === 'freeform' ? draw : undefined}
-                onMouseUp={paintMode === 'freeform' ? stopDrawing : undefined}
-                onMouseLeave={paintMode === 'freeform' ? stopDrawing : undefined}
+                className="w-full h-full touch-none"
+                style={{
+                  transform: `scale(${scale}) translate(${pan.x}px, ${pan.y}px)`,
+                  transformOrigin: '0 0'
+                }}
+                onMouseDown={(e) => {
+                  if (e.ctrlKey || e.metaKey || e.button === 1) {
+                    startPanning(e);
+                  } else if (paintMode === 'fill') {
+                    handleCanvasClick(e);
+                  } else {
+                    startDrawing(e);
+                  }
+                }}
+                onMouseMove={(e) => {
+                  if (isPanning) {
+                    doPan(e);
+                  } else if (paintMode === 'freeform') {
+                    draw(e);
+                  }
+                }}
+                onMouseUp={(e) => {
+                  if (isPanning) {
+                    stopPanning();
+                  } else if (paintMode === 'freeform') {
+                    stopDrawing();
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (isPanning) {
+                    stopPanning();
+                  } else if (paintMode === 'freeform') {
+                    stopDrawing();
+                  }
+                }}
                 onTouchStart={paintMode === 'fill' ? handleCanvasClick : startDrawing}
                 onTouchMove={paintMode === 'freeform' ? draw : undefined}
                 onTouchEnd={paintMode === 'freeform' ? stopDrawing : undefined}
@@ -383,6 +505,32 @@ export default function ColoringCanvas({
                 </p>
               )}
             </div>
+
+            {/* Recent Colors */}
+            {recentColors.length > 0 && (
+              <div className="mb-4">
+                <h3 className="font-semibold text-gray-700 mb-2 text-sm">Recent Colors</h3>
+                <div className="flex gap-2 flex-wrap">
+                  {recentColors.map((color, index) => (
+                    <motion.button
+                      key={`${color}-${index}`}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        setCurrentColor(color);
+                        setIsErasing(false);
+                      }}
+                      className={`w-8 h-8 rounded-full border-3 transition-all ${
+                        currentColor === color && !isErasing
+                          ? 'border-blue-500 shadow-lg ring-2 ring-blue-300'
+                          : 'border-gray-300'
+                      }`}
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Color Palette */}
             <div className="mb-6">
@@ -443,23 +591,21 @@ export default function ColoringCanvas({
               <Button
                 variant="outline"
                 onClick={handleUndo}
-                disabled={(paintMode === 'freeform' && strokes.length === 0) || (paintMode === 'fill' && fillHistory.length === 0)}
+                disabled={historyIndex === 0}
                 className="w-full justify-start"
               >
                 <Undo className="w-4 h-4 mr-2" />
                 Undo
               </Button>
-              {paintMode === 'freeform' && (
-                <Button
-                  variant="outline"
-                  onClick={handleRedo}
-                  disabled={redoStack.length === 0}
-                  className="w-full justify-start"
-                >
-                  <Redo className="w-4 h-4 mr-2" />
-                  Redo
-                </Button>
-              )}
+              <Button
+                variant="outline"
+                onClick={handleRedo}
+                disabled={historyIndex >= history.length - 1}
+                className="w-full justify-start"
+              >
+                <Redo className="w-4 h-4 mr-2" />
+                Redo
+              </Button>
             </div>
 
             {/* Actions */}
@@ -490,6 +636,10 @@ export default function ColoringCanvas({
                   <span className="font-medium capitalize">{paintMode}</span>
                 </div>
                 <div className="flex justify-between">
+                  <span>Zoom:</span>
+                  <span className="font-medium">{Math.round(scale * 100)}%</span>
+                </div>
+                <div className="flex justify-between">
                   <span>Strokes:</span>
                   <span className="font-medium">{strokes.length}</span>
                 </div>
@@ -504,6 +654,9 @@ export default function ColoringCanvas({
                   </span>
                 </div>
               </div>
+              <p className="text-xs text-gray-500 mt-3">
+                💡 Dica: Ctrl+Click para pan
+              </p>
             </div>
           </div>
         </div>
