@@ -63,19 +63,32 @@ export default function StoryReader({
   const handleAudioTimeUpdate = () => {
     if (!audioRef.current) return;
     const progress = (audioRef.current.currentTime / audioRef.current.duration) * 100;
-    setAudioProgress(progress);
+    setAudioProgress(progress || 0);
 
-    // Mock text highlighting based on progress
+    // Text highlighting based on progress
     const text = language === 'en' ? currentPage.story_text_en : currentPage.story_text_pt;
     const words = text?.split(' ') || [];
-    const wordIndex = Math.floor((audioRef.current.currentTime / audioRef.current.duration) * words.length);
-    setCurrentWord(wordIndex);
+    
+    if (words.length > 0 && audioRef.current.duration > 0) {
+      const wordIndex = Math.floor((audioRef.current.currentTime / audioRef.current.duration) * words.length);
+      // Clamp wordIndex to valid range
+      setCurrentWord(Math.min(wordIndex, words.length - 1));
+    }
   };
 
   const handleAudioEnded = () => {
     setIsPlaying(false);
-    setCurrentWord(-1);
-    setAudioProgress(0);
+    setAudioProgress(100);
+    
+    // Highlight last word briefly before clearing
+    const text = language === 'en' ? currentPage.story_text_en : currentPage.story_text_pt;
+    const words = text?.split(' ') || [];
+    if (words.length > 0) {
+      setCurrentWord(words.length - 1);
+      setTimeout(() => setCurrentWord(-1), 500);
+    } else {
+      setCurrentWord(-1);
+    }
   };
 
   const restartAudio = () => {
