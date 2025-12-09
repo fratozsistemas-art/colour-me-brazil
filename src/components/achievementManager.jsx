@@ -72,8 +72,49 @@ const ACHIEVEMENT_DEFINITIONS = [
     description_pt: 'Coloriu por mais de 30 minutos em uma sessão',
     icon: '⏱️',
     checkCondition: (profile, stats) => (profile.longest_session || 0) >= 1800
-  }
-];
+    }
+    ];
+
+    const POINTS_CONFIG = {
+    first_stroke: 50,
+    first_book: 100,
+    explorer: 200,
+    dedicated: 300,
+    culture_master: 500,
+    bilingual: 150,
+    speed_artist: 100,
+    marathon: 250,
+    page_colored: 10,
+    book_completed: 50
+    };
+
+    export function calculateLevel(points) {
+    return Math.floor(points / 500) + 1;
+    }
+
+    export function getPointsForNextLevel(currentLevel) {
+    return currentLevel * 500;
+    }
+
+    export async function awardPoints(profileId, pointType, amount) {
+    try {
+      const profiles = await base44.entities.UserProfile.list();
+      const profile = profiles.find(p => p.id === profileId);
+      if (!profile) return;
+
+      const newPoints = (profile.total_points || 0) + (amount || POINTS_CONFIG[pointType] || 0);
+      const newLevel = calculateLevel(newPoints);
+
+      await base44.entities.UserProfile.update(profileId, {
+        total_points: newPoints,
+        level: newLevel
+      });
+
+      return { points: newPoints, level: newLevel };
+    } catch (error) {
+      console.error('Error awarding points:', error);
+    }
+    }
 
 export async function checkAndAwardAchievements(profileId) {
   try {
@@ -111,6 +152,9 @@ export async function checkAndAwardAchievements(profileId) {
           icon: achievement.icon,
           unlocked_at: new Date().toISOString()
         });
+        
+        // Award points for achievement
+        await awardPoints(profileId, achievement.id);
       }
     }
 

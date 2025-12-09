@@ -1,7 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Undo, Redo, Eraser, Save, Download, X, Paintbrush, Grid3x3, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { Undo, Redo, Eraser, Save, Download, X, Paintbrush, Grid3x3, ZoomIn, ZoomOut, Maximize2, Share2 } from 'lucide-react';
+import ShareButton from '../social/ShareButton';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const COLORS = [
@@ -617,14 +618,23 @@ export default function ColoringCanvas({
                 <Save className="w-4 h-4 mr-2" />
                 Save Progress
               </Button>
-              <Button
-                variant="outline"
-                onClick={handleDownload}
-                className="w-full"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Download Image
-              </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleDownload}
+                  className="w-full"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download
+                </Button>
+                <ShareButton
+                  title="My Coloring Page"
+                  text="Check out my coloring page on Colour Me Brazil! 🎨"
+                  variant="outline"
+                  size="default"
+                  showText={false}
+                />
+              </div>
             </div>
 
             {/* Stats */}

@@ -8,7 +8,7 @@ import BookCard from '../components/library/BookCard';
 import ProfileSelector from '../components/profile/ProfileSelector';
 import StoryReader from '../components/story/StoryReader';
 import ColoringCanvas from '../components/coloring/ColoringCanvas';
-import { checkAndAwardAchievements } from '../components/achievementManager';
+import { checkAndAwardAchievements, awardPoints } from '../components/achievementManager';
 import { setupOfflineSync, syncOfflineData, getAllDownloadedBooks } from '../components/offlineManager';
 
 export default function Library() {
@@ -127,6 +127,8 @@ export default function Library() {
         books_completed: [...booksCompleted, bookId]
       });
       
+      // Award points for completing a book
+      await awardPoints(currentProfile.id, 'book_completed');
       await checkAndAwardAchievements(currentProfile.id);
       queryClient.invalidateQueries(['profiles']);
     }

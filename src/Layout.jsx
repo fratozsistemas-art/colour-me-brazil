@@ -7,6 +7,7 @@ export default function Layout({ children, currentPageName }) {
   const navItems = [
     { name: 'Library', path: 'Library', icon: Book },
     { name: 'Profile', path: 'Profile', icon: User },
+    { name: 'Manage Books', path: 'ManageBooks', icon: Settings },
     { name: 'Settings', path: 'Settings', icon: Settings }
   ];
 
