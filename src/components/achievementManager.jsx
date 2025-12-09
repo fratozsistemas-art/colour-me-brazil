@@ -72,21 +72,53 @@ const ACHIEVEMENT_DEFINITIONS = [
     description_pt: 'Coloriu por mais de 30 minutos em uma sessão',
     icon: '⏱️',
     checkCondition: (profile, stats) => (profile.longest_session || 0) >= 1800
-    }
-    ];
+  },
+  {
+    id: 'quiz_master',
+    name_en: 'Quiz Master',
+    name_pt: 'Mestre dos Questionários',
+    description_en: 'Answer 10 quizzes correctly',
+    description_pt: 'Responda 10 questionários corretamente',
+    icon: '🧠',
+    checkCondition: (profile, stats) => stats.quizzesCorrect >= 10
+  },
+  {
+    id: 'perfect_score',
+    name_en: 'Perfect Score',
+    name_pt: 'Pontuação Perfeita',
+    description_en: 'Answer 5 quizzes in a row correctly',
+    description_pt: 'Responda 5 questionários seguidos corretamente',
+    icon: '💯',
+    checkCondition: (profile, stats) => (profile.consecutive_quizzes_correct || 0) >= 5
+  },
+  {
+    id: 'daily_champion',
+    name_en: 'Daily Champion',
+    name_pt: 'Campeão Diário',
+    description_en: 'Complete 7 daily challenges',
+    description_pt: 'Complete 7 desafios diários',
+    icon: '⭐',
+    checkCondition: (profile, stats) => (profile.daily_challenges_completed || 0) >= 7
+  }
+];
 
-    const POINTS_CONFIG = {
-    first_stroke: 50,
-    first_book: 100,
-    explorer: 200,
-    dedicated: 300,
-    culture_master: 500,
-    bilingual: 150,
-    speed_artist: 100,
-    marathon: 250,
-    page_colored: 10,
-    book_completed: 50
-    };
+const POINTS_CONFIG = {
+  first_stroke: 50,
+  first_book: 100,
+  explorer: 200,
+  dedicated: 300,
+  culture_master: 500,
+  bilingual: 150,
+  speed_artist: 100,
+  marathon: 250,
+  quiz_master: 150,
+  perfect_score: 200,
+  daily_champion: 300,
+  page_colored: 10,
+  book_completed: 50,
+  quiz_correct: 10,
+  daily_challenge_completed: 20
+};
 
     export function calculateLevel(points) {
     return Math.floor(points / 500) + 1;
@@ -136,7 +168,8 @@ export async function checkAndAwardAchievements(profileId) {
       booksCompleted: profile.books_completed?.length || 0,
       booksViewed: profile.books_viewed?.length || 0,
       totalTime: profile.total_coloring_time || 0,
-      fastestPageTime: fastestTime
+      fastestPageTime: fastestTime,
+      quizzesCorrect: profile.quizzes_correct || 0
     };
 
     const newAchievements = [];

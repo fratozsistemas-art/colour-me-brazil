@@ -337,6 +337,7 @@ export default function StoryReader({
                 <QuizModal
                   quiz={currentQuiz}
                   language={language}
+                  profileId={book.profileId}
                   onComplete={handleQuizComplete}
                   onClose={() => setShowQuiz(false)}
                 />

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, XCircle, Lightbulb, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-export default function QuizModal({ quiz, language, onComplete, onClose }) {
+export default function QuizModal({ quiz, language, onComplete, onClose, profileId }) {
   const [selectedOption, setSelectedOption] = useState(null);
   const [showResult, setShowResult] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
@@ -13,13 +13,36 @@ export default function QuizModal({ quiz, language, onComplete, onClose }) {
   const question = language === 'en' ? quiz.question_en : quiz.question_pt;
   const explanation = language === 'en' ? quiz.explanation_en : quiz.explanation_pt;
 
-  const handleAnswer = (optionIndex) => {
+  const handleAnswer = async (optionIndex) => {
     if (showResult) return;
     
     setSelectedOption(optionIndex);
     const correct = quiz.options[optionIndex].is_correct;
     setIsCorrect(correct);
     setShowResult(true);
+    
+    // Track quiz attempt in profile
+    if (profileId) {
+      try {
+        const { base44 } = await import('@/api/base44Client');
+        const profiles = await base44.entities.UserProfile.filter({ id: profileId });
+        if (profiles.length > 0) {
+          const profile = profiles[0];
+          const newQuizzesAttempted = (profile.quizzes_attempted || 0) + 1;
+          const newQuizzesCorrect = correct ? (profile.quizzes_correct || 0) + 1 : profile.quizzes_correct;
+          const newConsecutiveCorrect = correct ? (profile.consecutive_quizzes_correct || 0) + 1 : 0;
+          
+          await base44.entities.UserProfile.update(profileId, {
+            quizzes_attempted: newQuizzesAttempted,
+            quizzes_correct: newQuizzesCorrect,
+            consecutive_quizzes_correct: newConsecutiveCorrect,
+            total_points: (profile.total_points || 0) + (correct ? 10 : 0)
+          });
+        }
+      } catch (error) {
+        console.error('Error tracking quiz:', error);
+      }
+    }
     
     if (onComplete) {
       onComplete({ correct, optionIndex });

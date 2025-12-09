@@ -9,6 +9,10 @@ import ProfileSelector from '../components/profile/ProfileSelector';
 import StoryReader from '../components/story/StoryReader';
 import ColoringCanvas from '../components/coloring/ColoringCanvas';
 import { checkAndAwardAchievements, awardPoints } from '../components/achievementManager';
+import StreakWidget from '../components/gamification/StreakWidget';
+import DailyChallengeCard from '../components/gamification/DailyChallengeCard';
+import { updateStreak, checkStreakAchievements } from '../components/gamification/streakManager';
+import { resetDailyChallenge } from '../components/gamification/dailyChallengeManager';
 import { setupOfflineSync, syncOfflineData, getAllDownloadedBooks } from '../components/offlineManager';
 
 export default function Library() {
@@ -43,6 +47,9 @@ export default function Library() {
       const profile = profiles.find(p => p.id === savedProfileId);
       if (profile) {
         setCurrentProfile(profile);
+        // Update streak and reset daily challenge on load
+        updateStreak(profile.id);
+        resetDailyChallenge(profile.id);
       }
     }
   }, [profiles]);
@@ -94,12 +101,18 @@ export default function Library() {
       // Load pages for this book
       const pages = await base44.entities.Page.filter({ book_id: book.id });
       setStoryPages(pages.sort((a, b) => a.page_number - b.page_number));
-      setSelectedBook(book);
       
-      // Update current book ID
+      // Attach profileId to book for quiz tracking
+      setSelectedBook({ ...book, profileId: currentProfile.id });
+      
+      // Update current book ID and streak
       await base44.entities.UserProfile.update(currentProfile.id, {
         current_book_id: book.id
       });
+      const streakResult = await updateStreak(currentProfile.id);
+      if (streakResult) {
+        await checkStreakAchievements(currentProfile.id, streakResult.current_streak);
+      }
     }
   };
 
@@ -248,6 +261,21 @@ export default function Library() {
       <div className="max-w-7xl mx-auto">
       {/* Welcome Header */}
       <div className="mb-8">
+        {/* Streak and Daily Challenge */}
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <StreakWidget 
+            currentStreak={currentProfile.current_streak || 0} 
+            longestStreak={currentProfile.longest_streak || 0}
+          />
+          <DailyChallengeCard 
+            profile={currentProfile}
+            onChallengeComplete={async () => {
+              await checkAndAwardAchievements(currentProfile.id);
+              queryClient.invalidateQueries(['profiles']);
+            }}
+          />
+        </div>
+
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-4xl font-bold text-gray-800">
