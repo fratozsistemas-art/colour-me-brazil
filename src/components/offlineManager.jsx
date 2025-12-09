@@ -61,12 +61,12 @@ async function cacheFile(url) {
     const cache = await caches.open(CACHE_NAME);
     const response = await fetch(url);
     if (response.ok) {
-      await cache.put(url, response);
+      await cache.put(url, response.clone());
       return true;
     }
     return false;
   } catch (error) {
-    console.error('Error caching file:', url, error);
+    console.error('Error caching file:', url, error?.message || error);
     return false;
   }
 }
@@ -138,13 +138,14 @@ export async function downloadBook(bookId, onProgress) {
     return { success: true, book, pages };
   } catch (error) {
     console.error('Error downloading book:', error);
+    const errorMessage = error?.message || error?.toString() || 'Download failed';
     await saveToIndexedDB('downloads', {
       book_id: bookId,
       status: 'error',
-      error: error.message,
+      error: errorMessage,
       failed_at: new Date().toISOString()
-    });
-    throw error;
+    }).catch(() => {}); // Ignore if saving error status fails
+    throw new Error(errorMessage);
   }
 }
 
@@ -179,7 +180,8 @@ export async function deleteDownloadedBook(bookId) {
     return { success: true };
   } catch (error) {
     console.error('Error deleting downloaded book:', error);
-    throw error;
+    const errorMessage = error?.message || error?.toString() || 'Delete failed';
+    throw new Error(errorMessage);
   }
 }
 
@@ -259,7 +261,7 @@ export async function syncOfflineData() {
     return { success: true, synced: books.length };
   } catch (error) {
     console.error('Error syncing offline data:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: error?.message || error?.toString() || 'Sync failed' };
   }
 }
 
