@@ -1,17 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, Filter, Download, Lock } from 'lucide-react';
 import BookCard from '../components/library/BookCard';
 import ProfileSelector from '../components/profile/ProfileSelector';
+import StoryReader from '../components/story/StoryReader';
+import ColoringCanvas from '../components/coloring/ColoringCanvas';
+import { checkAndAwardAchievements } from '../utils/achievementManager';
 
 export default function Library() {
   const [currentProfile, setCurrentProfile] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCollection, setSelectedCollection] = useState('all');
   const [showLockedBooks, setShowLockedBooks] = useState(true);
+  const [selectedBook, setSelectedBook] = useState(null);
+  const [storyPages, setStoryPages] = useState([]);
+  const [coloringPage, setColoringPage] = useState(null);
+  
+  const queryClient = useQueryClient();
 
   // Fetch user profiles
   const { data: profiles = [] } = useQuery({
@@ -49,15 +57,68 @@ export default function Library() {
     }
   };
 
-  const handleBookClick = (book) => {
+  const handleBookClick = async (book) => {
     if (book.is_locked) {
       // Show paywall (will be implemented in Sprint 4)
       alert('This book is locked. Purchase the full collection to unlock!');
     } else {
-      // Navigate to story reader (will be implemented in Sprint 2)
-      window.location.href = `/story/${book.id}`;
+      // Load pages for this book
+      const pages = await base44.entities.Page.filter({ book_id: book.id });
+      setStoryPages(pages.sort((a, b) => a.page_number - b.page_number));
+      setSelectedBook(book);
     }
   };
+
+  const handleColorPage = (page) => {
+    setColoringPage(page);
+  };
+
+  const saveColoringSession = useMutation({
+    mutationFn: async (sessionData) => {
+      const existing = await base44.entities.ColoringSession.filter({
+        profile_id: currentProfile.id,
+        page_id: coloringPage.id
+      });
+
+      if (existing.length > 0) {
+        // Update existing session
+        return base44.entities.ColoringSession.update(existing[0].id, {
+          ...sessionData,
+          last_modified: new Date().toISOString()
+        });
+      } else {
+        // Create new session
+        return base44.entities.ColoringSession.create({
+          profile_id: currentProfile.id,
+          page_id: coloringPage.id,
+          book_id: coloringPage.book_id,
+          ...sessionData,
+          last_modified: new Date().toISOString()
+        });
+      }
+    },
+    onSuccess: async () => {
+      // Update profile progress
+      const sessions = await base44.entities.ColoringSession.filter({ 
+        profile_id: currentProfile.id 
+      });
+      
+      const completedPages = sessions.filter(s => s.is_completed).map(s => s.page_id);
+      const totalTime = sessions.reduce((sum, s) => sum + (s.coloring_time || 0), 0);
+      
+      await base44.entities.UserProfile.update(currentProfile.id, {
+        pages_colored: completedPages,
+        total_coloring_time: totalTime
+      });
+
+      // Check for new achievements
+      await checkAndAwardAchievements(currentProfile.id);
+      
+      queryClient.invalidateQueries(['profiles']);
+      queryClient.invalidateQueries(['coloringSessions']);
+      setColoringPage(null);
+    }
+  });
 
   // Filter books
   const filteredBooks = books.filter(book => {
@@ -88,7 +149,34 @@ export default function Library() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <>
+      {/* Story Reader Modal */}
+      {selectedBook && storyPages.length > 0 && !coloringPage && (
+        <StoryReader
+          book={selectedBook}
+          pages={storyPages}
+          onClose={() => {
+            setSelectedBook(null);
+            setStoryPages([]);
+          }}
+          onColorPage={handleColorPage}
+          preferredLanguage={currentProfile?.narration_language || 'en'}
+        />
+      )}
+
+      {/* Coloring Canvas Modal */}
+      {coloringPage && (
+        <ColoringCanvas
+          pageId={coloringPage.id}
+          bookId={coloringPage.book_id}
+          profileId={currentProfile?.id}
+          illustrationUrl={coloringPage.illustration_url}
+          onSave={(data) => saveColoringSession.mutate(data)}
+          onClose={() => setColoringPage(null)}
+        />
+      )}
+
+      <div className="max-w-7xl mx-auto">
       {/* Welcome Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
@@ -215,6 +303,7 @@ export default function Library() {
           ))}
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }
