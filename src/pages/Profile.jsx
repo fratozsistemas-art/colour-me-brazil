@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Trophy, Book, Palette, Clock, Star, Award, Zap, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getProfileAchievements, checkAndAwardAchievements } from '../utils/achievementManager';
+import { getProfileAchievements, checkAndAwardAchievements } from '../components/utils/achievementManager';
 
 export default function Profile() {
   const currentProfileId = localStorage.getItem('currentProfileId');

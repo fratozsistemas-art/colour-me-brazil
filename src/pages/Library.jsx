@@ -8,7 +8,7 @@ import BookCard from '../components/library/BookCard';
 import ProfileSelector from '../components/profile/ProfileSelector';
 import StoryReader from '../components/story/StoryReader';
 import ColoringCanvas from '../components/coloring/ColoringCanvas';
-import { checkAndAwardAchievements } from '../utils/achievementManager';
+import { checkAndAwardAchievements } from '../components/utils/achievementManager';
 
 export default function Library() {
   const [currentProfile, setCurrentProfile] = useState(null);
