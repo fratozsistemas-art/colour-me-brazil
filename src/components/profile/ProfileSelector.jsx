@@ -6,21 +6,21 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, User } from 'lucide-react';
 
 const AVATAR_OPTIONS = [
-  { id: 'cat', emoji: '🐱', label: 'Cat' },
-  { id: 'dog', emoji: '🐶', label: 'Dog' },
-  { id: 'monkey', emoji: '🐵', label: 'Monkey' },
-  { id: 'parrot', emoji: '🦜', label: 'Parrot' },
-  { id: 'butterfly', emoji: '🦋', label: 'Butterfly' },
-  { id: 'turtle', emoji: '🐢', label: 'Turtle' },
-  { id: 'dolphin', emoji: '🐬', label: 'Dolphin' },
-  { id: 'toucan', emoji: '🦤', label: 'Toucan' },
-  { id: 'sun', emoji: '☀️', label: 'Sun' },
-  { id: 'rainbow', emoji: '🌈', label: 'Rainbow' },
-  { id: 'star', emoji: '⭐', label: 'Star' },
-  { id: 'flower', emoji: '🌺', label: 'Flower' },
-  { id: 'rocket', emoji: '🚀', label: 'Rocket' },
-  { id: 'palette', emoji: '🎨', label: 'Palette' },
-  { id: 'soccer', emoji: '⚽', label: 'Soccer' }
+  { id: 'jaguar', emoji: '🐆', label: 'Jaguar' },
+  { id: 'sloth', emoji: '🦥', label: 'Sloth' },
+  { id: 'toucan', emoji: '🦜', label: 'Toucan' },
+  { id: 'monkey', emoji: '🐒', label: 'Monkey' },
+  { id: 'samba_dancer', emoji: '💃', label: 'Samba Dancer' },
+  { id: 'football', emoji: '⚽', label: 'Football' },
+  { id: 'carnival_mask', emoji: '🎭', label: 'Carnival Mask' },
+  { id: 'palm_tree', emoji: '🌴', label: 'Palm Tree' },
+  { id: 'amazon_river', emoji: '🌊', label: 'Amazon River' },
+  { id: 'coffee', emoji: '☕', label: 'Coffee' },
+  { id: 'fruit', emoji: '🍹', label: 'Tropical Fruit' },
+  { id: 'capybara', emoji: '🦫', label: 'Capybara' },
+  { id: 'macaw', emoji: '🦚', label: 'Macaw' },
+  { id: 'flower', emoji: '🌺', label: 'Tropical Flower' },
+  { id: 'sun', emoji: '☀️', label: 'Brazilian Sun' }
 ];
 
 export default function ProfileSelector({ onProfileCreated, existingProfiles = [] }) {

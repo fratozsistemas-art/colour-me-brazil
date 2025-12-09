@@ -57,11 +57,11 @@ export default function Profile() {
   }
 
   const AVATAR_OPTIONS = [
-    { id: 'cat', emoji: '🐱' }, { id: 'dog', emoji: '🐶' }, { id: 'monkey', emoji: '🐵' },
-    { id: 'parrot', emoji: '🦜' }, { id: 'butterfly', emoji: '🦋' }, { id: 'turtle', emoji: '🐢' },
-    { id: 'dolphin', emoji: '🐬' }, { id: 'toucan', emoji: '🦤' }, { id: 'sun', emoji: '☀️' },
-    { id: 'rainbow', emoji: '🌈' }, { id: 'star', emoji: '⭐' }, { id: 'flower', emoji: '🌺' },
-    { id: 'rocket', emoji: '🚀' }, { id: 'palette', emoji: '🎨' }, { id: 'soccer', emoji: '⚽' }
+    { id: 'jaguar', emoji: '🐆' }, { id: 'sloth', emoji: '🦥' }, { id: 'toucan', emoji: '🦜' },
+    { id: 'monkey', emoji: '🐒' }, { id: 'samba_dancer', emoji: '💃' }, { id: 'football', emoji: '⚽' },
+    { id: 'carnival_mask', emoji: '🎭' }, { id: 'palm_tree', emoji: '🌴' }, { id: 'amazon_river', emoji: '🌊' },
+    { id: 'coffee', emoji: '☕' }, { id: 'fruit', emoji: '🍹' }, { id: 'capybara', emoji: '🦫' },
+    { id: 'macaw', emoji: '🦚' }, { id: 'flower', emoji: '🌺' }, { id: 'sun', emoji: '☀️' }
   ];
 
   const avatar = AVATAR_OPTIONS.find(a => a.id === profile.avatar_icon);
