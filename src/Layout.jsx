@@ -13,6 +13,7 @@ export default function Layout({ children, currentPageName }) {
 
   const adminItems = [
     { name: 'Manage', path: 'ManageBooks', icon: Settings },
+    { name: 'Covers', path: 'GenerateCovers', icon: Palette },
     { name: 'Brand', path: 'BrandGuidelines', icon: Palette }
   ];
 
