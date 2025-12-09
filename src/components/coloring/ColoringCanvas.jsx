@@ -1,18 +1,10 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Undo, Redo, Eraser, Save, Download, X, Paintbrush, Grid3x3, ZoomIn, ZoomOut, Maximize2, Share2 } from 'lucide-react';
+import { Undo, Redo, Eraser, Save, Download, X, Paintbrush, Grid3x3, ZoomIn, ZoomOut, Maximize2, Share2, Palette } from 'lucide-react';
 import ShareButton from '../social/ShareButton';
 import { motion, AnimatePresence } from 'framer-motion';
-
-const COLORS = [
-  '#009C3B', '#FFDF00', '#002776', '#FFFFFF', // Brazilian flag
-  '#F44336', '#E91E63', '#9C27B0', '#673AB7', // Reds, Pinks, Purples
-  '#3F51B5', '#2196F3', '#03A9F4', '#00BCD4', // Blues
-  '#009688', '#4CAF50', '#8BC34A', '#CDDC39', // Greens
-  '#FFEB3B', '#FFC107', '#FF9800', '#FF5722', // Yellows, Oranges
-  '#795548', '#9E9E9E', '#607D8B', '#000000'  // Browns, Grays, Black
-];
+import { getBookPalette, THEME_PALETTES, getAllPaletteNames } from './colorPalettes';
 
 export default function ColoringCanvas({ 
   pageId, 
@@ -21,13 +13,21 @@ export default function ColoringCanvas({
   illustrationUrl,
   onSave,
   onClose,
-  initialStrokes = []
+  initialStrokes = [],
+  bookData = null
 }) {
   const canvasRef = useRef(null);
   const fillCanvasRef = useRef(null);
   const containerRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [currentColor, setCurrentColor] = useState(COLORS[0]);
+  
+  // Get theme-based palette
+  const currentPalette = bookData ? getBookPalette(bookData) : THEME_PALETTES.culture;
+  const [availablePalettes] = useState(getAllPaletteNames());
+  const [selectedPaletteKey, setSelectedPaletteKey] = useState(
+    bookData?.collection === 'amazon' ? 'amazon' : 'culture'
+  );
+  const [currentColor, setCurrentColor] = useState(currentPalette.colors[0]);
   const [brushSize, setBrushSize] = useState(5);
   const [strokes, setStrokes] = useState(initialStrokes);
   const [currentStroke, setCurrentStroke] = useState([]);
@@ -533,11 +533,36 @@ export default function ColoringCanvas({
               </div>
             )}
 
+            {/* Palette Selector */}
+            <div className="mb-4">
+              <h3 className="font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                <Palette className="w-4 h-4" />
+                Theme Palette
+              </h3>
+              <select
+                value={selectedPaletteKey}
+                onChange={(e) => {
+                  setSelectedPaletteKey(e.target.value);
+                  setCurrentColor(THEME_PALETTES[e.target.value].colors[0]);
+                }}
+                className="w-full p-2 border rounded-lg text-sm"
+              >
+                {availablePalettes.map(palette => (
+                  <option key={palette.id} value={palette.id}>
+                    {palette.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                {THEME_PALETTES[selectedPaletteKey].name}
+              </p>
+            </div>
+
             {/* Color Palette */}
             <div className="mb-6">
-              <h3 className="font-semibold text-gray-700 mb-3">Colors</h3>
+              <h3 className="font-semibold text-gray-700 mb-3">Watercolor Palette</h3>
               <div className="grid grid-cols-6 gap-2">
-                {COLORS.map((color) => (
+                {THEME_PALETTES[selectedPaletteKey].colors.map((color) => (
                   <motion.button
                     key={color}
                     whileHover={{ scale: 1.1 }}
@@ -552,6 +577,7 @@ export default function ColoringCanvas({
                         : 'border-gray-300'
                     }`}
                     style={{ backgroundColor: color }}
+                    title={color}
                   />
                 ))}
               </div>
@@ -563,16 +589,42 @@ export default function ColoringCanvas({
                 <h3 className="font-semibold text-gray-700 mb-3">Brush Size</h3>
                 <input
                   type="range"
-                  min="1"
-                  max="20"
+                  min="2"
+                  max="40"
                   value={brushSize}
                   onChange={(e) => setBrushSize(Number(e.target.value))}
-                  className="w-full"
+                  className="w-full accent-blue-500"
                 />
                 <div className="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>Thin</span>
+                  <span>Fine</span>
                   <span className="font-semibold">{brushSize}px</span>
                   <span>Thick</span>
+                </div>
+                <div className="flex gap-2 mt-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setBrushSize(3)}
+                    className="flex-1 text-xs"
+                  >
+                    Fine
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setBrushSize(10)}
+                    className="flex-1 text-xs"
+                  >
+                    Medium
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setBrushSize(25)}
+                    className="flex-1 text-xs"
+                  >
+                    Bold
+                  </Button>
                 </div>
               </div>
             )}

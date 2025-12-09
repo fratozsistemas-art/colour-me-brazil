@@ -239,6 +239,7 @@ export default function Library() {
           bookId={coloringPage.book_id}
           profileId={currentProfile?.id}
           illustrationUrl={coloringPage.illustration_url}
+          bookData={selectedBook}
           onSave={(data) => saveColoringSession.mutate(data)}
           onClose={() => setColoringPage(null)}
         />
