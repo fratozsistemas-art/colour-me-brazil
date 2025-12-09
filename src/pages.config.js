@@ -4,7 +4,7 @@ import Settings from './pages/Settings';
 import ManageBooks from './pages/ManageBooks';
 import BrandGuidelines from './pages/BrandGuidelines';
 import Shop from './pages/Shop';
-import GenerateCovers from './pages/GenerateCovers';
+import Leaderboard from './pages/Leaderboard';
 import __Layout from './Layout.jsx';
 
 
@@ -15,7 +15,7 @@ export const PAGES = {
     "ManageBooks": ManageBooks,
     "BrandGuidelines": BrandGuidelines,
     "Shop": Shop,
-    "GenerateCovers": GenerateCovers,
+    "Leaderboard": Leaderboard,
 }
 
 export const pagesConfig = {
