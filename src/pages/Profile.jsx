@@ -5,7 +5,8 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Trophy, Book, Palette, Clock, Star, Award, Zap, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getProfileAchievements, checkAndAwardAchievements } from '../components/achievementManager';
+import { getProfileAchievements, checkAndAwardAchievements, calculateLevel, getPointsForNextLevel } from '../components/achievementManager';
+import ShareButton from '../components/social/ShareButton';
 
 export default function Profile() {
   const currentProfileId = localStorage.getItem('currentProfileId');
@@ -98,14 +99,26 @@ export default function Profile() {
           <div className="text-8xl">{avatar?.emoji || '👤'}</div>
           <div className="flex-1 text-center md:text-left">
             <h1 className="text-4xl font-bold text-gray-800 mb-2">{profile.child_name}</h1>
+            <p className="text-gray-600 mb-3">Level {profile.level || 1} • {profile.total_points || 0} points</p>
+            <div className="bg-white rounded-full h-3 overflow-hidden shadow-inner mb-2">
+              <div 
+                className="h-full bg-gradient-to-r from-green-500 to-blue-500 transition-all duration-500"
+                style={{ 
+                  width: `${((profile.total_points || 0) % 500) / 5}%` 
+                }}
+              />
+            </div>
+            <p className="text-xs text-gray-500 mb-4">
+              {500 - ((profile.total_points || 0) % 500)} points to level {(profile.level || 1) + 1}
+            </p>
             <div className="flex flex-wrap gap-4 justify-center md:justify-start text-sm text-gray-600">
               <span className="flex items-center gap-1">
                 <Book className="w-4 h-4" />
-                {profile.books_completed?.length || 0} books completed
+                {profile.books_completed?.length || 0} books
               </span>
               <span className="flex items-center gap-1">
                 <Palette className="w-4 h-4" />
-                {coloredPages} pages colored
+                {coloredPages} pages
               </span>
               <span className="flex items-center gap-1">
                 <Trophy className="w-4 h-4" />
@@ -113,9 +126,16 @@ export default function Profile() {
               </span>
             </div>
           </div>
-          <div className="text-center">
-            <div className="text-5xl font-bold text-green-600 mb-1">{overallProgress}%</div>
-            <div className="text-sm text-gray-600">Overall Progress</div>
+          <div className="flex flex-col gap-2">
+            <div className="text-center">
+              <div className="text-5xl font-bold text-green-600 mb-1">{overallProgress}%</div>
+              <div className="text-sm text-gray-600">Progress</div>
+            </div>
+            <ShareButton
+              title={`${profile.child_name}'s Profile`}
+              text={`I'm Level ${profile.level || 1} on Colour Me Brazil! Check out my progress! 🎨`}
+              variant="outline"
+            />
           </div>
         </div>
       </Card>
@@ -235,8 +255,17 @@ export default function Profile() {
                     {achievement.description_en}
                   </div>
                   {achievement.unlocked && achievement.unlockedAt && (
-                    <div className="text-xs text-green-600 mt-2 font-medium">
-                      ✓ Unlocked {new Date(achievement.unlockedAt).toLocaleDateString()}
+                    <div className="mt-2">
+                      <div className="text-xs text-green-600 font-medium">
+                        ✓ Unlocked
+                      </div>
+                      <ShareButton
+                        title={achievement.name_en}
+                        text={`I unlocked the "${achievement.name_en}" achievement on Colour Me Brazil! ${achievement.icon}`}
+                        variant="ghost"
+                        size="icon"
+                        showText={false}
+                      />
                     </div>
                   )}
                 </motion.div>
