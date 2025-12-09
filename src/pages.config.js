@@ -3,6 +3,7 @@ import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import ManageBooks from './pages/ManageBooks';
 import BrandGuidelines from './pages/BrandGuidelines';
+import Shop from './pages/Shop';
 import __Layout from './Layout.jsx';
 
 
@@ -12,6 +13,7 @@ export const PAGES = {
     "Settings": Settings,
     "ManageBooks": ManageBooks,
     "BrandGuidelines": BrandGuidelines,
+    "Shop": Shop,
 }
 
 export const pagesConfig = {

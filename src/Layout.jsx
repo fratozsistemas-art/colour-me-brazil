@@ -1,11 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from './utils';
-import { Book, Settings, User, Palette } from 'lucide-react';
+import { Book, Settings, User, Palette, ShoppingBag } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
   const navItems = [
     { name: 'Library', path: 'Library', icon: Book },
+    { name: 'Shop', path: 'Shop', icon: ShoppingBag },
     { name: 'Profile', path: 'Profile', icon: User },
     { name: 'Brand', path: 'BrandGuidelines', icon: Palette },
     { name: 'Manage', path: 'ManageBooks', icon: Settings },
