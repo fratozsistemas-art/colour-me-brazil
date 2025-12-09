@@ -169,7 +169,10 @@ export default function ColoringCanvas({
     const tolerance = 30; // Color similarity tolerance
     
     while (stack.length > 0) {
-      const [x, y] = stack.pop();
+      const point = stack.pop();
+      if (!point) continue;
+      
+      const [x, y] = point;
       const key = `${x},${y}`;
       
       if (visited.has(key)) continue;
