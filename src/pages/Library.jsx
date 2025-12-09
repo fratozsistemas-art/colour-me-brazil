@@ -278,27 +278,27 @@ export default function Library() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <div className="bg-white rounded-xl p-4 shadow-md">
-            <div className="text-2xl font-bold text-green-600">{stats.total}</div>
-            <div className="text-sm text-gray-600">Total Books</div>
+          <div className="bg-white rounded-xl p-4 shadow-md border-l-4" style={{ borderColor: '#06A77D' }}>
+            <div className="text-2xl font-bold" style={{ color: '#06A77D' }}>{stats.total}</div>
+            <div className="text-sm" style={{ color: '#6C757D' }}>Total Books</div>
           </div>
-          <div className="bg-white rounded-xl p-4 shadow-md">
-            <div className="text-2xl font-bold text-blue-600">{stats.unlocked}</div>
-            <div className="text-sm text-gray-600">Unlocked</div>
+          <div className="bg-white rounded-xl p-4 shadow-md border-l-4" style={{ borderColor: '#2E86AB' }}>
+            <div className="text-2xl font-bold" style={{ color: '#2E86AB' }}>{stats.unlocked}</div>
+            <div className="text-sm" style={{ color: '#6C757D' }}>Unlocked</div>
           </div>
-          <div className="bg-white rounded-xl p-4 shadow-md">
-            <div className="text-2xl font-bold text-purple-600">{stats.completed}</div>
-            <div className="text-sm text-gray-600">Completed</div>
+          <div className="bg-white rounded-xl p-4 shadow-md border-l-4" style={{ borderColor: '#FF6B35' }}>
+            <div className="text-2xl font-bold" style={{ color: '#FF6B35' }}>{stats.completed}</div>
+            <div className="text-sm" style={{ color: '#6C757D' }}>Completed</div>
           </div>
-          <div className="bg-white rounded-xl p-4 shadow-md">
-            <div className="text-2xl font-bold text-orange-600">{downloadedCount}</div>
-            <div className="text-sm text-gray-600">Downloaded</div>
+          <div className="bg-white rounded-xl p-4 shadow-md border-l-4" style={{ borderColor: '#FF8C42' }}>
+            <div className="text-2xl font-bold" style={{ color: '#FF8C42' }}>{downloadedCount}</div>
+            <div className="text-sm" style={{ color: '#6C757D' }}>Downloaded</div>
           </div>
-          <div className="bg-white rounded-xl p-4 shadow-md">
-            <div className="text-2xl font-bold text-yellow-600">
+          <div className="bg-white rounded-xl p-4 shadow-md border-l-4" style={{ borderColor: '#FFD23F' }}>
+            <div className="text-2xl font-bold" style={{ color: '#FFD23F' }}>
               {Math.round((currentProfile.pages_colored?.length || 0) / (stats.total * 12) * 100)}%
             </div>
-            <div className="text-sm text-gray-600">Progress</div>
+            <div className="text-sm" style={{ color: '#6C757D' }}>Progress</div>
           </div>
         </div>
       </div>
@@ -324,6 +324,11 @@ export default function Library() {
               variant={selectedCollection === 'all' ? 'default' : 'outline'}
               onClick={() => setSelectedCollection('all')}
               className="flex items-center gap-2"
+              style={selectedCollection === 'all' ? { 
+                background: 'linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%)',
+                color: '#FFFFFF',
+                border: 'none'
+              } : {}}
             >
               <Filter className="w-4 h-4" />
               All
@@ -331,12 +336,22 @@ export default function Library() {
             <Button
               variant={selectedCollection === 'amazon' ? 'default' : 'outline'}
               onClick={() => setSelectedCollection('amazon')}
+              style={selectedCollection === 'amazon' ? { 
+                background: 'linear-gradient(135deg, #06A77D 0%, #2E86AB 100%)',
+                color: '#FFFFFF',
+                border: 'none'
+              } : {}}
             >
               🌿 Amazon
             </Button>
             <Button
               variant={selectedCollection === 'culture' ? 'default' : 'outline'}
               onClick={() => setSelectedCollection('culture')}
+              style={selectedCollection === 'culture' ? { 
+                background: 'linear-gradient(135deg, #2E86AB 0%, #FF6B35 100%)',
+                color: '#FFFFFF',
+                border: 'none'
+              } : {}}
             >
               🎨 Culture
             </Button>
@@ -363,8 +378,8 @@ export default function Library() {
       {/* Books Grid */}
       {booksLoading ? (
         <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
-          <p className="text-gray-600 mt-4">Loading books...</p>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: '#FF6B35' }}></div>
+          <p style={{ color: '#6C757D' }} className="mt-4">Loading books...</p>
         </div>
       ) : filteredBooks.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-xl shadow-md">

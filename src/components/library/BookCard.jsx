@@ -59,8 +59,8 @@ export default function BookCard({ book, userProfile, onClick, onDownloadChange 
   const hasProgress = lastReadPage > 0;
 
   const collectionColors = {
-    amazon: 'from-green-600 to-emerald-500',
-    culture: 'from-blue-600 to-purple-500'
+    amazon: { gradient: 'linear-gradient(135deg, #06A77D 0%, #2E86AB 100%)', text: '#FFFFFF' },
+    culture: { gradient: 'linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%)', text: '#FFFFFF' }
   };
 
   return (
@@ -70,7 +70,7 @@ export default function BookCard({ book, userProfile, onClick, onDownloadChange 
       onClick={onClick}
       className="cursor-pointer group"
     >
-      <div className="bg-white rounded-2xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl border-2 border-transparent hover:border-green-200">
+      <div className="bg-white rounded-2xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl border-2 border-transparent" style={{ borderColor: 'transparent' }} onMouseEnter={(e) => e.currentTarget.style.borderColor = '#A8DADC'} onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}>
         {/* Cover Image Container */}
         <div className="relative aspect-square bg-gradient-to-br from-gray-100 to-gray-200">
           {book.cover_image_url ? (
@@ -81,7 +81,12 @@ export default function BookCard({ book, userProfile, onClick, onDownloadChange 
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <div className={`text-6xl bg-gradient-to-br ${collectionColors[book.collection]} bg-clip-text text-transparent font-bold`}>
+              <div className="text-6xl font-bold" style={{ 
+                background: collectionColors[book.collection]?.gradient || 'linear-gradient(135deg, #2E86AB 0%, #06A77D 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }}>
                 {book.title_en?.[0] || '?'}
               </div>
             </div>
@@ -190,7 +195,10 @@ export default function BookCard({ book, userProfile, onClick, onDownloadChange 
 
           {/* Collection Badge - only show if no progress badge */}
           {!hasProgress && (
-            <div className={`absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-semibold text-white bg-gradient-to-r ${collectionColors[book.collection]} shadow-lg`}>
+            <div className="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-semibold shadow-lg" style={{ 
+              background: collectionColors[book.collection]?.gradient || 'linear-gradient(135deg, #2E86AB 0%, #06A77D 100%)',
+              color: collectionColors[book.collection]?.text || '#FFFFFF'
+            }}>
               {book.collection === 'amazon' ? '🌿 Amazon' : '🎨 Culture'}
             </div>
           )}
@@ -198,7 +206,7 @@ export default function BookCard({ book, userProfile, onClick, onDownloadChange 
 
         {/* Book Info */}
         <div className="p-4">
-          <h3 className="font-bold text-lg text-gray-800 line-clamp-2 mb-1 group-hover:text-green-600 transition-colors">
+          <h3 className="font-bold text-lg line-clamp-2 mb-1 transition-colors" style={{ color: '#1A2332' }} onMouseEnter={(e) => e.currentTarget.style.color = '#FF6B35'} onMouseLeave={(e) => e.currentTarget.style.color = '#1A2332'}>
             {book.title_en}
           </h3>
           {book.subtitle_en && (
@@ -226,13 +234,16 @@ export default function BookCard({ book, userProfile, onClick, onDownloadChange 
             <div className="space-y-1">
               <div className="flex justify-between items-center text-xs text-gray-600">
                 <span>{pagesColored} of {book.page_count} pages</span>
-                <span className="font-semibold text-green-600">{progressPercent}%</span>
+                <span className="font-semibold" style={{ color: '#06A77D' }}>{progressPercent}%</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                <div
-                  className="bg-gradient-to-r from-green-500 to-blue-500 h-full rounded-full transition-all duration-500"
-                  style={{ width: `${progressPercent}%` }}
-                />
+               <div
+                 className="h-full rounded-full transition-all duration-500"
+                 style={{ 
+                   width: `${progressPercent}%`,
+                   background: 'linear-gradient(135deg, #FF6B35 0%, #2E86AB 100%)'
+                 }}
+               />
               </div>
             </div>
           )}
@@ -256,7 +267,10 @@ export default function BookCard({ book, userProfile, onClick, onDownloadChange 
               ) : (
                 <button
                   onClick={handleDownload}
-                  className="flex items-center gap-2 text-xs text-green-600 hover:text-green-700 transition-colors"
+                  className="flex items-center gap-2 text-xs transition-colors"
+                  style={{ color: '#06A77D' }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = '#2E86AB'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#06A77D'}
                 >
                   <Download className="w-3 h-3" />
                   <span>Download for offline</span>

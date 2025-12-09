@@ -94,7 +94,7 @@ export default function Profile() {
   return (
     <div className="max-w-6xl mx-auto pb-24 md:pb-8">
       {/* Profile Header */}
-      <Card className="p-8 mb-8 bg-gradient-to-br from-green-50 to-blue-50">
+      <Card className="p-8 mb-8" style={{ background: 'linear-gradient(135deg, #FFF8F0 0%, #A8DADC 100%)' }}>
         <div className="flex flex-col md:flex-row items-center gap-6">
           <div className="text-8xl">{avatar?.emoji || '👤'}</div>
           <div className="flex-1 text-center md:text-left">
@@ -102,9 +102,10 @@ export default function Profile() {
             <p className="text-gray-600 mb-3">Level {profile.level || 1} • {profile.total_points || 0} points</p>
             <div className="bg-white rounded-full h-3 overflow-hidden shadow-inner mb-2">
               <div 
-                className="h-full bg-gradient-to-r from-green-500 to-blue-500 transition-all duration-500"
+                className="h-full transition-all duration-500"
                 style={{ 
-                  width: `${((profile.total_points || 0) % 500) / 5}%` 
+                  width: `${((profile.total_points || 0) % 500) / 5}%`,
+                  background: 'linear-gradient(135deg, #FF6B35 0%, #2E86AB 100%)'
                 }}
               />
             </div>
@@ -128,8 +129,8 @@ export default function Profile() {
           </div>
           <div className="flex flex-col gap-2">
             <div className="text-center">
-              <div className="text-5xl font-bold text-green-600 mb-1">{overallProgress}%</div>
-              <div className="text-sm text-gray-600">Progress</div>
+              <div className="text-5xl font-bold mb-1" style={{ color: '#FF6B35' }}>{overallProgress}%</div>
+              <div className="text-sm" style={{ color: '#6C757D' }}>Progress</div>
             </div>
             <ShareButton
               title={`${profile.child_name}'s Profile`}
@@ -148,55 +149,55 @@ export default function Profile() {
             Statistics
           </h2>
           <div className="space-y-4">
-            <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
+            <div className="flex justify-between items-center p-4 rounded-lg" style={{ backgroundColor: '#FFF8F0' }}>
               <div className="flex items-center gap-3">
-                <Book className="w-6 h-6 text-green-600" />
+                <Book className="w-6 h-6" style={{ color: '#FF6B35' }} />
                 <span className="font-medium">Books Completed</span>
               </div>
-              <span className="text-2xl font-bold text-green-600">
+              <span className="text-2xl font-bold" style={{ color: '#FF6B35' }}>
                 {profile.books_completed?.length || 0}
               </span>
             </div>
-            <div className="flex justify-between items-center p-4 bg-blue-50 rounded-lg">
+            <div className="flex justify-between items-center p-4 rounded-lg" style={{ backgroundColor: '#FFF8F0' }}>
               <div className="flex items-center gap-3">
-                <Palette className="w-6 h-6 text-blue-600" />
+                <Palette className="w-6 h-6" style={{ color: '#2E86AB' }} />
                 <span className="font-medium">Pages Colored</span>
               </div>
-              <span className="text-2xl font-bold text-blue-600">{coloredPages}</span>
+              <span className="text-2xl font-bold" style={{ color: '#2E86AB' }}>{coloredPages}</span>
             </div>
-            <div className="flex justify-between items-center p-4 bg-purple-50 rounded-lg">
+            <div className="flex justify-between items-center p-4 rounded-lg" style={{ backgroundColor: '#FFF8F0' }}>
               <div className="flex items-center gap-3">
-                <Clock className="w-6 h-6 text-purple-600" />
+                <Clock className="w-6 h-6" style={{ color: '#06A77D' }} />
                 <span className="font-medium">Time Spent</span>
               </div>
-              <span className="text-2xl font-bold text-purple-600">
+              <span className="text-2xl font-bold" style={{ color: '#06A77D' }}>
                 {Math.floor(stats.totalTime / 3600)}h {Math.floor((stats.totalTime % 3600) / 60)}m
               </span>
             </div>
-            <div className="flex justify-between items-center p-4 bg-orange-50 rounded-lg">
+            <div className="flex justify-between items-center p-4 rounded-lg" style={{ backgroundColor: '#FFF8F0' }}>
               <div className="flex items-center gap-3">
-                <Zap className="w-6 h-6 text-orange-600" />
+                <Zap className="w-6 h-6" style={{ color: '#FF8C42' }} />
                 <span className="font-medium">Total Strokes</span>
               </div>
-              <span className="text-2xl font-bold text-orange-600">
+              <span className="text-2xl font-bold" style={{ color: '#FF8C42' }}>
                 {stats.totalStrokes.toLocaleString()}
               </span>
             </div>
-            <div className="flex justify-between items-center p-4 bg-pink-50 rounded-lg">
+            <div className="flex justify-between items-center p-4 rounded-lg" style={{ backgroundColor: '#FFF8F0' }}>
               <div className="flex items-center gap-3">
-                <Book className="w-6 h-6 text-pink-600" />
+                <Book className="w-6 h-6" style={{ color: '#A8DADC' }} />
                 <span className="font-medium">Books In Progress</span>
               </div>
-              <span className="text-2xl font-bold text-pink-600">
+              <span className="text-2xl font-bold" style={{ color: '#2E86AB' }}>
                 {stats.booksInProgress}
               </span>
             </div>
-            <div className="flex justify-between items-center p-4 bg-yellow-50 rounded-lg">
+            <div className="flex justify-between items-center p-4 rounded-lg" style={{ backgroundColor: '#FFF8F0' }}>
               <div className="flex items-center gap-3">
-                <Trophy className="w-6 h-6 text-yellow-600" />
+                <Trophy className="w-6 h-6" style={{ color: '#FFD23F' }} />
                 <span className="font-medium">Achievements</span>
               </div>
-              <span className="text-2xl font-bold text-yellow-600">
+              <span className="text-2xl font-bold" style={{ color: '#FFD23F' }}>
                 {unlockedAchievements.length}/{achievements.length}
               </span>
             </div>
@@ -222,7 +223,8 @@ export default function Profile() {
                 initial={{ width: 0 }}
                 animate={{ width: `${(unlockedAchievements.length / achievements.length) * 100}%` }}
                 transition={{ duration: 1, ease: "easeOut" }}
-                className="bg-gradient-to-r from-yellow-400 to-orange-500 h-full rounded-full"
+                className="h-full rounded-full"
+                style={{ background: 'linear-gradient(135deg, #FFD23F 0%, #FF8C42 100%)' }}
               />
             </div>
           </div>
@@ -237,9 +239,13 @@ export default function Profile() {
                   transition={{ delay: index * 0.05 }}
                   className={`p-4 rounded-xl border-2 text-center transition-all cursor-pointer hover:scale-105 ${
                     achievement.unlocked
-                      ? 'bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-300 shadow-lg'
+                      ? 'shadow-lg'
                       : 'bg-gray-50 border-gray-200 opacity-50 grayscale hover:opacity-70'
                   }`}
+                  style={achievement.unlocked ? {
+                    background: 'linear-gradient(135deg, #FFF8F0 0%, #FFD23F 30%)',
+                    borderColor: '#FF8C42'
+                  } : {}}
                 >
                   <motion.div
                     animate={achievement.unlocked ? { rotate: [0, 10, -10, 0] } : {}}
