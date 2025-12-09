@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Filter, Download, Lock, Wifi, WifiOff } from 'lucide-react';
+import { Search, Filter, Download, Lock, Wifi, WifiOff, Sparkles } from 'lucide-react';
 import BookCard from '../components/library/BookCard';
 import ProfileSelector from '../components/profile/ProfileSelector';
 import StoryReader from '../components/story/StoryReader';
@@ -25,6 +25,10 @@ export default function Library() {
   const [coloringPage, setColoringPage] = useState(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [downloadedCount, setDownloadedCount] = useState(0);
+  const [recommendations, setRecommendations] = useState([]);
+  const [readingPath, setReadingPath] = useState(null);
+  const [becauseYouRead, setBecauseYouRead] = useState(null);
+  const [showForYou, setShowForYou] = useState(true);
   
   const queryClient = useQueryClient();
 
@@ -40,7 +44,7 @@ export default function Library() {
     queryFn: () => base44.entities.Book.list('order_index'),
   });
 
-  // Load saved profile from localStorage
+  // Load saved profile from localStorage and generate recommendations
   useEffect(() => {
     const savedProfileId = localStorage.getItem('currentProfileId');
     if (savedProfileId && profiles.length > 0) {
@@ -50,9 +54,29 @@ export default function Library() {
         // Update streak and reset daily challenge on load
         updateStreak(profile.id);
         resetDailyChallenge(profile.id);
+        
+        // Generate recommendations when profile and books are loaded
+        if (books.length > 0) {
+          loadRecommendations(profile);
+        }
       }
     }
-  }, [profiles]);
+  }, [profiles, books]);
+
+  const loadRecommendations = async (profile) => {
+    try {
+      const recs = await getRecommendations(profile, books);
+      setRecommendations(recs);
+      
+      const path = getReadingPath(profile, books, recs);
+      setReadingPath(path);
+      
+      const because = getBecauseYouRead(profile, books);
+      setBecauseYouRead(because);
+    } catch (error) {
+      console.error('Error loading recommendations:', error);
+    }
+  };
 
   // Setup offline sync and online/offline detection
   useEffect(() => {
@@ -113,8 +137,11 @@ export default function Library() {
       if (streakResult) {
         await checkStreakAchievements(currentProfile.id, streakResult.current_streak);
       }
-    }
-  };
+
+      // Reload recommendations after book interaction
+      queryClient.invalidateQueries(['profiles']);
+      }
+      };
 
   const updateReadingProgress = async (bookId, pageIndex) => {
     if (!currentProfile) return;
@@ -331,6 +358,44 @@ export default function Library() {
           </div>
         </div>
       </div>
+
+      {/* For You Section */}
+      {showForYou && recommendations.length > 0 && (
+        <div className="mb-8">
+          <ForYouSection
+            recommendations={recommendations}
+            readingPath={readingPath}
+            becauseYouRead={becauseYouRead}
+            userProfile={currentProfile}
+            onBookClick={handleBookClick}
+            language={currentProfile.preferred_language || 'en'}
+          />
+
+          <div className="mt-6 text-center">
+            <Button
+              variant="outline"
+              onClick={() => setShowForYou(false)}
+              className="text-gray-600"
+            >
+              {currentProfile.preferred_language === 'en' ? 'Browse All Books' : 'Ver Todos os Livros'}
+            </Button>
+          </div>
+          <div className="border-t mt-8 mb-8"></div>
+        </div>
+      )}
+
+      {/* Toggle Button */}
+      {!showForYou && recommendations.length > 0 && (
+        <div className="mb-6">
+          <Button
+            onClick={() => setShowForYou(true)}
+            className="bg-gradient-to-r from-purple-500 to-pink-500 text-white"
+          >
+            <Sparkles className="w-4 h-4 mr-2" />
+            {currentProfile.preferred_language === 'en' ? 'Show Recommendations' : 'Mostrar Recomendações'}
+          </Button>
+        </div>
+      )}
 
       {/* Search and Filters */}
       <div className="bg-white rounded-xl p-6 shadow-md mb-8">
