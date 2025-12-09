@@ -3,9 +3,12 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { 
   ChevronLeft, ChevronRight, X, Volume2, VolumeX, 
-  Palette, Play, Pause, RotateCcw, Languages, CheckCircle2 
+  Palette, Play, Pause, RotateCcw, Languages, CheckCircle2, Zap 
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { base44 } from '@/api/base44Client';
+import InteractiveHotspot from './InteractiveHotspot';
+import QuizModal from './QuizModal';
 
 export default function StoryReader({ 
   book, 
@@ -21,10 +24,16 @@ export default function StoryReader({
   const [language, setLanguage] = useState(preferredLanguage);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [currentWord, setCurrentWord] = useState(-1);
   const audioRef = useRef(null);
   const [audioProgress, setAudioProgress] = useState(0);
   const [showCompleteButton, setShowCompleteButton] = useState(false);
+  const [interactiveElements, setInteractiveElements] = useState([]);
+  const [quizzes, setQuizzes] = useState([]);
+  const [currentQuiz, setCurrentQuiz] = useState(null);
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [quizAnswered, setQuizAnswered] = useState(false);
 
   const currentPage = pages[pageIndex];
 
@@ -36,7 +45,42 @@ export default function StoryReader({
       setIsPlaying(false);
       setCurrentWord(-1);
     }
+    
+    // Load interactive elements and quizzes for current page
+    loadInteractiveElements();
+    loadQuizzes();
+    setQuizAnswered(false);
   }, [pageIndex]);
+  
+  const loadInteractiveElements = async () => {
+    try {
+      const elements = await base44.entities.InteractiveElement.filter({
+        page_id: currentPage.id
+      });
+      setInteractiveElements(elements || []);
+    } catch (error) {
+      console.log('No interactive elements for this page');
+      setInteractiveElements([]);
+    }
+  };
+  
+  const loadQuizzes = async () => {
+    try {
+      const pageQuizzes = await base44.entities.Quiz.filter({
+        page_id: currentPage.id
+      });
+      setQuizzes(pageQuizzes || []);
+      if (pageQuizzes && pageQuizzes.length > 0) {
+        setCurrentQuiz(pageQuizzes[0]);
+      } else {
+        setCurrentQuiz(null);
+      }
+    } catch (error) {
+      console.log('No quiz for this page');
+      setQuizzes([]);
+      setCurrentQuiz(null);
+    }
+  };
 
   useEffect(() => {
     // Load and potentially auto-play audio
@@ -47,10 +91,10 @@ export default function StoryReader({
       
       if (audioUrl && audioRef.current) {
         audioRef.current.src = audioUrl;
-        // Auto-play could be enabled here
+        audioRef.current.playbackRate = playbackSpeed;
       }
     }
-  }, [currentPage, language]);
+  }, [currentPage, language, playbackSpeed]);
 
   const togglePlayPause = () => {
     if (!audioRef.current) return;
@@ -143,6 +187,26 @@ export default function StoryReader({
       setIsPlaying(false);
     }
   };
+  
+  const changePlaybackSpeed = () => {
+    const speeds = [0.75, 1, 1.25, 1.5];
+    const currentIndex = speeds.indexOf(playbackSpeed);
+    const nextSpeed = speeds[(currentIndex + 1) % speeds.length];
+    setPlaybackSpeed(nextSpeed);
+    if (audioRef.current) {
+      audioRef.current.playbackRate = nextSpeed;
+    }
+  };
+  
+  const handleShowQuiz = () => {
+    if (currentQuiz && !quizAnswered) {
+      setShowQuiz(true);
+    }
+  };
+  
+  const handleQuizComplete = (result) => {
+    setQuizAnswered(true);
+  };
 
   const renderHighlightedText = () => {
     const text = language === 'en' ? currentPage.story_text_en : currentPage.story_text_pt;
@@ -198,6 +262,17 @@ export default function StoryReader({
           </div>
 
           <div className="flex items-center gap-2">
+            {currentQuiz && !quizAnswered && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleShowQuiz}
+                className="text-white border-white/20 animate-pulse"
+              >
+                <Zap className="w-4 h-4 mr-2" />
+                Quiz
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -224,11 +299,23 @@ export default function StoryReader({
             className="relative max-w-2xl w-full aspect-square"
           >
             {currentPage.illustration_url ? (
-              <img
-                src={currentPage.illustration_url}
-                alt={`Page ${pageIndex + 1}`}
-                className="w-full h-full object-contain rounded-xl shadow-2xl"
-              />
+              <div className="relative w-full h-full">
+                <img
+                  src={currentPage.illustration_url}
+                  alt={`Page ${pageIndex + 1}`}
+                  className="w-full h-full object-contain rounded-xl shadow-2xl"
+                />
+                
+                {/* Interactive Hotspots */}
+                {interactiveElements.map((element, index) => (
+                  <InteractiveHotspot
+                    key={index}
+                    element={element}
+                    language={language}
+                    onInteract={() => console.log('Interacted with:', element)}
+                  />
+                ))}
+              </div>
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-gray-700 to-gray-800 rounded-xl flex items-center justify-center">
                 <p className="text-gray-400 text-lg">Illustration coming soon...</p>
@@ -243,6 +330,18 @@ export default function StoryReader({
               <Palette className="w-4 h-4 mr-2" />
               Color This Page
             </Button>
+            
+            {/* Quiz Modal */}
+            <AnimatePresence>
+              {showQuiz && currentQuiz && (
+                <QuizModal
+                  quiz={currentQuiz}
+                  language={language}
+                  onComplete={handleQuizComplete}
+                  onClose={() => setShowQuiz(false)}
+                />
+              )}
+            </AnimatePresence>
           </motion.div>
         </div>
 
@@ -274,6 +373,15 @@ export default function StoryReader({
                 className="bg-white"
               >
                 {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={changePlaybackSpeed}
+                className="bg-white px-3 font-semibold"
+                title="Playback speed"
+              >
+                {playbackSpeed}x
               </Button>
               
               {/* Progress Bar */}
