@@ -8,9 +8,12 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Library', path: 'Library', icon: Book },
     { name: 'Shop', path: 'Shop', icon: ShoppingBag },
     { name: 'Profile', path: 'Profile', icon: User },
-    { name: 'Brand', path: 'BrandGuidelines', icon: Palette },
-    { name: 'Manage', path: 'ManageBooks', icon: Settings },
     { name: 'Settings', path: 'Settings', icon: Settings }
+  ];
+
+  const adminItems = [
+    { name: 'Manage', path: 'ManageBooks', icon: Settings },
+    { name: 'Brand', path: 'BrandGuidelines', icon: Palette }
   ];
 
   return (
@@ -40,7 +43,7 @@ export default function Layout({ children, currentPageName }) {
             </Link>
 
             {/* Navigation */}
-            <nav className="hidden md:flex items-center gap-6">
+            <nav className="hidden md:flex items-center gap-4">
               {navItems.map(({ name, path, icon: Icon }) => (
                 <Link
                   key={path}
@@ -61,6 +64,29 @@ export default function Layout({ children, currentPageName }) {
                   <span>{name}</span>
                 </Link>
               ))}
+              
+              <div className="w-px h-6 bg-gray-300 mx-2" />
+              
+              {adminItems.map(({ name, path, icon: Icon }) => (
+                <Link
+                  key={path}
+                  to={createPageUrl(path)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm ${
+                    currentPageName === path
+                      ? 'font-semibold shadow-md'
+                      : 'hover:shadow-sm'
+                  }`}
+                  style={currentPageName === path ? {
+                    background: 'linear-gradient(135deg, #2E86AB 0%, #06A77D 100%)',
+                    color: '#FFFFFF'
+                  } : {
+                    color: '#6C757D'
+                  }}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>{name}</span>
+                </Link>
+              ))}
             </nav>
           </div>
         </div>
@@ -73,12 +99,12 @@ export default function Layout({ children, currentPageName }) {
 
       {/* Mobile Navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white shadow-lg" style={{ borderTop: '2px solid #FF6B35' }}>
-        <div className="flex justify-around items-center py-3">
+        <div className="grid grid-cols-4 gap-1 py-2">
           {navItems.map(({ name, path, icon: Icon }) => (
             <Link
               key={path}
               to={createPageUrl(path)}
-              className="flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-all"
+              className="flex flex-col items-center gap-1 px-2 py-2 rounded-lg transition-all"
               style={{ color: currentPageName === path ? '#FF6B35' : '#6C757D' }}
             >
               <Icon className="w-6 h-6" />
