@@ -87,12 +87,15 @@ export async function checkAndAwardAchievements(profileId) {
     const coloringSessions = await base44.entities.ColoringSession.filter({ profile_id: profileId });
     const completedSessions = coloringSessions.filter(s => s.is_completed);
     
+    const coloringTimes = coloringSessions.map(s => s.coloring_time || 0).filter(t => t > 0);
+    const fastestTime = coloringTimes.length > 0 ? Math.min(...coloringTimes) : 0;
+    
     const stats = {
       pagesColored: completedSessions.length,
       booksCompleted: profile.books_completed?.length || 0,
       booksViewed: profile.books_viewed?.length || 0,
       totalTime: profile.total_coloring_time || 0,
-      fastestPageTime: Math.min(...coloringSessions.map(s => s.coloring_time).filter(t => t > 0)) || 0
+      fastestPageTime: fastestTime
     };
 
     const newAchievements = [];
