@@ -2,6 +2,7 @@ import Library from './pages/Library';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import ManageBooks from './pages/ManageBooks';
+import BrandGuidelines from './pages/BrandGuidelines';
 import __Layout from './Layout.jsx';
 
 
@@ -10,6 +11,7 @@ export const PAGES = {
     "Profile": Profile,
     "Settings": Settings,
     "ManageBooks": ManageBooks,
+    "BrandGuidelines": BrandGuidelines,
 }
 
 export const pagesConfig = {

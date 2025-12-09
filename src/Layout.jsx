@@ -7,14 +7,15 @@ export default function Layout({ children, currentPageName }) {
   const navItems = [
     { name: 'Library', path: 'Library', icon: Book },
     { name: 'Profile', path: 'Profile', icon: User },
-    { name: 'Manage Books', path: 'ManageBooks', icon: Settings },
+    { name: 'Brand', path: 'BrandGuidelines', icon: Palette },
+    { name: 'Manage', path: 'ManageBooks', icon: Settings },
     { name: 'Settings', path: 'Settings', icon: Settings }
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-yellow-50 to-blue-50">
+    <div className="min-h-screen" style={{ background: 'linear-gradient(to bottom right, #FFF8F0, #A8DADC)' }}>
       {/* Header */}
-      <header className="bg-white shadow-md sticky top-0 z-50">
+      <header className="bg-white shadow-md sticky top-0 z-50 border-b-2" style={{ borderColor: '#FF6B35' }}>
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             {/* Logo */}
@@ -25,10 +26,15 @@ export default function Layout({ children, currentPageName }) {
                 className="w-12 h-12 object-contain"
               />
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
+                <h1 className="text-2xl font-bold" style={{ 
+                  background: 'linear-gradient(135deg, #FF6B35 0%, #2E86AB 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text'
+                }}>
                   Colour Me Brazil
                 </h1>
-                <p className="text-xs text-gray-500">Explore Culture Through Art</p>
+                <p className="text-xs" style={{ color: '#6C757D' }}>Explore Culture Through Art</p>
               </div>
             </Link>
 
@@ -40,9 +46,15 @@ export default function Layout({ children, currentPageName }) {
                   to={createPageUrl(path)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
                     currentPageName === path
-                      ? 'bg-green-100 text-green-700 font-semibold'
-                      : 'text-gray-600 hover:bg-gray-100'
+                      ? 'font-semibold shadow-md'
+                      : 'hover:shadow-sm'
                   }`}
+                  style={currentPageName === path ? {
+                    background: 'linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%)',
+                    color: '#FFFFFF'
+                  } : {
+                    color: '#1A2332'
+                  }}
                 >
                   <Icon className="w-5 h-5" />
                   <span>{name}</span>
@@ -59,17 +71,14 @@ export default function Layout({ children, currentPageName }) {
       </main>
 
       {/* Mobile Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white shadow-lg" style={{ borderTop: '2px solid #FF6B35' }}>
         <div className="flex justify-around items-center py-3">
           {navItems.map(({ name, path, icon: Icon }) => (
             <Link
               key={path}
               to={createPageUrl(path)}
-              className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-all ${
-                currentPageName === path
-                  ? 'text-green-600'
-                  : 'text-gray-500'
-              }`}
+              className="flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-all"
+              style={{ color: currentPageName === path ? '#FF6B35' : '#6C757D' }}
             >
               <Icon className="w-6 h-6" />
               <span className="text-xs font-medium">{name}</span>

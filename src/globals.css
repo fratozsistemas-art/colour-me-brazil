@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Brand Colors - Primary */
+    --sunset-orange: 255 107 53;
+    --tropical-coral: 255 140 66;
+    --golden-mango: 255 210 63;
+    
+    /* Brand Colors - Secondary */
+    --ocean-blue: 46 134 171;
+    --tropical-teal: 6 167 125;
+    --rainforest-green: 168 218 220;
+    
+    /* Brand Colors - Neutral */
+    --cloud-white: 248 249 250;
+    --cream-canvas: 255 248 240;
+    --charcoal-slate: 26 35 50;
+    --storm-grey: 108 117 125;
+
+    /* Shadcn UI Variables */
+    --background: var(--cloud-white);
+    --foreground: var(--charcoal-slate);
+    --card: var(--cream-canvas);
+    --card-foreground: var(--charcoal-slate);
+    --popover: var(--cloud-white);
+    --popover-foreground: var(--charcoal-slate);
+    --primary: var(--ocean-blue);
+    --primary-foreground: 255 255 255;
+    --secondary: var(--sunset-orange);
+    --secondary-foreground: 255 255 255;
+    --muted: var(--rainforest-green);
+    --muted-foreground: var(--storm-grey);
+    --accent: var(--tropical-coral);
+    --accent-foreground: 255 255 255;
+    --destructive: 239 68 68;
+    --destructive-foreground: 255 255 255;
+    --border: 229 231 235;
+    --input: 229 231 235;
+    --ring: var(--ocean-blue);
+    --radius: 0.75rem;
+  }
+}
+
+@layer utilities {
+  .gradient-tropical-sunset {
+    background: linear-gradient(135deg, rgb(var(--sunset-orange)) 0%, rgb(var(--golden-mango)) 100%);
+  }
+  
+  .gradient-ocean-depths {
+    background: linear-gradient(135deg, rgb(var(--ocean-blue)) 0%, rgb(var(--tropical-teal)) 100%);
+  }
+  
+  .gradient-coral-reef {
+    background: linear-gradient(135deg, rgb(var(--tropical-coral)) 0%, rgb(var(--tropical-teal)) 100%);
+  }
+  
+  .gradient-sky-breeze {
+    background: linear-gradient(135deg, rgb(var(--rainforest-green)) 0%, rgb(var(--cloud-white)) 100%);
+  }
+  
+  .text-gradient-brand {
+    background: linear-gradient(135deg, rgb(var(--sunset-orange)) 0%, rgb(var(--ocean-blue)) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
