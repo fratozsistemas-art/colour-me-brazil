@@ -54,6 +54,10 @@ export default function BookCard({ book, userProfile, onClick, onDownloadChange 
     ? Math.round((pagesColored / book.page_count) * 100) 
     : 0;
 
+  const lastReadPage = userProfile?.reading_progress?.[book.id] || 0;
+  const isCompleted = userProfile?.books_completed?.includes(book.id);
+  const hasProgress = lastReadPage > 0;
+
   const collectionColors = {
     amazon: 'from-green-600 to-emerald-500',
     culture: 'from-blue-600 to-purple-500'
@@ -90,6 +94,11 @@ export default function BookCard({ book, userProfile, onClick, onDownloadChange 
                 <Lock className="w-4 h-4" />
               </div>
             )}
+            {isCompleted && (
+              <div className="bg-purple-500 text-white p-2 rounded-full shadow-lg">
+                <CheckCircle2 className="w-4 h-4" />
+              </div>
+            )}
             {downloadStatus.status === 'completed' && (
               <div className="bg-green-500 text-white p-2 rounded-full shadow-lg">
                 <CheckCircle2 className="w-4 h-4" />
@@ -100,12 +109,14 @@ export default function BookCard({ book, userProfile, onClick, onDownloadChange 
                 <Loader2 className="w-4 h-4 animate-spin" />
               </div>
             )}
-            {progressPercent === 100 && (
-              <div className="bg-purple-500 text-white p-2 rounded-full shadow-lg">
-                <CheckCircle2 className="w-4 h-4" />
-              </div>
-            )}
           </div>
+
+          {/* Continue Reading Badge */}
+          {hasProgress && !isCompleted && (
+            <div className="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-semibold text-white bg-blue-600 shadow-lg">
+              Page {lastReadPage + 1}
+            </div>
+          )}
 
           {/* Download Progress Ring */}
           {isDownloading && downloadStatus.progress > 0 && (
@@ -177,10 +188,12 @@ export default function BookCard({ book, userProfile, onClick, onDownloadChange 
             </div>
           )}
 
-          {/* Collection Badge */}
-          <div className={`absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-semibold text-white bg-gradient-to-r ${collectionColors[book.collection]} shadow-lg`}>
-            {book.collection === 'amazon' ? '🌿 Amazon' : '🎨 Culture'}
-          </div>
+          {/* Collection Badge - only show if no progress badge */}
+          {!hasProgress && (
+            <div className={`absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-semibold text-white bg-gradient-to-r ${collectionColors[book.collection]} shadow-lg`}>
+              {book.collection === 'amazon' ? '🌿 Amazon' : '🎨 Culture'}
+            </div>
+          )}
         </div>
 
         {/* Book Info */}

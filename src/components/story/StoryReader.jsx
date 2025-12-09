@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { 
   ChevronLeft, ChevronRight, X, Volume2, VolumeX, 
-  Palette, Play, Pause, RotateCcw, Languages 
+  Palette, Play, Pause, RotateCcw, Languages, CheckCircle2 
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -13,6 +13,8 @@ export default function StoryReader({
   currentPageIndex = 0,
   onClose,
   onColorPage,
+  onPageChange,
+  onBookComplete,
   preferredLanguage = 'en'
 }) {
   const [pageIndex, setPageIndex] = useState(currentPageIndex);
@@ -22,6 +24,7 @@ export default function StoryReader({
   const [currentWord, setCurrentWord] = useState(-1);
   const audioRef = useRef(null);
   const [audioProgress, setAudioProgress] = useState(0);
+  const [showCompleteButton, setShowCompleteButton] = useState(false);
 
   const currentPage = pages[pageIndex];
 
@@ -101,15 +104,37 @@ export default function StoryReader({
 
   const nextPage = () => {
     if (pageIndex < pages.length - 1) {
-      setPageIndex(pageIndex + 1);
+      const newIndex = pageIndex + 1;
+      setPageIndex(newIndex);
+      if (onPageChange) onPageChange(newIndex);
+      
+      // Show complete button on last page
+      if (newIndex === pages.length - 1) {
+        setShowCompleteButton(true);
+      }
     }
   };
 
   const prevPage = () => {
     if (pageIndex > 0) {
-      setPageIndex(pageIndex - 1);
+      const newIndex = pageIndex - 1;
+      setPageIndex(newIndex);
+      if (onPageChange) onPageChange(newIndex);
+      setShowCompleteButton(false);
     }
   };
+
+  const handleCompleteBook = () => {
+    if (onBookComplete) onBookComplete();
+    onClose();
+  };
+
+  // Check if we're on the last page on mount
+  useEffect(() => {
+    if (pageIndex === pages.length - 1) {
+      setShowCompleteButton(true);
+    }
+  }, []);
 
   const toggleLanguage = () => {
     setLanguage(language === 'en' ? 'pt' : 'en');
@@ -285,6 +310,16 @@ export default function StoryReader({
 
           {/* Navigation */}
           <div className="border-t p-4 bg-gray-50">
+            {showCompleteButton && (
+              <Button
+                onClick={handleCompleteBook}
+                className="w-full mb-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+              >
+                <CheckCircle2 className="w-4 h-4 mr-2" />
+                Mark Book as Completed
+              </Button>
+            )}
+            
             <div className="flex items-center justify-between mb-3">
               <Button
                 variant="outline"
@@ -300,7 +335,11 @@ export default function StoryReader({
                 {pages.map((_, idx) => (
                   <button
                     key={idx}
-                    onClick={() => setPageIndex(idx)}
+                    onClick={() => {
+                      setPageIndex(idx);
+                      if (onPageChange) onPageChange(idx);
+                      setShowCompleteButton(idx === pages.length - 1);
+                    }}
                     className={`w-2 h-2 rounded-full transition-all ${
                       idx === pageIndex
                         ? 'bg-green-600 w-6'

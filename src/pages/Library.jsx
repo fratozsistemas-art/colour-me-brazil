@@ -95,6 +95,40 @@ export default function Library() {
       const pages = await base44.entities.Page.filter({ book_id: book.id });
       setStoryPages(pages.sort((a, b) => a.page_number - b.page_number));
       setSelectedBook(book);
+      
+      // Update current book ID
+      await base44.entities.UserProfile.update(currentProfile.id, {
+        current_book_id: book.id
+      });
+    }
+  };
+
+  const updateReadingProgress = async (bookId, pageIndex) => {
+    if (!currentProfile) return;
+    
+    const newProgress = {
+      ...(currentProfile.reading_progress || {}),
+      [bookId]: pageIndex
+    };
+    
+    await base44.entities.UserProfile.update(currentProfile.id, {
+      reading_progress: newProgress
+    });
+    
+    queryClient.invalidateQueries(['profiles']);
+  };
+
+  const markBookCompleted = async (bookId) => {
+    if (!currentProfile) return;
+    
+    const booksCompleted = currentProfile.books_completed || [];
+    if (!booksCompleted.includes(bookId)) {
+      await base44.entities.UserProfile.update(currentProfile.id, {
+        books_completed: [...booksCompleted, bookId]
+      });
+      
+      await checkAndAwardAchievements(currentProfile.id);
+      queryClient.invalidateQueries(['profiles']);
     }
   };
 
@@ -184,11 +218,14 @@ export default function Library() {
         <StoryReader
           book={selectedBook}
           pages={storyPages}
+          currentPageIndex={currentProfile?.reading_progress?.[selectedBook.id] || 0}
           onClose={() => {
             setSelectedBook(null);
             setStoryPages([]);
           }}
           onColorPage={handleColorPage}
+          onPageChange={(pageIndex) => updateReadingProgress(selectedBook.id, pageIndex)}
+          onBookComplete={() => markBookCompleted(selectedBook.id)}
           preferredLanguage={currentProfile?.narration_language || 'en'}
         />
       )}
