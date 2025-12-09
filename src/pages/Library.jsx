@@ -14,6 +14,8 @@ import DailyChallengeCard from '../components/gamification/DailyChallengeCard';
 import { updateStreak, checkStreakAchievements } from '../components/gamification/streakManager';
 import { resetDailyChallenge } from '../components/gamification/dailyChallengeManager';
 import { setupOfflineSync, syncOfflineData, getAllDownloadedBooks } from '../components/offlineManager';
+import ForYouSection from '../components/recommendations/ForYouSection';
+import { getRecommendations, getReadingPath, getBecauseYouRead } from '../components/recommendations/recommendationEngine';
 
 export default function Library() {
   const [currentProfile, setCurrentProfile] = useState(null);
