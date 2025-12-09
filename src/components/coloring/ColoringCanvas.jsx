@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Undo, Redo, Eraser, Save, Download, X } from 'lucide-react';
+import { Undo, Redo, Eraser, Save, Download, X, Paintbrush, Grid3x3 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const COLORS = [
@@ -23,6 +23,7 @@ export default function ColoringCanvas({
   initialStrokes = []
 }) {
   const canvasRef = useRef(null);
+  const fillCanvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentColor, setCurrentColor] = useState(COLORS[0]);
   const [brushSize, setBrushSize] = useState(5);
@@ -33,6 +34,8 @@ export default function ColoringCanvas({
   const [isErasing, setIsErasing] = useState(false);
   const [backgroundImage, setBackgroundImage] = useState(null);
   const [startTime] = useState(Date.now());
+  const [paintMode, setPaintMode] = useState('freeform'); // 'freeform' or 'fill'
+  const [fillHistory, setFillHistory] = useState([]);
 
   // Load background image
   useEffect(() => {
@@ -47,17 +50,16 @@ export default function ColoringCanvas({
     }
   }, [illustrationUrl]);
 
-  // Redraw canvas whenever strokes change
+  // Redraw canvas whenever strokes or fills change
   useEffect(() => {
     redrawCanvas();
-  }, [strokes, backgroundImage]);
+  }, [strokes, backgroundImage, fillHistory]);
 
   const redrawCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
-    const rect = canvas.getBoundingClientRect();
     
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -67,7 +69,12 @@ export default function ColoringCanvas({
       ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
     }
 
-    // Draw all strokes
+    // Draw all fill regions first
+    fillHistory.forEach(fill => {
+      floodFill(ctx, fill.x, fill.y, fill.color, false);
+    });
+
+    // Draw all strokes on top
     strokes.forEach(stroke => {
       drawStroke(ctx, stroke);
     });
@@ -119,7 +126,96 @@ export default function ColoringCanvas({
     };
   };
 
+  const handleCanvasClick = (e) => {
+    e.preventDefault();
+    
+    if (paintMode === 'fill') {
+      const point = getCanvasPoint(e);
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      
+      // Save fill action for undo
+      const newFill = { x: Math.floor(point.x), y: Math.floor(point.y), color: currentColor };
+      const newFillHistory = [...fillHistory, newFill];
+      setFillHistory(newFillHistory);
+      
+      // Perform flood fill
+      floodFill(ctx, Math.floor(point.x), Math.floor(point.y), currentColor, true);
+    }
+  };
+
+  const floodFill = (ctx, startX, startY, fillColor, addToHistory = true) => {
+    const imageData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
+    const data = imageData.data;
+    const width = imageData.width;
+    const height = imageData.height;
+    
+    // Convert hex color to RGB
+    const fillRGB = hexToRgb(fillColor);
+    if (!fillRGB) return;
+    
+    // Get target color at click point
+    const targetIndex = (startY * width + startX) * 4;
+    const targetR = data[targetIndex];
+    const targetG = data[targetIndex + 1];
+    const targetB = data[targetIndex + 2];
+    
+    // Don't fill if target is same as fill color
+    if (targetR === fillRGB.r && targetG === fillRGB.g && targetB === fillRGB.b) return;
+    
+    // Flood fill algorithm using stack
+    const stack = [[startX, startY]];
+    const visited = new Set();
+    const tolerance = 30; // Color similarity tolerance
+    
+    while (stack.length > 0) {
+      const [x, y] = stack.pop();
+      const key = `${x},${y}`;
+      
+      if (visited.has(key)) continue;
+      if (x < 0 || x >= width || y < 0 || y >= height) continue;
+      
+      const index = (y * width + x) * 4;
+      const r = data[index];
+      const g = data[index + 1];
+      const b = data[index + 2];
+      
+      // Check if color matches target (within tolerance)
+      const dr = Math.abs(r - targetR);
+      const dg = Math.abs(g - targetG);
+      const db = Math.abs(b - targetB);
+      
+      if (dr > tolerance || dg > tolerance || db > tolerance) continue;
+      
+      visited.add(key);
+      
+      // Fill this pixel
+      data[index] = fillRGB.r;
+      data[index + 1] = fillRGB.g;
+      data[index + 2] = fillRGB.b;
+      data[index + 3] = 255;
+      
+      // Add neighbors to stack
+      stack.push([x + 1, y]);
+      stack.push([x - 1, y]);
+      stack.push([x, y + 1]);
+      stack.push([x, y - 1]);
+    }
+    
+    ctx.putImageData(imageData, 0, 0);
+  };
+
+  const hexToRgb = (hex) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : null;
+  };
+
   const startDrawing = (e) => {
+    if (paintMode === 'fill') return;
     e.preventDefault();
     setIsDrawing(true);
     const point = getCanvasPoint(e);
@@ -178,11 +274,13 @@ export default function ColoringCanvas({
   };
 
   const handleUndo = () => {
-    if (strokes.length === 0) return;
-    
-    const newStrokes = strokes.slice(0, -1);
-    setRedoStack([...redoStack, strokes]);
-    setStrokes(newStrokes);
+    if (paintMode === 'freeform' && strokes.length > 0) {
+      const newStrokes = strokes.slice(0, -1);
+      setRedoStack([...redoStack, strokes]);
+      setStrokes(newStrokes);
+    } else if (paintMode === 'fill' && fillHistory.length > 0) {
+      setFillHistory(fillHistory.slice(0, -1));
+    }
   };
 
   const handleRedo = () => {
@@ -200,10 +298,10 @@ export default function ColoringCanvas({
     
     if (onSave) {
       await onSave({
-        strokes: JSON.stringify(strokes),
+        strokes: JSON.stringify({ strokes, fillHistory }),
         thumbnail_data: thumbnail,
         coloring_time: coloringTime,
-        is_completed: strokes.length > 10 // Basic completion criteria
+        is_completed: strokes.length > 10 || fillHistory.length > 5
       });
     }
   };
@@ -241,20 +339,48 @@ export default function ColoringCanvas({
                 ref={canvasRef}
                 width={1024}
                 height={1024}
-                className="w-full h-full cursor-crosshair touch-none"
-                onMouseDown={startDrawing}
-                onMouseMove={draw}
-                onMouseUp={stopDrawing}
-                onMouseLeave={stopDrawing}
-                onTouchStart={startDrawing}
-                onTouchMove={draw}
-                onTouchEnd={stopDrawing}
+                className={`w-full h-full touch-none ${paintMode === 'fill' ? 'cursor-pointer' : 'cursor-crosshair'}`}
+                onMouseDown={paintMode === 'fill' ? handleCanvasClick : startDrawing}
+                onMouseMove={paintMode === 'freeform' ? draw : undefined}
+                onMouseUp={paintMode === 'freeform' ? stopDrawing : undefined}
+                onMouseLeave={paintMode === 'freeform' ? stopDrawing : undefined}
+                onTouchStart={paintMode === 'fill' ? handleCanvasClick : startDrawing}
+                onTouchMove={paintMode === 'freeform' ? draw : undefined}
+                onTouchEnd={paintMode === 'freeform' ? stopDrawing : undefined}
               />
             </div>
           </div>
 
           {/* Tools Panel */}
           <div className="w-full md:w-80 p-4 border-l bg-gray-50 overflow-y-auto">
+            {/* Paint Mode Toggle */}
+            <div className="mb-6">
+              <h3 className="font-semibold text-gray-700 mb-3">Paint Mode</h3>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant={paintMode === 'freeform' ? 'default' : 'outline'}
+                  onClick={() => setPaintMode('freeform')}
+                  className="w-full"
+                >
+                  <Paintbrush className="w-4 h-4 mr-2" />
+                  Freeform
+                </Button>
+                <Button
+                  variant={paintMode === 'fill' ? 'default' : 'outline'}
+                  onClick={() => setPaintMode('fill')}
+                  className="w-full"
+                >
+                  <Grid3x3 className="w-4 h-4 mr-2" />
+                  Fill Areas
+                </Button>
+              </div>
+              {paintMode === 'fill' && (
+                <p className="text-xs text-gray-500 mt-2">
+                  Click on areas to fill them with your selected color
+                </p>
+              )}
+            </div>
+
             {/* Color Palette */}
             <div className="mb-6">
               <h3 className="font-semibold text-gray-700 mb-3">Colors</h3>
@@ -279,52 +405,58 @@ export default function ColoringCanvas({
               </div>
             </div>
 
-            {/* Brush Size */}
-            <div className="mb-6">
-              <h3 className="font-semibold text-gray-700 mb-3">Brush Size</h3>
-              <input
-                type="range"
-                min="1"
-                max="20"
-                value={brushSize}
-                onChange={(e) => setBrushSize(Number(e.target.value))}
-                className="w-full"
-              />
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
-                <span>Thin</span>
-                <span className="font-semibold">{brushSize}px</span>
-                <span>Thick</span>
+            {/* Brush Size - Only show in freeform mode */}
+            {paintMode === 'freeform' && (
+              <div className="mb-6">
+                <h3 className="font-semibold text-gray-700 mb-3">Brush Size</h3>
+                <input
+                  type="range"
+                  min="1"
+                  max="20"
+                  value={brushSize}
+                  onChange={(e) => setBrushSize(Number(e.target.value))}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>Thin</span>
+                  <span className="font-semibold">{brushSize}px</span>
+                  <span>Thick</span>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Tools */}
             <div className="space-y-2 mb-6">
-              <Button
-                variant={isErasing ? 'default' : 'outline'}
-                onClick={() => setIsErasing(!isErasing)}
-                className="w-full justify-start"
-              >
-                <Eraser className="w-4 h-4 mr-2" />
-                Eraser
-              </Button>
+              {paintMode === 'freeform' && (
+                <Button
+                  variant={isErasing ? 'default' : 'outline'}
+                  onClick={() => setIsErasing(!isErasing)}
+                  className="w-full justify-start"
+                >
+                  <Eraser className="w-4 h-4 mr-2" />
+                  Eraser
+                </Button>
+              )}
               <Button
                 variant="outline"
                 onClick={handleUndo}
-                disabled={strokes.length === 0}
+                disabled={(paintMode === 'freeform' && strokes.length === 0) || (paintMode === 'fill' && fillHistory.length === 0)}
                 className="w-full justify-start"
               >
                 <Undo className="w-4 h-4 mr-2" />
                 Undo
               </Button>
-              <Button
-                variant="outline"
-                onClick={handleRedo}
-                disabled={redoStack.length === 0}
-                className="w-full justify-start"
-              >
-                <Redo className="w-4 h-4 mr-2" />
-                Redo
-              </Button>
+              {paintMode === 'freeform' && (
+                <Button
+                  variant="outline"
+                  onClick={handleRedo}
+                  disabled={redoStack.length === 0}
+                  className="w-full justify-start"
+                >
+                  <Redo className="w-4 h-4 mr-2" />
+                  Redo
+                </Button>
+              )}
             </div>
 
             {/* Actions */}
@@ -351,8 +483,16 @@ export default function ColoringCanvas({
               <h3 className="font-semibold text-gray-700 mb-2">Session Stats</h3>
               <div className="space-y-1 text-sm text-gray-600">
                 <div className="flex justify-between">
+                  <span>Mode:</span>
+                  <span className="font-medium capitalize">{paintMode}</span>
+                </div>
+                <div className="flex justify-between">
                   <span>Strokes:</span>
                   <span className="font-medium">{strokes.length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Fills:</span>
+                  <span className="font-medium">{fillHistory.length}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Time:</span>
