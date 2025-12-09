@@ -1,8 +1,51 @@
-import React from 'react';
-import { Lock, Download, CheckCircle2, Cloud } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Lock, Download, CheckCircle2, Cloud, Trash2, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { getDownloadStatus, downloadBook, deleteDownloadedBook } from '../offlineManager';
 
-export default function BookCard({ book, userProfile, onClick }) {
+export default function BookCard({ book, userProfile, onClick, onDownloadChange }) {
+  const [downloadStatus, setDownloadStatus] = useState({ status: 'not_downloaded', progress: 0 });
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  useEffect(() => {
+    loadDownloadStatus();
+  }, [book.id]);
+
+  const loadDownloadStatus = async () => {
+    const status = await getDownloadStatus(book.id);
+    setDownloadStatus(status);
+    setIsDownloading(status.status === 'downloading');
+  };
+
+  const handleDownload = async (e) => {
+    e.stopPropagation();
+    if (isDownloading) return;
+
+    try {
+      setIsDownloading(true);
+      await downloadBook(book.id, (progress) => {
+        setDownloadStatus({ status: 'downloading', progress });
+      });
+      await loadDownloadStatus();
+      if (onDownloadChange) onDownloadChange();
+    } catch (error) {
+      console.error('Download failed:', error);
+      setDownloadStatus({ status: 'error', progress: 0 });
+      setIsDownloading(false);
+    }
+  };
+
+  const handleDelete = async (e) => {
+    e.stopPropagation();
+    try {
+      await deleteDownloadedBook(book.id);
+      await loadDownloadStatus();
+      if (onDownloadChange) onDownloadChange();
+    } catch (error) {
+      console.error('Delete failed:', error);
+    }
+  };
+
   const pagesColored = userProfile?.pages_colored?.filter(pageId => 
     pageId.startsWith(book.id)
   ).length || 0;
@@ -47,20 +90,60 @@ export default function BookCard({ book, userProfile, onClick }) {
                 <Lock className="w-4 h-4" />
               </div>
             )}
-            {book.is_downloaded && (
+            {downloadStatus.status === 'completed' && (
               <div className="bg-green-500 text-white p-2 rounded-full shadow-lg">
-                <Download className="w-4 h-4" />
+                <CheckCircle2 className="w-4 h-4" />
+              </div>
+            )}
+            {isDownloading && (
+              <div className="bg-blue-500 text-white p-2 rounded-full shadow-lg">
+                <Loader2 className="w-4 h-4 animate-spin" />
               </div>
             )}
             {progressPercent === 100 && (
-              <div className="bg-blue-500 text-white p-2 rounded-full shadow-lg">
+              <div className="bg-purple-500 text-white p-2 rounded-full shadow-lg">
                 <CheckCircle2 className="w-4 h-4" />
               </div>
             )}
           </div>
 
-          {/* Progress Ring */}
-          {progressPercent > 0 && progressPercent < 100 && (
+          {/* Download Progress Ring */}
+          {isDownloading && downloadStatus.progress > 0 && (
+            <div className="absolute bottom-3 left-3">
+              <div className="relative w-12 h-12">
+                <svg className="transform -rotate-90 w-12 h-12">
+                  <circle
+                    cx="24"
+                    cy="24"
+                    r="20"
+                    stroke="white"
+                    strokeWidth="4"
+                    fill="none"
+                    className="opacity-30"
+                  />
+                  <circle
+                    cx="24"
+                    cy="24"
+                    r="20"
+                    stroke="white"
+                    strokeWidth="4"
+                    fill="none"
+                    strokeDasharray={`${2 * Math.PI * 20}`}
+                    strokeDashoffset={`${2 * Math.PI * 20 * (1 - downloadStatus.progress / 100)}`}
+                    className="transition-all duration-300"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-white text-xs font-bold drop-shadow-lg">
+                    {downloadStatus.progress}%
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Coloring Progress Ring */}
+          {!isDownloading && progressPercent > 0 && progressPercent < 100 && (
             <div className="absolute bottom-3 right-3">
               <div className="relative w-12 h-12">
                 <svg className="transform -rotate-90 w-12 h-12">
@@ -141,11 +224,31 @@ export default function BookCard({ book, userProfile, onClick }) {
             </div>
           )}
 
-          {/* Download Status */}
-          {!book.is_downloaded && !book.is_locked && (
-            <div className="mt-3 flex items-center gap-2 text-xs text-gray-500">
-              <Cloud className="w-4 h-4" />
-              <span>Tap to download for offline use</span>
+          {/* Download Actions */}
+          {!book.is_locked && (
+            <div className="mt-3">
+              {downloadStatus.status === 'completed' ? (
+                <button
+                  onClick={handleDelete}
+                  className="flex items-center gap-2 text-xs text-red-600 hover:text-red-700 transition-colors"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span>Remove offline copy</span>
+                </button>
+              ) : isDownloading ? (
+                <div className="flex items-center gap-2 text-xs text-blue-600">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <span>Downloading... {downloadStatus.progress}%</span>
+                </div>
+              ) : (
+                <button
+                  onClick={handleDownload}
+                  className="flex items-center gap-2 text-xs text-green-600 hover:text-green-700 transition-colors"
+                >
+                  <Download className="w-3 h-3" />
+                  <span>Download for offline</span>
+                </button>
+              )}
             </div>
           )}
         </div>

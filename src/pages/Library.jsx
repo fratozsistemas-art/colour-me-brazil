@@ -3,12 +3,13 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Filter, Download, Lock } from 'lucide-react';
+import { Search, Filter, Download, Lock, Wifi, WifiOff } from 'lucide-react';
 import BookCard from '../components/library/BookCard';
 import ProfileSelector from '../components/profile/ProfileSelector';
 import StoryReader from '../components/story/StoryReader';
 import ColoringCanvas from '../components/coloring/ColoringCanvas';
 import { checkAndAwardAchievements } from '../components/achievementManager';
+import { setupOfflineSync, syncOfflineData, getAllDownloadedBooks } from '../components/offlineManager';
 
 export default function Library() {
   const [currentProfile, setCurrentProfile] = useState(null);
@@ -18,6 +19,8 @@ export default function Library() {
   const [selectedBook, setSelectedBook] = useState(null);
   const [storyPages, setStoryPages] = useState([]);
   const [coloringPage, setColoringPage] = useState(null);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [downloadedCount, setDownloadedCount] = useState(0);
   
   const queryClient = useQueryClient();
 
@@ -43,6 +46,32 @@ export default function Library() {
       }
     }
   }, [profiles]);
+
+  // Setup offline sync and online/offline detection
+  useEffect(() => {
+    setupOfflineSync();
+    
+    const handleOnline = () => {
+      setIsOnline(true);
+      syncOfflineData();
+    };
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    loadDownloadedCount();
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  const loadDownloadedCount = async () => {
+    const downloaded = await getAllDownloadedBooks();
+    setDownloadedCount(downloaded.length);
+  };
 
   const handleProfileCreated = async (profileData) => {
     if (profileData.id) {
@@ -184,8 +213,17 @@ export default function Library() {
             <h1 className="text-4xl font-bold text-gray-800">
               Welcome back, {currentProfile.child_name}! 👋
             </h1>
-            <p className="text-gray-600 mt-2">
+            <p className="text-gray-600 mt-2 flex items-center gap-2">
               Ready to explore Brazilian culture through coloring?
+              {isOnline ? (
+                <span className="text-green-600 text-sm flex items-center gap-1">
+                  <Wifi className="w-4 h-4" /> Online
+                </span>
+              ) : (
+                <span className="text-orange-600 text-sm flex items-center gap-1">
+                  <WifiOff className="w-4 h-4" /> Offline Mode
+                </span>
+              )}
             </p>
           </div>
           <Button
@@ -200,7 +238,7 @@ export default function Library() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <div className="bg-white rounded-xl p-4 shadow-md">
             <div className="text-2xl font-bold text-green-600">{stats.total}</div>
             <div className="text-sm text-gray-600">Total Books</div>
@@ -212,6 +250,10 @@ export default function Library() {
           <div className="bg-white rounded-xl p-4 shadow-md">
             <div className="text-2xl font-bold text-purple-600">{stats.completed}</div>
             <div className="text-sm text-gray-600">Completed</div>
+          </div>
+          <div className="bg-white rounded-xl p-4 shadow-md">
+            <div className="text-2xl font-bold text-orange-600">{downloadedCount}</div>
+            <div className="text-sm text-gray-600">Downloaded</div>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-md">
             <div className="text-2xl font-bold text-yellow-600">
@@ -299,6 +341,7 @@ export default function Library() {
               book={book}
               userProfile={currentProfile}
               onClick={() => handleBookClick(book)}
+              onDownloadChange={loadDownloadedCount}
             />
           ))}
         </div>
