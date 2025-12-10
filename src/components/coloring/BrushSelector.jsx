@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Paintbrush, Droplet, Feather, Sparkles } from 'lucide-react';
+import { Paintbrush, Droplet, Feather, Sparkles, Pen, Highlighter } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const BRUSH_TYPES = [
@@ -10,7 +10,8 @@ const BRUSH_TYPES = [
     icon: Paintbrush,
     description: 'Classic solid brush',
     opacity: 1.0,
-    blur: 0
+    blur: 0,
+    texture: 'solid'
   },
   {
     id: 'watercolor',
@@ -18,7 +19,8 @@ const BRUSH_TYPES = [
     icon: Droplet,
     description: 'Soft watercolor effect',
     opacity: 0.3,
-    blur: 3
+    blur: 3,
+    texture: 'watercolor'
   },
   {
     id: 'airbrush',
@@ -26,7 +28,8 @@ const BRUSH_TYPES = [
     icon: Sparkles,
     description: 'Spray paint effect',
     opacity: 0.15,
-    blur: 5
+    blur: 5,
+    texture: 'airbrush'
   },
   {
     id: 'calligraphy',
@@ -34,7 +37,26 @@ const BRUSH_TYPES = [
     icon: Feather,
     description: 'Elegant calligraphy',
     opacity: 0.8,
-    blur: 0
+    blur: 0,
+    texture: 'solid'
+  },
+  {
+    id: 'crayon',
+    name: 'Crayon',
+    icon: Pen,
+    description: 'Textured crayon',
+    opacity: 0.7,
+    blur: 0,
+    texture: 'crayon'
+  },
+  {
+    id: 'marker',
+    name: 'Marker',
+    icon: Highlighter,
+    description: 'Bold marker',
+    opacity: 0.85,
+    blur: 0,
+    texture: 'marker'
   }
 ];
 
