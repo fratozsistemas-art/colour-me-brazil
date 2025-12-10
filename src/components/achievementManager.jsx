@@ -117,7 +117,13 @@ const POINTS_CONFIG = {
   page_colored: 10,
   book_completed: 50,
   quiz_correct: 10,
-  daily_challenge_completed: 20
+  daily_challenge_completed: 20,
+  content_submitted: 25,
+  like_given: 2,
+  comment_given: 5,
+  forum_topic_created: 15,
+  forum_reply_posted: 5,
+  showcase_item_posted: 20
 };
 
     export function calculateLevel(points) {

@@ -1,19 +1,20 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from './utils';
-import { Book, Settings, User, Palette, ShoppingBag, Trophy, Upload, Shield } from 'lucide-react';
+import { Book, Settings, User, Palette, ShoppingBag, Trophy, Upload, Shield, MessageSquare } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
   const navItems = [
     { name: 'Library', path: 'Library', icon: Book },
     { name: 'Leaderboard', path: 'Leaderboard', icon: Trophy },
-    { name: 'Shop', path: 'Shop', icon: ShoppingBag },
-    { name: 'Profile', path: 'Profile', icon: User },
-    { name: 'Settings', path: 'Settings', icon: Settings }
+    { name: 'Profile', path: 'Profile', icon: User }
   ];
 
   const communityItems = [
-    { name: 'Submit', path: 'SubmitContent', icon: Upload }
+    { name: 'Showcase', path: 'Showcase', icon: Palette },
+    { name: 'Forum', path: 'Forum', icon: MessageSquare },
+    { name: 'Submit', path: 'SubmitContent', icon: Upload },
+    { name: 'Shop', path: 'Shop', icon: ShoppingBag }
   ];
 
   const adminItems = [
