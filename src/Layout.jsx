@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from './utils';
-import { Book, Settings, User, Palette, ShoppingBag, Trophy } from 'lucide-react';
+import { Book, Settings, User, Palette, ShoppingBag, Trophy, Upload } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
   const navItems = [
@@ -10,6 +10,10 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Shop', path: 'Shop', icon: ShoppingBag },
     { name: 'Profile', path: 'Profile', icon: User },
     { name: 'Settings', path: 'Settings', icon: Settings }
+  ];
+
+  const communityItems = [
+    { name: 'Submit', path: 'SubmitContent', icon: Upload }
   ];
 
   const adminItems = [
@@ -65,9 +69,32 @@ export default function Layout({ children, currentPageName }) {
                   <span>{name}</span>
                 </Link>
               ))}
-              
+
               <div className="w-px h-6 bg-gray-300 mx-2" />
-              
+
+              {communityItems.map(({ name, path, icon: Icon }) => (
+                <Link
+                  key={path}
+                  to={createPageUrl(path)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm ${
+                    currentPageName === path
+                      ? 'font-semibold shadow-md'
+                      : 'hover:shadow-sm'
+                  }`}
+                  style={currentPageName === path ? {
+                    background: 'linear-gradient(135deg, #A855F7 0%, #EC4899 100%)',
+                    color: '#FFFFFF'
+                  } : {
+                    color: '#6C757D'
+                  }}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>{name}</span>
+                </Link>
+              ))}
+
+              <div className="w-px h-6 bg-gray-300 mx-2" />
+
               {adminItems.map(({ name, path, icon: Icon }) => (
                 <Link
                   key={path}

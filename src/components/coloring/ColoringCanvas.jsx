@@ -5,6 +5,7 @@ import { Undo, Redo, Eraser, Save, Download, X, Paintbrush, Grid3x3, ZoomIn, Zoo
 import ShareButton from '../social/ShareButton';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getBookPalette, THEME_PALETTES, getAllPaletteNames } from './colorPalettes';
+import BrushSelector, { BRUSH_TYPES } from './BrushSelector';
 
 export default function ColoringCanvas({ 
   pageId, 
@@ -43,6 +44,7 @@ export default function ColoringCanvas({
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+  const [brushType, setBrushType] = useState('solid');
 
   // Load background image
   useEffect(() => {
@@ -90,25 +92,44 @@ export default function ColoringCanvas({
   const drawStroke = (ctx, stroke) => {
     if (stroke.points.length < 2) return;
 
+    const brush = BRUSH_TYPES.find(b => b.id === (stroke.brushType || 'solid')) || BRUSH_TYPES[0];
+
     ctx.strokeStyle = stroke.color;
     ctx.lineWidth = stroke.size;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
+    ctx.globalAlpha = brush.opacity;
+    
+    // Apply blur for airbrush/watercolor
+    if (brush.blur > 0) {
+      ctx.shadowBlur = brush.blur;
+      ctx.shadowColor = stroke.color;
+    }
     
     if (stroke.isEraser) {
       ctx.globalCompositeOperation = 'destination-out';
+      ctx.globalAlpha = 1.0;
     } else {
       ctx.globalCompositeOperation = 'source-over';
     }
 
-    ctx.beginPath();
-    ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+    // Draw multiple passes for airbrush effect
+    const passes = brush.id === 'airbrush' ? 3 : 1;
+    
+    for (let pass = 0; pass < passes; pass++) {
+      ctx.beginPath();
+      ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
 
-    for (let i = 1; i < stroke.points.length; i++) {
-      ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+      for (let i = 1; i < stroke.points.length; i++) {
+        ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+      }
+
+      ctx.stroke();
     }
-
-    ctx.stroke();
+    
+    // Reset
+    ctx.globalAlpha = 1.0;
+    ctx.shadowBlur = 0;
     ctx.globalCompositeOperation = 'source-over';
   };
 
@@ -258,15 +279,22 @@ export default function ColoringCanvas({
     // Draw current stroke immediately for responsiveness
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
-    
+
     if (newStroke.length >= 2) {
       const lastPoint = newStroke[newStroke.length - 2];
-      
+      const brush = BRUSH_TYPES.find(b => b.id === brushType) || BRUSH_TYPES[0];
+
       ctx.strokeStyle = isErasing ? '#FFFFFF' : currentColor;
       ctx.lineWidth = brushSize;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
-      
+      ctx.globalAlpha = isErasing ? 1.0 : brush.opacity;
+
+      if (brush.blur > 0 && !isErasing) {
+        ctx.shadowBlur = brush.blur;
+        ctx.shadowColor = currentColor;
+      }
+
       if (isErasing) {
         ctx.globalCompositeOperation = 'destination-out';
       }
@@ -275,7 +303,9 @@ export default function ColoringCanvas({
       ctx.moveTo(lastPoint.x, lastPoint.y);
       ctx.lineTo(point.x, point.y);
       ctx.stroke();
-      
+
+      ctx.globalAlpha = 1.0;
+      ctx.shadowBlur = 0;
       ctx.globalCompositeOperation = 'source-over';
     }
   };
@@ -286,7 +316,8 @@ export default function ColoringCanvas({
         points: currentStroke,
         color: currentColor,
         size: brushSize,
-        isEraser: isErasing
+        isEraser: isErasing,
+        brushType: brushType
       };
       
       const newStrokes = [...strokes, newStroke];
@@ -583,6 +614,16 @@ export default function ColoringCanvas({
               </div>
             </div>
 
+            {/* Brush Type - Only show in freeform mode */}
+            {paintMode === 'freeform' && (
+              <div className="mb-6">
+                <BrushSelector
+                  selectedBrush={brushType}
+                  onBrushChange={setBrushType}
+                />
+              </div>
+            )}
+
             {/* Brush Size - Only show in freeform mode */}
             {paintMode === 'freeform' && (
               <div className="mb-6">
@@ -696,6 +737,10 @@ export default function ColoringCanvas({
                 <div className="flex justify-between">
                   <span>Mode:</span>
                   <span className="font-medium capitalize">{paintMode}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Brush:</span>
+                  <span className="font-medium capitalize">{brushType}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Zoom:</span>

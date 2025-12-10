@@ -5,6 +5,7 @@ import ManageBooks from './pages/ManageBooks';
 import BrandGuidelines from './pages/BrandGuidelines';
 import Shop from './pages/Shop';
 import Leaderboard from './pages/Leaderboard';
+import SubmitContent from './pages/SubmitContent';
 import __Layout from './Layout.jsx';
 
 
@@ -16,6 +17,7 @@ export const PAGES = {
     "BrandGuidelines": BrandGuidelines,
     "Shop": Shop,
     "Leaderboard": Leaderboard,
+    "SubmitContent": SubmitContent,
 }
 
 export const pagesConfig = {
