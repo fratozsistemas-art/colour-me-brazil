@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, Download, CheckCircle2, Cloud, Trash2, Loader2 } from 'lucide-react';
+import { Lock, Download, CheckCircle2, Cloud, Trash2, Loader2, Volume2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getDownloadStatus, downloadBook, deleteDownloadedBook } from '../offlineManager';
 
@@ -200,6 +200,14 @@ export default function BookCard({ book, userProfile, onClick, onDownloadChange,
               color: collectionColors[book.collection]?.text || '#FFFFFF'
             }}>
               {book.collection === 'amazon' ? '🌿 Amazon' : '🎨 Culture'}
+            </div>
+          )}
+
+          {/* Read-Aloud Progress Badge */}
+          {showProgress && hasProgress && (
+            <div className="absolute bottom-3 left-3 bg-blue-600 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1 shadow-lg">
+              <Volume2 className="w-3 h-3" />
+              {Math.round(((lastReadPage + 1) / (book.page_count || 12)) * 100)}%
             </div>
           )}
         </div>
