@@ -6,6 +6,7 @@ import BrandGuidelines from './pages/BrandGuidelines';
 import Shop from './pages/Shop';
 import Leaderboard from './pages/Leaderboard';
 import SubmitContent from './pages/SubmitContent';
+import ContentModeration from './pages/ContentModeration';
 import __Layout from './Layout.jsx';
 
 
@@ -18,6 +19,7 @@ export const PAGES = {
     "Shop": Shop,
     "Leaderboard": Leaderboard,
     "SubmitContent": SubmitContent,
+    "ContentModeration": ContentModeration,
 }
 
 export const pagesConfig = {

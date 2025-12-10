@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from './utils';
-import { Book, Settings, User, Palette, ShoppingBag, Trophy, Upload } from 'lucide-react';
+import { Book, Settings, User, Palette, ShoppingBag, Trophy, Upload, Shield } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
   const navItems = [
@@ -18,6 +18,7 @@ export default function Layout({ children, currentPageName }) {
 
   const adminItems = [
     { name: 'Manage', path: 'ManageBooks', icon: Settings },
+    { name: 'Moderate', path: 'ContentModeration', icon: Shield },
     { name: 'Brand', path: 'BrandGuidelines', icon: Palette }
   ];
 

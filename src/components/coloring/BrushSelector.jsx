@@ -42,7 +42,7 @@ export default function BrushSelector({ selectedBrush, onBrushChange }) {
   return (
     <div className="space-y-3">
       <h3 className="font-semibold text-gray-700 text-sm">Brush Type</h3>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-2 max-h-96 overflow-y-auto">
         {BRUSH_TYPES.map((brush) => {
           const Icon = brush.icon;
           const isSelected = selectedBrush === brush.id;

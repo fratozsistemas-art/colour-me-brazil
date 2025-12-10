@@ -492,6 +492,7 @@ export default function Library() {
               userProfile={currentProfile}
               onClick={() => handleBookClick(book)}
               onDownloadChange={loadDownloadedCount}
+              showProgress={true}
             />
           ))}
         </div>

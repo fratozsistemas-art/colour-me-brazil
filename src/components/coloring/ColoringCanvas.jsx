@@ -45,6 +45,7 @@ export default function ColoringCanvas({
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [brushType, setBrushType] = useState('solid');
+  const [fillTolerance, setFillTolerance] = useState(30);
 
   // Load background image
   useEffect(() => {
@@ -104,6 +105,13 @@ export default function ColoringCanvas({
     if (brush.blur > 0) {
       ctx.shadowBlur = brush.blur;
       ctx.shadowColor = stroke.color;
+    }
+    
+    // Add texture for crayon/marker
+    if (brush.texture === 'crayon') {
+      ctx.globalCompositeOperation = 'multiply';
+    } else if (brush.texture === 'marker') {
+      ctx.lineCap = 'square';
     }
     
     if (stroke.isEraser) {
@@ -209,7 +217,7 @@ export default function ColoringCanvas({
     // Flood fill algorithm using stack
     const stack = [[startX, startY]];
     const visited = new Set();
-    const tolerance = 30; // Color similarity tolerance
+    const tolerance = fillTolerance; // Use adjustable tolerance
     
     while (stack.length > 0) {
       const point = stack.pop();
@@ -402,9 +410,9 @@ export default function ColoringCanvas({
 
   const handleDownload = () => {
     const canvas = canvasRef.current;
-    const dataUrl = canvas.toDataURL('image/png');
+    const dataUrl = canvas.toDataURL('image/png', 1.0);
     const link = document.createElement('a');
-    link.download = `coloring-${pageId}.png`;
+    link.download = `colour-me-brazil-${Date.now()}.png`;
     link.href = dataUrl;
     link.click();
   };
@@ -532,11 +540,28 @@ export default function ColoringCanvas({
                 </Button>
               </div>
               {paintMode === 'fill' && (
-                <p className="text-xs text-gray-500 mt-2">
-                  Click on areas to fill them with your selected color
-                </p>
+                <div className="mt-3">
+                  <p className="text-xs text-gray-500 mb-2">
+                    Click on areas to fill them with your selected color
+                  </p>
+                  <div>
+                    <label className="text-xs text-gray-600 font-medium">Fill Tolerance: {fillTolerance}</label>
+                    <input
+                      type="range"
+                      min="10"
+                      max="100"
+                      value={fillTolerance}
+                      onChange={(e) => setFillTolerance(Number(e.target.value))}
+                      className="w-full accent-blue-500 mt-1"
+                    />
+                    <div className="flex justify-between text-xs text-gray-500 mt-1">
+                      <span>Precise</span>
+                      <span>Loose</span>
+                    </div>
+                  </div>
+                </div>
               )}
-            </div>
+              </div>
 
             {/* Recent Colors */}
             {recentColors.length > 0 && (

@@ -3,7 +3,7 @@ import { Lock, Download, CheckCircle2, Cloud, Trash2, Loader2 } from 'lucide-rea
 import { motion } from 'framer-motion';
 import { getDownloadStatus, downloadBook, deleteDownloadedBook } from '../offlineManager';
 
-export default function BookCard({ book, userProfile, onClick, onDownloadChange }) {
+export default function BookCard({ book, userProfile, onClick, onDownloadChange, showProgress = false }) {
   const [downloadStatus, setDownloadStatus] = useState({ status: 'not_downloaded', progress: 0 });
   const [isDownloading, setIsDownloading] = useState(false);
 
