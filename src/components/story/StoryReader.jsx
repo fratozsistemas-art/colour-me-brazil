@@ -210,10 +210,58 @@ export default function StoryReader({
   };
 
   const [wordDefinitions, setWordDefinitions] = useState([]);
+  const [readingStartTime, setReadingStartTime] = useState(null);
+  const [fontSize, setFontSize] = useState('medium');
+  const [backgroundColor, setBackgroundColor] = useState('white');
 
   useEffect(() => {
     loadWordDefinitions();
+    setReadingStartTime(Date.now());
+
+    // Load user preferences
+    if (book.profileId) {
+      loadUserPreferences(book.profileId);
+    }
+
+    return () => {
+      // Track reading time on unmount
+      if (readingStartTime && book.profileId) {
+        trackReadingTime();
+      }
+    };
   }, []);
+
+  const loadUserPreferences = async (profileId) => {
+    try {
+      const profiles = await base44.entities.UserProfile.filter({ id: profileId });
+      if (profiles.length > 0) {
+        const profile = profiles[0];
+        setFontSize(profile.font_size_preference || 'medium');
+        setBackgroundColor(profile.background_color_preference || 'white');
+      }
+    } catch (error) {
+      console.error('Error loading preferences:', error);
+    }
+  };
+
+  const trackReadingTime = async () => {
+    if (!readingStartTime || !book.profileId) return;
+
+    const timeSpent = Math.floor((Date.now() - readingStartTime) / 1000);
+    if (timeSpent < 5) return; // Ignore very short sessions
+
+    try {
+      const profiles = await base44.entities.UserProfile.filter({ id: book.profileId });
+      if (profiles.length > 0) {
+        const profile = profiles[0];
+        await base44.entities.UserProfile.update(book.profileId, {
+          total_reading_time: (profile.total_reading_time || 0) + timeSpent
+        });
+      }
+    } catch (error) {
+      console.error('Error tracking reading time:', error);
+    }
+  };
 
   const loadWordDefinitions = async () => {
     try {
