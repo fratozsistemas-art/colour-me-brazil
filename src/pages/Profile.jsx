@@ -171,7 +171,6 @@ export default function Profile() {
               variant="outline"
             />
           </div>
-          </div>
         </div>
       </Card>
 
