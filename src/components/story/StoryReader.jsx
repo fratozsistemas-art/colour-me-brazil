@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import InteractiveHotspot from './InteractiveHotspot';
 import QuizModal from './QuizModal';
+import InteractiveWord from './InteractiveWord';
 
 export default function StoryReader({ 
   book, 
@@ -208,6 +209,29 @@ export default function StoryReader({
     setQuizAnswered(true);
   };
 
+  const [wordDefinitions, setWordDefinitions] = useState([]);
+
+  useEffect(() => {
+    loadWordDefinitions();
+  }, []);
+
+  const loadWordDefinitions = async () => {
+    try {
+      const definitions = await base44.entities.WordDefinition.list();
+      setWordDefinitions(definitions || []);
+    } catch (error) {
+      console.log('No word definitions available');
+      setWordDefinitions([]);
+    }
+  };
+
+  const getWordDefinition = (word) => {
+    const cleanWord = word.toLowerCase().replace(/[.,!?;:]/g, '');
+    return wordDefinitions.find(
+      def => def.word_en?.toLowerCase() === cleanWord || def.word_pt?.toLowerCase() === cleanWord
+    );
+  };
+
   const renderHighlightedText = () => {
     const text = language === 'en' ? currentPage.story_text_en : currentPage.story_text_pt;
     if (!text) return null;
@@ -215,18 +239,40 @@ export default function StoryReader({
     const words = text.split(' ');
     return (
       <p className="text-lg md:text-xl leading-relaxed">
-        {words.map((word, index) => (
-          <motion.span
-            key={index}
-            animate={{
-              backgroundColor: index === currentWord ? 'rgba(255, 223, 0, 0.4)' : 'transparent'
-            }}
-            transition={{ duration: 0.3 }}
-            className="inline-block px-1 rounded"
-          >
-            {word}{' '}
-          </motion.span>
-        ))}
+        {words.map((word, index) => {
+          const definition = getWordDefinition(word);
+          
+          return definition ? (
+            <InteractiveWord
+              key={index}
+              word={language === 'en' ? definition.word_en : definition.word_pt}
+              definition={language === 'en' ? definition.definition_en : definition.definition_pt}
+              culturalContext={language === 'en' ? definition.cultural_context_en : definition.cultural_context_pt}
+              language={language}
+            >
+              <motion.span
+                animate={{
+                  backgroundColor: index === currentWord ? 'rgba(255, 223, 0, 0.4)' : 'transparent'
+                }}
+                transition={{ duration: 0.3 }}
+                className="inline-block px-1 rounded"
+              >
+                {word}
+              </motion.span>
+            </InteractiveWord>
+          ) : (
+            <motion.span
+              key={index}
+              animate={{
+                backgroundColor: index === currentWord ? 'rgba(255, 223, 0, 0.4)' : 'transparent'
+              }}
+              transition={{ duration: 0.3 }}
+              className="inline-block px-1 rounded"
+            >
+              {word}{' '}
+            </motion.span>
+          );
+        })}
       </p>
     );
   };
