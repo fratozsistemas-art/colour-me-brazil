@@ -31,8 +31,27 @@ export default function Library() {
   const [readingPath, setReadingPath] = useState(null);
   const [becauseYouRead, setBecauseYouRead] = useState(null);
   const [showForYou, setShowForYou] = useState(true);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   
   const queryClient = useQueryClient();
+
+  // Check authentication on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const isAuth = await base44.auth.isAuthenticated();
+        if (!isAuth) {
+          base44.auth.redirectToLogin(window.location.pathname);
+          return;
+        }
+      } catch (error) {
+        base44.auth.redirectToLogin(window.location.pathname);
+        return;
+      }
+      setIsCheckingAuth(false);
+    };
+    checkAuth();
+  }, []);
 
   // Fetch user profiles
   const { data: profiles = [] } = useQuery({
@@ -249,6 +268,18 @@ export default function Library() {
     amazon: books.filter(b => b.collection === 'amazon').length,
     culture: books.filter(b => b.collection === 'culture').length
   };
+
+  // Show loading while checking authentication
+  if (isCheckingAuth) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mb-4" />
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   // If no profile selected, show profile selector
   if (!currentProfile) {
