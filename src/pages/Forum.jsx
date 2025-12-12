@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { MessageSquare, Pin, Lock, Plus, ArrowLeft, Send } from 'lucide-react';
+import { MessageSquare, Pin, Lock, Plus, ArrowLeft, Send, BarChart3 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { awardPoints } from '../components/achievementManager';
+import PollCard from '../components/forum/PollCard';
 
 export default function Forum() {
   const [selectedTopic, setSelectedTopic] = useState(null);
@@ -15,6 +16,15 @@ export default function Forum() {
   const [newTopic, setNewTopic] = useState({ title: '', category: 'general', content: '' });
   const [replyText, setReplyText] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [showPollModal, setShowPollModal] = useState(false);
+  const [newPoll, setNewPoll] = useState({
+    question_en: '',
+    question_pt: '',
+    options: [
+      { text_en: '', text_pt: '', votes: 0 },
+      { text_en: '', text_pt: '', votes: 0 }
+    ]
+  });
   const queryClient = useQueryClient();
 
   const currentProfileId = localStorage.getItem('currentProfileId');
@@ -32,6 +42,16 @@ export default function Forum() {
   const { data: profiles = [] } = useQuery({
     queryKey: ['profiles'],
     queryFn: () => base44.entities.UserProfile.list(),
+  });
+
+  const { data: polls = [] } = useQuery({
+    queryKey: ['forumPolls'],
+    queryFn: () => base44.entities.ForumPoll.list(),
+  });
+
+  const { data: pollVotes = [] } = useQuery({
+    queryKey: ['pollVotes'],
+    queryFn: () => base44.entities.PollVote.list(),
   });
 
   const createTopic = useMutation({
@@ -69,6 +89,52 @@ export default function Forum() {
     },
   });
 
+  const createPoll = useMutation({
+    mutationFn: async (pollData) => {
+      if (!selectedTopic) return;
+      await base44.entities.ForumPoll.create({
+        ...pollData,
+        topic_id: selectedTopic.id,
+        total_votes: 0
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['forumPolls']);
+      setShowPollModal(false);
+      setNewPoll({
+        question_en: '',
+        question_pt: '',
+        options: [
+          { text_en: '', text_pt: '', votes: 0 },
+          { text_en: '', text_pt: '', votes: 0 }
+        ]
+      });
+    },
+  });
+
+  const votePoll = useMutation({
+    mutationFn: async ({ pollId, optionIndex }) => {
+      await base44.entities.PollVote.create({
+        poll_id: pollId,
+        profile_id: currentProfileId,
+        option_index: optionIndex
+      });
+      
+      const poll = polls.find(p => p.id === pollId);
+      const updatedOptions = [...poll.options];
+      updatedOptions[optionIndex].votes += 1;
+      
+      await base44.entities.ForumPoll.update(pollId, {
+        options: updatedOptions,
+        total_votes: (poll.total_votes || 0) + 1
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['forumPolls']);
+      queryClient.invalidateQueries(['pollVotes']);
+    },
+  });
+
   const categories = [
     { id: 'all', name: 'All Topics', icon: '📚' },
     { id: 'folklore', name: 'Folklore', icon: '🦜' },
@@ -86,10 +152,17 @@ export default function Forum() {
 
   const getProfile = (profileId) => profiles.find(p => p.id === profileId);
   const getTopicReplies = (topicId) => replies.filter(r => r.topic_id === topicId);
+  const getTopicPoll = (topicId) => polls.find(p => p.topic_id === topicId);
+  const getUserPollVote = (pollId) => {
+    const vote = pollVotes.find(v => v.poll_id === pollId && v.profile_id === currentProfileId);
+    return vote ? vote.option_index : null;
+  };
 
   if (selectedTopic) {
     const topicReplies = getTopicReplies(selectedTopic.id);
     const topicProfile = getProfile(selectedTopic.profile_id);
+    const topicPoll = getTopicPoll(selectedTopic.id);
+    const userVote = topicPoll ? getUserPollVote(topicPoll.id) : null;
 
     return (
       <div className="max-w-4xl mx-auto">
@@ -117,9 +190,30 @@ export default function Forum() {
                 </span>
               </div>
             </div>
+            {!topicPoll && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowPollModal(true)}
+              >
+                <BarChart3 className="w-4 h-4 mr-2" />
+                Add Poll
+              </Button>
+            )}
           </div>
           <p className="text-gray-700 whitespace-pre-wrap">{selectedTopic.content}</p>
         </Card>
+
+        {topicPoll && (
+          <div className="mb-6">
+            <PollCard
+              poll={topicPoll}
+              userVote={userVote}
+              onVote={(optionIndex) => votePoll.mutate({ pollId: topicPoll.id, optionIndex })}
+              language="en"
+            />
+          </div>
+        )}
 
         <div className="space-y-4 mb-6">
           <h2 className="text-xl font-bold">Replies ({topicReplies.length})</h2>
@@ -327,6 +421,88 @@ export default function Forum() {
                     Create Topic
                   </Button>
                 </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {showPollModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
+            onClick={() => setShowPollModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              className="bg-white rounded-2xl p-6 max-w-2xl w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="text-2xl font-bold mb-6">Create Poll</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Question (English)</label>
+                  <Input
+                    value={newPoll.question_en}
+                    onChange={(e) => setNewPoll({ ...newPoll, question_en: e.target.value })}
+                    placeholder="What's your favorite Brazilian tradition?"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Question (Portuguese)</label>
+                  <Input
+                    value={newPoll.question_pt}
+                    onChange={(e) => setNewPoll({ ...newPoll, question_pt: e.target.value })}
+                    placeholder="Qual é a sua tradição brasileira favorita?"
+                  />
+                </div>
+                {newPoll.options.map((option, index) => (
+                  <div key={index} className="grid grid-cols-2 gap-2">
+                    <Input
+                      value={option.text_en}
+                      onChange={(e) => {
+                        const opts = [...newPoll.options];
+                        opts[index].text_en = e.target.value;
+                        setNewPoll({ ...newPoll, options: opts });
+                      }}
+                      placeholder={`Option ${index + 1} (EN)`}
+                    />
+                    <Input
+                      value={option.text_pt}
+                      onChange={(e) => {
+                        const opts = [...newPoll.options];
+                        opts[index].text_pt = e.target.value;
+                        setNewPoll({ ...newPoll, options: opts });
+                      }}
+                      placeholder={`Opção ${index + 1} (PT)`}
+                    />
+                  </div>
+                ))}
+                <Button
+                  variant="outline"
+                  onClick={() => setNewPoll({
+                    ...newPoll,
+                    options: [...newPoll.options, { text_en: '', text_pt: '', votes: 0 }]
+                  })}
+                  className="w-full"
+                >
+                  + Add Option
+                </Button>
+              </div>
+              <div className="flex gap-2 justify-end mt-6">
+                <Button variant="outline" onClick={() => setShowPollModal(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => createPoll.mutate(newPoll)}
+                  disabled={!newPoll.question_en || !newPoll.question_pt || 
+                    newPoll.options.some(o => !o.text_en || !o.text_pt)}
+                >
+                  Create Poll
+                </Button>
               </div>
             </motion.div>
           </motion.div>

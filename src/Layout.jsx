@@ -13,6 +13,8 @@ export default function Layout({ children, currentPageName }) {
   const communityItems = [
     { name: 'Showcase', path: 'Showcase', icon: Palette },
     { name: 'Forum', path: 'Forum', icon: MessageSquare },
+    { name: 'Paths', path: 'ReadingPaths', icon: Book },
+    { name: 'Stories', path: 'CollaborativeStories', icon: Book },
     { name: 'Submit', path: 'SubmitContent', icon: Upload },
     { name: 'Shop', path: 'Shop', icon: ShoppingBag },
     { name: 'Events', path: 'Events', icon: Sparkles }
