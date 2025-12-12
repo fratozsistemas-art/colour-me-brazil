@@ -3,10 +3,13 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trophy, Book, Palette, Clock, Star, Award, Zap, Globe } from 'lucide-react';
+import { Trophy, Book, Palette, Clock, Star, Award, Zap, Globe, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getProfileAchievements, checkAndAwardAchievements, calculateLevel, getPointsForNextLevel } from '../components/achievementManager';
 import ShareButton from '../components/social/ShareButton';
+import TierDisplay from '../components/profile/TierDisplay';
+import { getTierFromPoints } from '../components/gamification/tierSystem';
+import { getMasteryBadgeProgress, checkAndAwardMasteryBadges } from '../components/gamification/masteryBadgeManager';
 
 export default function Profile() {
   const currentProfileId = localStorage.getItem('currentProfileId');
@@ -38,12 +41,23 @@ export default function Profile() {
     enabled: !!currentProfileId
   });
 
-  // Check for new achievements on mount
+  const { data: masteryBadges = [], refetch: refetchMasteryBadges } = useQuery({
+    queryKey: ['masteryBadges', currentProfileId],
+    queryFn: () => getMasteryBadgeProgress(currentProfileId),
+    enabled: !!currentProfileId
+  });
+
+  // Check for new achievements and mastery badges on mount
   useEffect(() => {
     if (currentProfileId) {
       checkAndAwardAchievements(currentProfileId).then(newAchievements => {
         if (newAchievements.length > 0) {
           refetchAchievements();
+        }
+      });
+      checkAndAwardMasteryBadges(currentProfileId).then(newBadges => {
+        if (newBadges.length > 0) {
+          refetchMasteryBadges();
         }
       });
     }
@@ -72,6 +86,8 @@ export default function Profile() {
   const overallProgress = totalPages > 0 ? Math.round((coloredPages / totalPages) * 100) : 0;
 
   const unlockedAchievements = achievements.filter(a => a.unlocked);
+  const currentTier = getTierFromPoints(profile.total_points || 0);
+  const unlockedMasteryBadges = masteryBadges.filter(b => b.unlocked);
   
   // Calculate detailed statistics
   const stats = {
@@ -94,11 +110,28 @@ export default function Profile() {
   return (
     <div className="max-w-6xl mx-auto pb-24 md:pb-8">
       {/* Profile Header */}
-      <Card className="p-8 mb-8" style={{ background: 'linear-gradient(135deg, #FFF8F0 0%, #A8DADC 100%)' }}>
-        <div className="flex flex-col md:flex-row items-center gap-6">
-          <div className="text-8xl">{avatar?.emoji || '👤'}</div>
+      <Card className={`p-8 mb-8 relative overflow-hidden ${currentTier.borderStyle}`}>
+        <div 
+          className={`absolute inset-0 bg-gradient-to-br opacity-10 ${currentTier.color}`}
+        />
+        <div className="relative z-10 flex flex-col md:flex-row items-center gap-6">
+          <div className="relative">
+            <div className="text-8xl">{avatar?.emoji || '👤'}</div>
+            {currentTier.rewards.avatarFrame && (
+              <div className={`absolute inset-0 rounded-full border-4 ${currentTier.borderStyle} pointer-events-none`} />
+            )}
+          </div>
           <div className="flex-1 text-center md:text-left">
-            <h1 className="text-4xl font-bold text-gray-800 mb-2">{profile.child_name}</h1>
+            <div className="flex items-center gap-2 justify-center md:justify-start mb-2">
+              <h1 className="text-4xl font-bold text-gray-800">{profile.child_name}</h1>
+              <span className="text-2xl">{currentTier.icon}</span>
+            </div>
+            <p className="text-gray-600 mb-1">
+              {currentTier.rewards.title && (
+                <span className="font-semibold text-purple-600">{currentTier.rewards.title} • </span>
+              )}
+              {currentTier.name} Tier {currentTier.tier}
+            </p>
             <p className="text-gray-600 mb-3">Level {profile.level || 1} • {profile.total_points || 0} points</p>
             <div className="bg-white rounded-full h-3 overflow-hidden shadow-inner mb-2">
               <div 
@@ -138,10 +171,14 @@ export default function Profile() {
               variant="outline"
             />
           </div>
+          </div>
         </div>
       </Card>
 
-      <div className="grid md:grid-cols-2 gap-8">
+      {/* Tier Progression */}
+      <TierDisplay points={profile.total_points || 0} showRewards={true} />
+
+      <div className="grid md:grid-cols-2 gap-8 mt-8">
         {/* Statistics */}
         <Card className="p-6">
           <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
@@ -277,6 +314,69 @@ export default function Profile() {
                 </motion.div>
               ))}
             </AnimatePresence>
+          </div>
+        </Card>
+
+        {/* Mastery Badges */}
+        <Card className="p-6">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <Shield className="w-6 h-6 text-blue-600" />
+              Mastery Badges
+            </span>
+            <span className="text-sm font-normal text-gray-600">
+              {unlockedMasteryBadges.length} / {masteryBadges.length}
+            </span>
+          </h2>
+
+          <div className="grid grid-cols-2 gap-4">
+            {masteryBadges.map((badge, index) => {
+              const progressPercent = Math.min((badge.progress / badge.requiredProgress) * 100, 100);
+              
+              return (
+                <motion.div
+                  key={badge.id}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.05 }}
+                  className={`p-4 rounded-xl border-2 transition-all ${
+                    badge.unlocked
+                      ? 'bg-gradient-to-br from-blue-50 to-purple-50 border-blue-400 shadow-lg'
+                      : 'bg-gray-50 border-gray-200 opacity-70'
+                  }`}
+                >
+                  <div className="text-center">
+                    <div className="text-4xl mb-2">{badge.icon}</div>
+                    <div className="font-bold text-sm text-gray-800 mb-1">
+                      {badge.name_en}
+                    </div>
+                    <p className="text-xs text-gray-600 mb-3 line-clamp-2">
+                      {badge.description_en}
+                    </p>
+                    
+                    {!badge.unlocked && (
+                      <div>
+                        <div className="w-full bg-gray-200 rounded-full h-2 mb-1">
+                          <div
+                            className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all"
+                            style={{ width: `${progressPercent}%` }}
+                          />
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          {badge.progress} / {badge.requiredProgress}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {badge.unlocked && (
+                      <div className="text-xs text-green-600 font-bold">
+                        ✓ Mastered
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
         </Card>
       </div>
