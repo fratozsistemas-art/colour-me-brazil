@@ -4,30 +4,41 @@ import { createPageUrl } from './utils';
 import { Book, Settings, User, Palette, ShoppingBag, Trophy, Upload, Shield, MessageSquare, Sparkles } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
-  const mainItems = [
-    { name: 'Home', path: 'Home', icon: Book },
-    { name: 'Library', path: 'Library', icon: Book },
-    { name: 'Profile', path: 'Profile', icon: User }
-  ];
-
-  const communityItems = [
-    { name: 'Showcase', path: 'Showcase', icon: Palette },
-    { name: 'Forum', path: 'Forum', icon: MessageSquare },
-    { name: 'Stories', path: 'CollaborativeStories', icon: Book },
-    { name: 'Paths', path: 'ReadingPaths', icon: Book }
-  ];
-
-  const featuresItems = [
-    { name: 'Leaderboard', path: 'Leaderboard', icon: Trophy },
-    { name: 'Events', path: 'Events', icon: Sparkles },
-    { name: 'Rewards', path: 'RewardsShop', icon: Sparkles },
-    { name: 'Submit', path: 'SubmitContent', icon: Upload }
-  ];
-
-  const adminItems = [
-    { name: 'Manage', path: 'ManageBooks', icon: Settings },
-    { name: 'Moderate', path: 'ContentModeration', icon: Shield },
-    { name: 'Parent', path: 'ParentPortal', icon: Shield }
+  const menuItems = [
+    { 
+      category: 'Main',
+      items: [
+        { name: 'Home', path: 'Home', icon: Book },
+        { name: 'Library', path: 'Library', icon: Book },
+        { name: 'Profile', path: 'Profile', icon: User }
+      ]
+    },
+    {
+      category: 'Community',
+      items: [
+        { name: 'Showcase', path: 'Showcase', icon: Palette },
+        { name: 'Forum', path: 'Forum', icon: MessageSquare },
+        { name: 'Stories', path: 'CollaborativeStories', icon: Book },
+        { name: 'Paths', path: 'ReadingPaths', icon: Book }
+      ]
+    },
+    {
+      category: 'Features',
+      items: [
+        { name: 'Leaderboard', path: 'Leaderboard', icon: Trophy },
+        { name: 'Events', path: 'Events', icon: Sparkles },
+        { name: 'Rewards', path: 'RewardsShop', icon: Sparkles },
+        { name: 'Submit', path: 'SubmitContent', icon: Upload }
+      ]
+    },
+    {
+      category: 'Admin',
+      items: [
+        { name: 'Manage', path: 'ManageBooks', icon: Settings },
+        { name: 'Moderate', path: 'ContentModeration', icon: Shield },
+        { name: 'Parent', path: 'ParentPortal', icon: Shield }
+      ]
+    }
   ];
 
   return (
@@ -57,95 +68,35 @@ export default function Layout({ children, currentPageName }) {
             </Link>
 
             {/* Navigation */}
-            <nav className="hidden md:flex items-center gap-3">
-              {mainItems.map(({ name, path, icon: Icon }) => (
-                <Link
-                  key={path}
-                  to={createPageUrl(path)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-                    currentPageName === path
-                      ? 'font-semibold shadow-md'
-                      : 'hover:shadow-sm'
-                  }`}
-                  style={currentPageName === path ? {
-                    background: 'linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%)',
-                    color: '#FFFFFF'
-                  } : {
-                    color: '#1A2332'
-                  }}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span>{name}</span>
-                </Link>
-              ))}
-
-              <div className="w-px h-6 bg-gray-300 mx-1" />
-
-              {communityItems.map(({ name, path, icon: Icon }) => (
-                <Link
-                  key={path}
-                  to={createPageUrl(path)}
-                  className={`flex items-center gap-1 px-3 py-2 rounded-lg transition-all text-sm ${
-                    currentPageName === path
-                      ? 'font-semibold shadow-md'
-                      : 'hover:shadow-sm'
-                  }`}
-                  style={currentPageName === path ? {
-                    background: 'linear-gradient(135deg, #A855F7 0%, #EC4899 100%)',
-                    color: '#FFFFFF'
-                  } : {
-                    color: '#6C757D'
-                  }}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{name}</span>
-                </Link>
-              ))}
-
-              <div className="w-px h-6 bg-gray-300 mx-1" />
-
-              {featuresItems.map(({ name, path, icon: Icon }) => (
-                <Link
-                  key={path}
-                  to={createPageUrl(path)}
-                  className={`flex items-center gap-1 px-3 py-2 rounded-lg transition-all text-sm ${
-                    currentPageName === path
-                      ? 'font-semibold shadow-md'
-                      : 'hover:shadow-sm'
-                  }`}
-                  style={currentPageName === path ? {
-                    background: 'linear-gradient(135deg, #FFD23F 0%, #FF8C42 100%)',
-                    color: '#FFFFFF'
-                  } : {
-                    color: '#6C757D'
-                  }}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{name}</span>
-                </Link>
-              ))}
-
-              <div className="w-px h-6 bg-gray-300 mx-1" />
-
-              {adminItems.map(({ name, path, icon: Icon }) => (
-                <Link
-                  key={path}
-                  to={createPageUrl(path)}
-                  className={`flex items-center gap-1 px-3 py-2 rounded-lg transition-all text-sm ${
-                    currentPageName === path
-                      ? 'font-semibold shadow-md'
-                      : 'hover:shadow-sm'
-                  }`}
-                  style={currentPageName === path ? {
-                    background: 'linear-gradient(135deg, #2E86AB 0%, #06A77D 100%)',
-                    color: '#FFFFFF'
-                  } : {
-                    color: '#6C757D'
-                  }}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{name}</span>
-                </Link>
+            <nav className="hidden lg:flex items-center gap-2">
+              {menuItems.map((category, catIndex) => (
+                <React.Fragment key={category.category}>
+                  {catIndex > 0 && <div className="w-px h-6 bg-gray-300 mx-1" />}
+                  {category.items.map(({ name, path, icon: Icon }) => (
+                    <Link
+                      key={path}
+                      to={createPageUrl(path)}
+                      className={`flex items-center gap-1 px-2 py-1.5 rounded-lg transition-all text-xs ${
+                        currentPageName === path
+                          ? 'font-semibold shadow-md'
+                          : 'hover:shadow-sm'
+                      }`}
+                      style={currentPageName === path ? {
+                        background: category.category === 'Main' ? 'linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%)' :
+                                    category.category === 'Community' ? 'linear-gradient(135deg, #A855F7 0%, #EC4899 100%)' :
+                                    category.category === 'Features' ? 'linear-gradient(135deg, #FFD23F 0%, #FF8C42 100%)' :
+                                    'linear-gradient(135deg, #2E86AB 0%, #06A77D 100%)',
+                        color: '#FFFFFF'
+                      } : {
+                        color: '#6C757D'
+                      }}
+                      title={`${category.category}: ${name}`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span>{name}</span>
+                    </Link>
+                  ))}
+                </React.Fragment>
               ))}
             </nav>
           </div>
@@ -158,9 +109,9 @@ export default function Layout({ children, currentPageName }) {
       </main>
 
       {/* Mobile Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white shadow-lg" style={{ borderTop: '2px solid #FF6B35' }}>
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white shadow-lg" style={{ borderTop: '2px solid #FF6B35' }}>
         <div className="grid grid-cols-3 gap-1 py-2">
-          {mainItems.map(({ name, path, icon: Icon }) => (
+          {menuItems[0].items.map(({ name, path, icon: Icon }) => (
             <Link
               key={path}
               to={createPageUrl(path)}
