@@ -57,8 +57,8 @@ export default function Layout({ children, currentPageName }) {
             </Link>
 
             {/* Navigation */}
-            <nav className="hidden md:flex items-center gap-4">
-              {navItems.map(({ name, path, icon: Icon }) => (
+            <nav className="hidden md:flex items-center gap-3">
+              {mainItems.map(({ name, path, icon: Icon }) => (
                 <Link
                   key={path}
                   to={createPageUrl(path)}
@@ -79,13 +79,13 @@ export default function Layout({ children, currentPageName }) {
                 </Link>
               ))}
 
-              <div className="w-px h-6 bg-gray-300 mx-2" />
+              <div className="w-px h-6 bg-gray-300 mx-1" />
 
               {communityItems.map(({ name, path, icon: Icon }) => (
                 <Link
                   key={path}
                   to={createPageUrl(path)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm ${
+                  className={`flex items-center gap-1 px-3 py-2 rounded-lg transition-all text-sm ${
                     currentPageName === path
                       ? 'font-semibold shadow-md'
                       : 'hover:shadow-sm'
@@ -102,13 +102,36 @@ export default function Layout({ children, currentPageName }) {
                 </Link>
               ))}
 
-              <div className="w-px h-6 bg-gray-300 mx-2" />
+              <div className="w-px h-6 bg-gray-300 mx-1" />
+
+              {featuresItems.map(({ name, path, icon: Icon }) => (
+                <Link
+                  key={path}
+                  to={createPageUrl(path)}
+                  className={`flex items-center gap-1 px-3 py-2 rounded-lg transition-all text-sm ${
+                    currentPageName === path
+                      ? 'font-semibold shadow-md'
+                      : 'hover:shadow-sm'
+                  }`}
+                  style={currentPageName === path ? {
+                    background: 'linear-gradient(135deg, #FFD23F 0%, #FF8C42 100%)',
+                    color: '#FFFFFF'
+                  } : {
+                    color: '#6C757D'
+                  }}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>{name}</span>
+                </Link>
+              ))}
+
+              <div className="w-px h-6 bg-gray-300 mx-1" />
 
               {adminItems.map(({ name, path, icon: Icon }) => (
                 <Link
                   key={path}
                   to={createPageUrl(path)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm ${
+                  className={`flex items-center gap-1 px-3 py-2 rounded-lg transition-all text-sm ${
                     currentPageName === path
                       ? 'font-semibold shadow-md'
                       : 'hover:shadow-sm'
