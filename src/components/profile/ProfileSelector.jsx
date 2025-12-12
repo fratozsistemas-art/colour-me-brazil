@@ -4,24 +4,9 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, User } from 'lucide-react';
+import { BRAZILIAN_FAUNA_AVATARS } from './BrazilianFaunaAvatars';
 
-const AVATAR_OPTIONS = [
-  { id: 'jaguar', emoji: '🐆', label: 'Jaguar' },
-  { id: 'sloth', emoji: '🦥', label: 'Sloth' },
-  { id: 'toucan', emoji: '🦜', label: 'Toucan' },
-  { id: 'monkey', emoji: '🐒', label: 'Monkey' },
-  { id: 'samba_dancer', emoji: '💃', label: 'Samba Dancer' },
-  { id: 'football', emoji: '⚽', label: 'Football' },
-  { id: 'carnival_mask', emoji: '🎭', label: 'Carnival Mask' },
-  { id: 'palm_tree', emoji: '🌴', label: 'Palm Tree' },
-  { id: 'amazon_river', emoji: '🌊', label: 'Amazon River' },
-  { id: 'coffee', emoji: '☕', label: 'Coffee' },
-  { id: 'fruit', emoji: '🍹', label: 'Tropical Fruit' },
-  { id: 'capybara', emoji: '🦫', label: 'Capybara' },
-  { id: 'macaw', emoji: '🦚', label: 'Macaw' },
-  { id: 'flower', emoji: '🌺', label: 'Tropical Flower' },
-  { id: 'sun', emoji: '☀️', label: 'Brazilian Sun' }
-];
+const AVATAR_OPTIONS = BRAZILIAN_FAUNA_AVATARS;
 
 export default function ProfileSelector({ onProfileCreated, existingProfiles = [] }) {
   const [isCreating, setIsCreating] = useState(existingProfiles.length === 0);
@@ -87,24 +72,39 @@ export default function ProfileSelector({ onProfileCreated, existingProfiles = [
               {/* Avatar Selection */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-3">
-                  Choose your avatar
+                  Choose your Brazilian animal spirit
                 </label>
-                <div className="grid grid-cols-5 gap-3">
-                  {AVATAR_OPTIONS.map((avatar) => (
-                    <motion.button
-                      key={avatar.id}
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => setSelectedAvatar(avatar.id)}
-                      className={`aspect-square rounded-xl border-4 text-4xl flex items-center justify-center transition-all ${
-                        selectedAvatar === avatar.id
-                          ? 'border-green-500 bg-green-50 shadow-lg'
-                          : 'border-gray-200 hover:border-green-300 bg-white'
-                      }`}
-                    >
-                      {avatar.emoji}
-                    </motion.button>
-                  ))}
+                <div className="grid grid-cols-5 gap-3 max-h-64 overflow-y-auto">
+                  {AVATAR_OPTIONS.map((avatar) => {
+                    const isSelected = selectedAvatar === avatar.id;
+                    const displayName = preferredLanguage === 'en' ? avatar.nameEn : avatar.namePt;
+                    const tagline = preferredLanguage === 'en' ? avatar.taglineEn : avatar.taglinePt;
+                    
+                    return (
+                      <motion.button
+                        key={avatar.id}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setSelectedAvatar(avatar.id)}
+                        className={`aspect-square rounded-xl border-4 p-2 flex flex-col items-center justify-center transition-all relative group ${
+                          isSelected
+                            ? 'border-green-500 bg-green-50 shadow-lg'
+                            : 'border-gray-200 hover:border-green-300 bg-white'
+                        }`}
+                        title={`${displayName} - ${tagline}`}
+                      >
+                        <div className="text-3xl mb-1">{avatar.emoji}</div>
+                        <div className="text-[8px] font-semibold text-center text-gray-600 leading-tight">
+                          {displayName}
+                        </div>
+                        
+                        {/* Tooltip on hover */}
+                        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                          {tagline}
+                        </div>
+                      </motion.button>
+                    );
+                  })}
                 </div>
               </div>
 
