@@ -159,6 +159,14 @@ export default function Library() {
         await checkStreakAchievements(currentProfile.id, streakResult.current_streak);
       }
 
+      // Log book started activity
+      await base44.entities.UserActivityLog.create({
+        profile_id: currentProfile.id,
+        activity_type: 'book_started',
+        book_id: book.id,
+        points_earned: 0
+      });
+
       // Reload recommendations after book interaction
       queryClient.invalidateQueries(['profiles']);
       }
@@ -191,6 +199,15 @@ export default function Library() {
       // Award points for completing a book
       await awardPoints(currentProfile.id, 'book_completed');
       await checkAndAwardAchievements(currentProfile.id);
+
+      // Log book completed activity
+      await base44.entities.UserActivityLog.create({
+        profile_id: currentProfile.id,
+        activity_type: 'book_completed',
+        book_id: bookId,
+        points_earned: 50
+      });
+
       queryClient.invalidateQueries(['profiles']);
     }
   };
@@ -239,6 +256,17 @@ export default function Library() {
 
       // Check for new achievements
       await checkAndAwardAchievements(currentProfile.id);
+
+      // Log coloring activity
+      if (sessionData.is_completed) {
+        await base44.entities.UserActivityLog.create({
+          profile_id: currentProfile.id,
+          activity_type: 'page_colored',
+          book_id: coloringPage.book_id,
+          page_id: coloringPage.id,
+          points_earned: 10
+        });
+      }
       
       queryClient.invalidateQueries(['profiles']);
       queryClient.invalidateQueries(['coloringSessions']);
