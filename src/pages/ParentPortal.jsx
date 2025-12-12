@@ -12,6 +12,10 @@ import {
   TrendingUp, Calendar, Star, Settings 
 } from 'lucide-react';
 import { toast } from 'sonner';
+import ChildProgressOverview from '../components/parentportal/ChildProgressOverview';
+import ChildActivityFeed from '../components/parentportal/ChildActivityFeed';
+import ReadingHistory from '../components/parentportal/ReadingHistory';
+import QuizPerformance from '../components/parentportal/QuizPerformance';
 
 export default function ParentPortal() {
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
@@ -52,6 +56,34 @@ export default function ParentPortal() {
       return profiles.filter(p => parentAccount.child_profiles.includes(p.id));
     },
     enabled: !!parentAccount,
+  });
+
+  // Fetch activity logs for all children
+  const { data: activityLogs = [] } = useQuery({
+    queryKey: ['activityLogs', parentAccount?.child_profiles],
+    queryFn: async () => {
+      if (!parentAccount?.child_profiles?.length) return [];
+      const logs = await base44.entities.UserActivityLog.list('-created_date', 100);
+      return logs.filter(log => parentAccount.child_profiles.includes(log.profile_id));
+    },
+    enabled: !!parentAccount,
+  });
+
+  // Fetch quiz results for all children
+  const { data: quizResults = [] } = useQuery({
+    queryKey: ['quizResults', parentAccount?.child_profiles],
+    queryFn: async () => {
+      if (!parentAccount?.child_profiles?.length) return [];
+      const results = await base44.entities.QuizResult.list('-created_date', 100);
+      return results.filter(result => parentAccount.child_profiles.includes(result.profile_id));
+    },
+    enabled: !!parentAccount,
+  });
+
+  // Fetch books for context
+  const { data: books = [] } = useQuery({
+    queryKey: ['books'],
+    queryFn: () => base44.entities.Book.list(),
   });
 
   const updateSettingsMutation = useMutation({
@@ -149,63 +181,39 @@ export default function ParentPortal() {
 
         {/* Progress Tab */}
         <TabsContent value="progress" className="space-y-6">
-          {childProfiles.map(child => (
-            <Card key={child.id} className="p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="text-4xl">{child.avatar_icon}</div>
-                <div>
-                  <h3 className="text-2xl font-bold">{child.child_name}</h3>
-                  <p className="text-gray-600">Detailed Progress Report</p>
+          {childProfiles.map(child => {
+            const childActivityLogs = activityLogs.filter(log => log.profile_id === child.id);
+            const childQuizResults = quizResults.filter(result => result.profile_id === child.id);
+
+            return (
+              <div key={child.id} className="space-y-6">
+                <ChildProgressOverview
+                  profile={child}
+                  activityLogs={childActivityLogs}
+                  quizResults={childQuizResults}
+                />
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <ReadingHistory
+                    profile={child}
+                    books={books}
+                    activityLogs={childActivityLogs}
+                  />
+
+                  <QuizPerformance
+                    profile={child}
+                    quizResults={childQuizResults}
+                  />
                 </div>
+
+                <ChildActivityFeed
+                  profile={child}
+                  activityLogs={childActivityLogs}
+                  books={books}
+                />
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-blue-50 rounded-lg p-4">
-                  <BookOpen className="w-8 h-8 text-blue-600 mb-2" />
-                  <h4 className="font-semibold mb-1">Reading</h4>
-                  <p className="text-2xl font-bold text-blue-600">
-                    {child.books_completed?.length || 0} books
-                  </p>
-                  <p className="text-sm text-gray-600">completed</p>
-                </div>
-
-                <div className="bg-purple-50 rounded-lg p-4">
-                  <Palette className="w-8 h-8 text-purple-600 mb-2" />
-                  <h4 className="font-semibold mb-1">Coloring</h4>
-                  <p className="text-2xl font-bold text-purple-600">
-                    {child.pages_colored?.length || 0} pages
-                  </p>
-                  <p className="text-sm text-gray-600">colored</p>
-                </div>
-
-                <div className="bg-green-50 rounded-lg p-4">
-                  <Award className="w-8 h-8 text-green-600 mb-2" />
-                  <h4 className="font-semibold mb-1">Achievements</h4>
-                  <p className="text-2xl font-bold text-green-600">
-                    {child.achievements?.length || 0}
-                  </p>
-                  <p className="text-sm text-gray-600">unlocked</p>
-                </div>
-              </div>
-
-              <div className="mt-6">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">Time Spent</span>
-                  <span className="text-sm text-gray-600">
-                    {Math.round((child.total_coloring_time || 0) / 60)} minutes
-                  </span>
-                </div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">Current Streak</span>
-                  <span className="text-sm text-gray-600">{child.current_streak || 0} days</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Longest Streak</span>
-                  <span className="text-sm text-gray-600">{child.longest_streak || 0} days</span>
-                </div>
-              </div>
-            </Card>
-          ))}
+            );
+          })}
         </TabsContent>
 
         {/* Settings Tab */}
