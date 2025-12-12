@@ -9,6 +9,7 @@ import SubmitContent from './pages/SubmitContent';
 import ContentModeration from './pages/ContentModeration';
 import Showcase from './pages/Showcase';
 import Forum from './pages/Forum';
+import Events from './pages/Events';
 import __Layout from './Layout.jsx';
 
 
@@ -24,6 +25,7 @@ export const PAGES = {
     "ContentModeration": ContentModeration,
     "Showcase": Showcase,
     "Forum": Forum,
+    "Events": Events,
 }
 
 export const pagesConfig = {

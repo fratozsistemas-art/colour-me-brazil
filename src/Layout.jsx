@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from './utils';
-import { Book, Settings, User, Palette, ShoppingBag, Trophy, Upload, Shield, MessageSquare } from 'lucide-react';
+import { Book, Settings, User, Palette, ShoppingBag, Trophy, Upload, Shield, MessageSquare, Sparkles } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
   const navItems = [
@@ -14,7 +14,8 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Showcase', path: 'Showcase', icon: Palette },
     { name: 'Forum', path: 'Forum', icon: MessageSquare },
     { name: 'Submit', path: 'SubmitContent', icon: Upload },
-    { name: 'Shop', path: 'Shop', icon: ShoppingBag }
+    { name: 'Shop', path: 'Shop', icon: ShoppingBag },
+    { name: 'Events', path: 'Events', icon: Sparkles }
   ];
 
   const adminItems = [

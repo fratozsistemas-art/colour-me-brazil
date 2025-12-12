@@ -18,7 +18,7 @@ export default function Leaderboard() {
   });
 
   // Sort profiles based on selected category
-  const sortedProfiles = [...profiles].sort((a, b) => {
+  const sortedProfiles = [...filteredProfiles].sort((a, b) => {
     switch (category) {
       case 'points':
         return (b.total_points || 0) - (a.total_points || 0);
