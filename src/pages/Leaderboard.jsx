@@ -17,6 +17,29 @@ export default function Leaderboard() {
     }
   });
 
+  // Filter profiles by timeframe
+  const filteredProfiles = profiles.filter(profile => {
+    if (timeframe === 'all_time') return true;
+    
+    const now = new Date();
+    const lastActivity = profile.last_activity_date ? new Date(profile.last_activity_date) : null;
+    
+    if (!lastActivity) return false;
+    
+    if (timeframe === 'daily') {
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const activityDate = new Date(lastActivity.getFullYear(), lastActivity.getMonth(), lastActivity.getDate());
+      return activityDate.getTime() === today.getTime();
+    }
+    
+    if (timeframe === 'weekly') {
+      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      return lastActivity >= weekAgo;
+    }
+    
+    return true;
+  });
+
   // Sort profiles based on selected category
   const sortedProfiles = [...filteredProfiles].sort((a, b) => {
     switch (category) {
@@ -91,6 +114,28 @@ export default function Leaderboard() {
           <span className="text-gradient-brand">Leaderboard</span>
         </h1>
         <p className="text-gray-600">See how you rank against other young explorers!</p>
+      </div>
+
+      {/* Timeframe Filters */}
+      <div className="flex gap-2 mb-6">
+        <Button
+          variant={timeframe === 'all_time' ? 'default' : 'outline'}
+          onClick={() => setTimeframe('all_time')}
+        >
+          🌍 All Time
+        </Button>
+        <Button
+          variant={timeframe === 'weekly' ? 'default' : 'outline'}
+          onClick={() => setTimeframe('weekly')}
+        >
+          📅 This Week
+        </Button>
+        <Button
+          variant={timeframe === 'daily' ? 'default' : 'outline'}
+          onClick={() => setTimeframe('daily')}
+        >
+          ⭐ Today
+        </Button>
       </div>
 
       {/* Category Filters */}
