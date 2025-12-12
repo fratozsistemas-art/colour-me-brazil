@@ -4,21 +4,24 @@ import { createPageUrl } from './utils';
 import { Book, Settings, User, Palette, ShoppingBag, Trophy, Upload, Shield, MessageSquare, Sparkles } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
-  const navItems = [
+  const mainItems = [
     { name: 'Home', path: 'Home', icon: Book },
     { name: 'Library', path: 'Library', icon: Book },
-    { name: 'Leaderboard', path: 'Leaderboard', icon: Trophy },
     { name: 'Profile', path: 'Profile', icon: User }
   ];
 
   const communityItems = [
     { name: 'Showcase', path: 'Showcase', icon: Palette },
     { name: 'Forum', path: 'Forum', icon: MessageSquare },
-    { name: 'Paths', path: 'ReadingPaths', icon: Book },
     { name: 'Stories', path: 'CollaborativeStories', icon: Book },
-    { name: 'Submit', path: 'SubmitContent', icon: Upload },
+    { name: 'Paths', path: 'ReadingPaths', icon: Book }
+  ];
+
+  const featuresItems = [
+    { name: 'Leaderboard', path: 'Leaderboard', icon: Trophy },
+    { name: 'Events', path: 'Events', icon: Sparkles },
     { name: 'Shop', path: 'Shop', icon: ShoppingBag },
-    { name: 'Events', path: 'Events', icon: Sparkles }
+    { name: 'Submit', path: 'SubmitContent', icon: Upload }
   ];
 
   const adminItems = [
@@ -133,8 +136,8 @@ export default function Layout({ children, currentPageName }) {
 
       {/* Mobile Navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white shadow-lg" style={{ borderTop: '2px solid #FF6B35' }}>
-        <div className="grid grid-cols-4 gap-1 py-2">
-          {navItems.map(({ name, path, icon: Icon }) => (
+        <div className="grid grid-cols-3 gap-1 py-2">
+          {mainItems.map(({ name, path, icon: Icon }) => (
             <Link
               key={path}
               to={createPageUrl(path)}
