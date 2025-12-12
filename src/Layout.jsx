@@ -20,14 +20,14 @@ export default function Layout({ children, currentPageName }) {
   const featuresItems = [
     { name: 'Leaderboard', path: 'Leaderboard', icon: Trophy },
     { name: 'Events', path: 'Events', icon: Sparkles },
-    { name: 'Shop', path: 'Shop', icon: ShoppingBag },
+    { name: 'Rewards', path: 'RewardsShop', icon: Sparkles },
     { name: 'Submit', path: 'SubmitContent', icon: Upload }
   ];
 
   const adminItems = [
     { name: 'Manage', path: 'ManageBooks', icon: Settings },
     { name: 'Moderate', path: 'ContentModeration', icon: Shield },
-    { name: 'Brand', path: 'BrandGuidelines', icon: Palette }
+    { name: 'Parent', path: 'ParentPortal', icon: Shield }
   ];
 
   return (

@@ -13,6 +13,8 @@ import Events from './pages/Events';
 import ReadingPaths from './pages/ReadingPaths';
 import CollaborativeStories from './pages/CollaborativeStories';
 import Home from './pages/Home';
+import RewardsShop from './pages/RewardsShop';
+import ParentPortal from './pages/ParentPortal';
 import __Layout from './Layout.jsx';
 
 
@@ -32,6 +34,8 @@ export const PAGES = {
     "ReadingPaths": ReadingPaths,
     "CollaborativeStories": CollaborativeStories,
     "Home": Home,
+    "RewardsShop": RewardsShop,
+    "ParentPortal": ParentPortal,
 }
 
 export const pagesConfig = {
