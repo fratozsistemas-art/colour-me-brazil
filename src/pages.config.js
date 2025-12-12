@@ -10,6 +10,8 @@ import ContentModeration from './pages/ContentModeration';
 import Showcase from './pages/Showcase';
 import Forum from './pages/Forum';
 import Events from './pages/Events';
+import ReadingPaths from './pages/ReadingPaths';
+import CollaborativeStories from './pages/CollaborativeStories';
 import __Layout from './Layout.jsx';
 
 
@@ -26,6 +28,8 @@ export const PAGES = {
     "Showcase": Showcase,
     "Forum": Forum,
     "Events": Events,
+    "ReadingPaths": ReadingPaths,
+    "CollaborativeStories": CollaborativeStories,
 }
 
 export const pagesConfig = {
