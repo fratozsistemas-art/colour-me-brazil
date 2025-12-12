@@ -29,14 +29,39 @@ export default function QuizModal({ quiz, language, onComplete, onClose, profile
         if (profiles.length > 0) {
           const profile = profiles[0];
           const newQuizzesAttempted = (profile.quizzes_attempted || 0) + 1;
-          const newQuizzesCorrect = correct ? (profile.quizzes_correct || 0) + 1 : profile.quizzes_correct;
+          const newQuizzesCorrect = correct ? (profile.quizzes_correct || 0) + 1 : (profile.quizzes_correct || 0);
           const newConsecutiveCorrect = correct ? (profile.consecutive_quizzes_correct || 0) + 1 : 0;
+          const pointsEarned = correct ? 10 : 0;
           
           await base44.entities.UserProfile.update(profileId, {
             quizzes_attempted: newQuizzesAttempted,
             quizzes_correct: newQuizzesCorrect,
             consecutive_quizzes_correct: newConsecutiveCorrect,
-            total_points: (profile.total_points || 0) + (correct ? 10 : 0)
+            total_points: (profile.total_points || 0) + pointsEarned
+          });
+
+          // Create QuizResult record
+          await base44.entities.QuizResult.create({
+            profile_id: profileId,
+            quiz_id: quiz.id,
+            book_id: quiz.book_id,
+            page_id: quiz.page_id,
+            selected_option: optionIndex,
+            is_correct: correct,
+            points_earned: pointsEarned
+          });
+
+          // Create Activity Log
+          await base44.entities.UserActivityLog.create({
+            profile_id: profileId,
+            activity_type: 'quiz_completed',
+            book_id: quiz.book_id,
+            page_id: quiz.page_id,
+            points_earned: pointsEarned,
+            metadata: {
+              is_correct: correct,
+              quiz_id: quiz.id
+            }
           });
         }
       } catch (error) {
