@@ -441,9 +441,9 @@ export default function StoryReader({
         </div>
 
         {/* Story Text & Controls */}
-        <div className="w-full md:w-96 bg-white flex flex-col">
+        <div className="w-full md:w-96 bg-white flex flex-col max-h-screen">
           {/* Audio Controls */}
-          <div className="border-b p-4 bg-gray-50">
+          <div className="border-b p-4 bg-gray-50 flex-shrink-0">
             <div className="flex items-center gap-2 mb-3">
               <Button
                 variant="outline"
@@ -497,7 +497,7 @@ export default function StoryReader({
           </div>
 
           {/* Story Text */}
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto p-6 touch-pan-y overscroll-contain">
             <AnimatePresence mode="wait">
               <motion.div
                 key={`${pageIndex}-${language}`}
@@ -512,7 +512,7 @@ export default function StoryReader({
           </div>
 
           {/* Navigation */}
-          <div className="border-t p-4 bg-gray-50">
+          <div className="border-t p-4 bg-gray-50 flex-shrink-0">
             {showCompleteButton && (
               <Button
                 onClick={handleCompleteBook}
