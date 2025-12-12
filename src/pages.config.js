@@ -12,6 +12,7 @@ import Forum from './pages/Forum';
 import Events from './pages/Events';
 import ReadingPaths from './pages/ReadingPaths';
 import CollaborativeStories from './pages/CollaborativeStories';
+import Home from './pages/Home';
 import __Layout from './Layout.jsx';
 
 
@@ -30,6 +31,7 @@ export const PAGES = {
     "Events": Events,
     "ReadingPaths": ReadingPaths,
     "CollaborativeStories": CollaborativeStories,
+    "Home": Home,
 }
 
 export const pagesConfig = {

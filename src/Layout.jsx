@@ -5,6 +5,7 @@ import { Book, Settings, User, Palette, ShoppingBag, Trophy, Upload, Shield, Mes
 
 export default function Layout({ children, currentPageName }) {
   const navItems = [
+    { name: 'Home', path: 'Home', icon: Book },
     { name: 'Library', path: 'Library', icon: Book },
     { name: 'Leaderboard', path: 'Leaderboard', icon: Trophy },
     { name: 'Profile', path: 'Profile', icon: User }
@@ -33,7 +34,7 @@ export default function Layout({ children, currentPageName }) {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             {/* Logo */}
-            <Link to={createPageUrl('Library')} className="flex items-center gap-2">
+            <Link to={createPageUrl('Home')} className="flex items-center gap-2">
               <img 
                 src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69383fc9e0a81f2fec355d14/fb45bdf53_A_beautiful_watercolor_toucan_bird_illustration_in-1765301342087.png"
                 alt="Colour Me Brazil Logo"
