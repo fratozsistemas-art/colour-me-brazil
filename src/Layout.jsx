@@ -35,6 +35,7 @@ export default function Layout({ children, currentPageName }) {
       category: 'Admin',
       items: [
         { name: 'Manage', path: 'ManageBooks', icon: Settings },
+        { name: 'Users', path: 'ManageUsers', icon: User },
         { name: 'Moderate', path: 'ContentModeration', icon: Shield },
         { name: 'Parent', path: 'ParentPortal', icon: Shield }
       ]

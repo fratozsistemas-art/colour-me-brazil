@@ -15,6 +15,7 @@ import CollaborativeStories from './pages/CollaborativeStories';
 import Home from './pages/Home';
 import RewardsShop from './pages/RewardsShop';
 import ParentPortal from './pages/ParentPortal';
+import ManageUsers from './pages/ManageUsers';
 import __Layout from './Layout.jsx';
 
 
@@ -36,6 +37,7 @@ export const PAGES = {
     "Home": Home,
     "RewardsShop": RewardsShop,
     "ParentPortal": ParentPortal,
+    "ManageUsers": ManageUsers,
 }
 
 export const pagesConfig = {

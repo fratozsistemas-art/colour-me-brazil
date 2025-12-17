@@ -163,18 +163,19 @@ export default function Library() {
         await checkStreakAchievements(currentProfile.id, streakResult.current_streak);
       }
 
-      // Log book started activity
+      // Log book started activity with metadata
       await base44.entities.UserActivityLog.create({
         profile_id: currentProfile.id,
         activity_type: 'book_started',
         book_id: book.id,
-        points_earned: 0
+        points_earned: 0,
+        metadata: { collection: book.collection }
       });
 
       // Reload recommendations after book interaction
       queryClient.invalidateQueries(['profiles']);
-      }
-      };
+    }
+  };
 
   const updateReadingProgress = async (bookId, pageIndex) => {
     if (!currentProfile) return;
