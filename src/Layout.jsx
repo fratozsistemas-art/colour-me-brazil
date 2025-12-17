@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from './utils';
-import { Book, Settings, User, Palette, ShoppingBag, Trophy, Upload, Shield, MessageSquare, Sparkles } from 'lucide-react';
+import { Book, Settings, User, Palette, ShoppingBag, Trophy, Upload, Shield, MessageSquare, Sparkles, Users } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
   const menuItems = [
@@ -19,23 +19,23 @@ export default function Layout({ children, currentPageName }) {
         { name: 'Showcase', path: 'Showcase', icon: Palette },
         { name: 'Forum', path: 'Forum', icon: MessageSquare },
         { name: 'Stories', path: 'CollaborativeStories', icon: Book },
-        { name: 'Paths', path: 'ReadingPaths', icon: Book }
+        { name: 'Paths', path: 'ReadingPaths', icon: Book },
+        { name: 'Submit', path: 'SubmitContent', icon: Upload }
       ]
     },
     {
-      category: 'Features',
+      category: 'Gamification',
       items: [
         { name: 'Leaderboard', path: 'Leaderboard', icon: Trophy },
         { name: 'Events', path: 'Events', icon: Sparkles },
-        { name: 'Rewards', path: 'RewardsShop', icon: Sparkles },
-        { name: 'Submit', path: 'SubmitContent', icon: Upload }
+        { name: 'Rewards', path: 'RewardsShop', icon: Sparkles }
       ]
     },
     {
       category: 'Admin',
       items: [
         { name: 'Manage', path: 'ManageBooks', icon: Settings },
-        { name: 'Users', path: 'ManageUsers', icon: User },
+        { name: 'Users', path: 'ManageUsers', icon: Users },
         { name: 'Moderate', path: 'ContentModeration', icon: Shield },
         { name: 'Parent', path: 'ParentPortal', icon: Shield }
       ]
@@ -85,7 +85,7 @@ export default function Layout({ children, currentPageName }) {
                       style={currentPageName === path ? {
                         background: category.category === 'Main' ? 'linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%)' :
                                     category.category === 'Community' ? 'linear-gradient(135deg, #A855F7 0%, #EC4899 100%)' :
-                                    category.category === 'Features' ? 'linear-gradient(135deg, #FFD23F 0%, #FF8C42 100%)' :
+                                    category.category === 'Gamification' ? 'linear-gradient(135deg, #FFD23F 0%, #FF8C42 100%)' :
                                     'linear-gradient(135deg, #2E86AB 0%, #06A77D 100%)',
                         color: '#FFFFFF'
                       } : {
