@@ -5,14 +5,18 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Users, Heart, BookOpen, Send } from 'lucide-react';
+import { Plus, Users, Heart, BookOpen, Send, GitBranch } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { awardPoints } from '../components/achievementManager';
+import RealtimeCursors from '../components/stories/RealtimeCursors';
+import VersionHistory from '../components/stories/VersionHistory';
+import ForkStory from '../components/stories/ForkStory';
 
 export default function CollaborativeStories() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedStory, setSelectedStory] = useState(null);
   const [contributionText, setContributionText] = useState('');
+  const [selectedVersion, setSelectedVersion] = useState(null);
   const [newStory, setNewStory] = useState({
     title_en: '',
     title_pt: '',
@@ -59,7 +63,7 @@ export default function CollaborativeStories() {
       const storyContributions = contributions.filter(c => c.story_id === storyId);
       const orderIndex = storyContributions.length;
       
-      await base44.entities.StoryContribution.create({
+      const contribution = await base44.entities.StoryContribution.create({
         story_id: storyId,
         profile_id: currentProfileId,
         contribution_text: text,
@@ -74,19 +78,74 @@ export default function CollaborativeStories() {
         contributors_count: (story.contributors_count || 1) + 1,
         is_complete: isComplete
       });
+
+      // Create version history entry
+      const existingVersions = await base44.entities.StoryVersion.filter({ story_id: storyId });
+      await base44.entities.StoryVersion.create({
+        story_id: storyId,
+        version_number: existingVersions.length + 1,
+        content: newText,
+        edited_by_profile_id: currentProfileId,
+        change_summary: text.substring(0, 100),
+        contribution_id: contribution.id
+      });
       
       await awardPoints(currentProfileId, 10);
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['collaborativeStories']);
       queryClient.invalidateQueries(['storyContributions']);
+      queryClient.invalidateQueries(['storyVersions']);
       setContributionText('');
+      
+      // Update active collaborator status
+      updateCollaboratorStatus(selectedStory?.id, false);
     },
   });
 
   const getProfile = (profileId) => profiles.find(p => p.id === profileId);
   const getStoryContributions = (storyId) => 
     contributions.filter(c => c.story_id === storyId).sort((a, b) => a.order_index - b.order_index);
+
+  // Update collaborator presence
+  const updateCollaboratorStatus = async (storyId, isTyping) => {
+    if (!storyId || !currentProfileId) return;
+
+    const colors = ['#FF6B35', '#2E86AB', '#06A77D', '#A855F7', '#EC4899', '#FFD23F'];
+    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+
+    try {
+      const existing = await base44.entities.ActiveCollaborator.filter({
+        story_id: storyId,
+        profile_id: currentProfileId
+      });
+
+      if (existing.length > 0) {
+        await base44.entities.ActiveCollaborator.update(existing[0].id, {
+          is_typing: isTyping,
+          last_seen: new Date().toISOString()
+        });
+      } else {
+        await base44.entities.ActiveCollaborator.create({
+          story_id: storyId,
+          profile_id: currentProfileId,
+          is_typing: isTyping,
+          last_seen: new Date().toISOString(),
+          cursor_color: randomColor
+        });
+      }
+    } catch (error) {
+      console.error('Error updating collaborator status:', error);
+    }
+  };
+
+  // Handle typing detection
+  const handleContributionChange = (text) => {
+    setContributionText(text);
+    if (selectedStory) {
+      updateCollaboratorStatus(selectedStory.id, text.length > 0);
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -259,11 +318,44 @@ export default function CollaborativeStories() {
               className="bg-white rounded-2xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
-              <h2 className="text-3xl font-bold mb-6">{selectedStory.title_en}</h2>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-3xl font-bold">{selectedStory.title_en}</h2>
+                <div className="flex items-center gap-2">
+                  <RealtimeCursors 
+                    storyId={selectedStory.id} 
+                    currentProfileId={currentProfileId}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 mb-4">
+                <VersionHistory 
+                  storyId={selectedStory.id}
+                  onSelectVersion={(version) => {
+                    setSelectedVersion(version);
+                  }}
+                />
+                <ForkStory 
+                  story={selectedStory}
+                  currentVersion={selectedVersion}
+                  onForkComplete={(forkedStory) => {
+                    setSelectedStory(forkedStory);
+                    setSelectedVersion(null);
+                  }}
+                />
+              </div>
               
               <Card className="p-6 bg-gradient-to-br from-purple-50 to-pink-50 mb-6">
+                {selectedVersion && (
+                  <div className="mb-4 p-3 bg-purple-100 border-l-4 border-purple-500 rounded">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-purple-900">
+                      <GitBranch className="w-4 h-4" />
+                      Viewing Version {selectedVersion.version_number}
+                    </div>
+                  </div>
+                )}
                 <p className="text-lg leading-relaxed whitespace-pre-wrap">
-                  {selectedStory.current_text}
+                  {selectedVersion ? selectedVersion.content : selectedStory.current_text}
                 </p>
               </Card>
 
@@ -273,7 +365,9 @@ export default function CollaborativeStories() {
                   <div className="flex gap-2">
                     <Textarea
                       value={contributionText}
-                      onChange={(e) => setContributionText(e.target.value)}
+                      onChange={(e) => handleContributionChange(e.target.value)}
+                      onFocus={() => updateCollaboratorStatus(selectedStory.id, false)}
+                      onBlur={() => updateCollaboratorStatus(selectedStory.id, false)}
                       placeholder="Continue the story..."
                       rows={3}
                       className="flex-1"
