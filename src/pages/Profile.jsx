@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Trophy, Book, Palette, Clock, Star, Award, Zap, Globe, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getProfileAchievements, checkAndAwardAchievements, calculateLevel, getPointsForNextLevel } from '../components/achievementManager';
+import LevelProgressBar from '../components/gamification/LevelProgressBar';
 import ShareButton from '../components/social/ShareButton';
 import TierDisplay from '../components/profile/TierDisplay';
 import { getTierFromPoints } from '../components/gamification/tierSystem';
@@ -109,6 +110,11 @@ export default function Profile() {
 
   return (
     <div className="max-w-6xl mx-auto pb-24 md:pb-8">
+      {/* Level Progress */}
+      <div className="mb-6">
+        <LevelProgressBar profile={profile} showDetails={true} />
+      </div>
+
       {/* Profile Header */}
       <Card className={`p-8 mb-8 relative overflow-hidden ${currentTier.borderStyle}`}>
         <div 
@@ -119,6 +125,11 @@ export default function Profile() {
             <div className="text-8xl">{avatar?.emoji || '👤'}</div>
             {currentTier.rewards.avatarFrame && (
               <div className={`absolute inset-0 rounded-full border-4 ${currentTier.borderStyle} pointer-events-none`} />
+            )}
+            {profile.equipped_avatar_items?.length > 0 && (
+              <div className="absolute -top-2 -right-2 bg-purple-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                {profile.equipped_avatar_items.length}
+              </div>
             )}
           </div>
           <div className="flex-1 text-center md:text-left">
