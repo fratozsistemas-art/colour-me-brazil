@@ -99,6 +99,69 @@ const ACHIEVEMENT_DEFINITIONS = [
     description_pt: 'Complete 7 desafios diários',
     icon: '⭐',
     checkCondition: (profile, stats) => (profile.daily_challenges_completed || 0) >= 7
+  },
+  {
+    id: 'speed_reader',
+    name_en: 'Speed Reader',
+    name_pt: 'Leitor Veloz',
+    description_en: 'Read 5 books in a week',
+    description_pt: 'Leia 5 livros em uma semana',
+    icon: '⚡',
+    checkCondition: (profile, stats) => stats.booksCompletedThisWeek >= 5
+  },
+  {
+    id: 'coloring_streak',
+    name_en: 'Coloring Streak',
+    name_pt: 'Sequência de Colorir',
+    description_en: 'Color 10 pages consecutively',
+    description_pt: 'Colorir 10 páginas consecutivamente',
+    icon: '🎨',
+    checkCondition: (profile, stats) => (profile.consecutive_pages_colored || 0) >= 10
+  },
+  {
+    id: 'weekend_warrior',
+    name_en: 'Weekend Warrior',
+    name_pt: 'Guerreiro de Fim de Semana',
+    description_en: 'Complete 3 books on a weekend',
+    description_pt: 'Complete 3 livros em um fim de semana',
+    icon: '🛡️',
+    checkCondition: (profile, stats) => (profile.weekend_books_completed || 0) >= 3
+  },
+  {
+    id: 'early_bird',
+    name_en: 'Early Bird',
+    name_pt: 'Madrugador',
+    description_en: 'Read before 8 AM on 5 different days',
+    description_pt: 'Leia antes das 8h em 5 dias diferentes',
+    icon: '🌅',
+    checkCondition: (profile, stats) => (profile.early_morning_sessions || 0) >= 5
+  },
+  {
+    id: 'night_owl',
+    name_en: 'Night Owl',
+    name_pt: 'Coruja Noturna',
+    description_en: 'Read after 9 PM on 5 different days',
+    description_pt: 'Leia depois das 21h em 5 dias diferentes',
+    icon: '🦉',
+    checkCondition: (profile, stats) => (profile.night_sessions || 0) >= 5
+  },
+  {
+    id: 'perfectionist',
+    name_en: 'Perfectionist',
+    name_pt: 'Perfeccionista',
+    description_en: 'Spend over 20 minutes on a single page',
+    description_pt: 'Passe mais de 20 minutos em uma única página',
+    icon: '🎯',
+    checkCondition: (profile, stats) => (profile.longest_page_time || 0) >= 1200
+  },
+  {
+    id: 'socialite',
+    name_en: 'Socialite',
+    name_pt: 'Socialite',
+    description_en: 'Give 50 likes in the showcase',
+    description_pt: 'Dê 50 curtidas na vitrine',
+    icon: '❤️',
+    checkCondition: (profile, stats) => (profile.total_likes_given || 0) >= 50
   }
 ];
 
@@ -114,10 +177,18 @@ const POINTS_CONFIG = {
   quiz_master: 150,
   perfect_score: 200,
   daily_champion: 300,
+  speed_reader: 400,
+  coloring_streak: 250,
+  weekend_warrior: 300,
+  early_bird: 150,
+  night_owl: 150,
+  perfectionist: 200,
+  socialite: 250,
   page_colored: 10,
   book_completed: 50,
   quiz_correct: 10,
   daily_challenge_completed: 20,
+  daily_quest_completed: 30,
   content_submitted: 25,
   like_given: 2,
   comment_given: 5,
@@ -169,13 +240,22 @@ export async function checkAndAwardAchievements(profileId) {
     const coloringTimes = coloringSessions.map(s => s.coloring_time || 0).filter(t => t > 0);
     const fastestTime = coloringTimes.length > 0 ? Math.min(...coloringTimes) : 0;
     
+    // Calculate books completed this week
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const activityLogs = await base44.entities.UserActivityLog.filter({ profile_id: profileId });
+    const booksCompletedThisWeek = activityLogs.filter(
+      log => log.activity_type === 'book_completed' && new Date(log.created_date) >= oneWeekAgo
+    ).length;
+    
     const stats = {
       pagesColored: completedSessions.length,
       booksCompleted: profile.books_completed?.length || 0,
       booksViewed: profile.books_viewed?.length || 0,
       totalTime: profile.total_coloring_time || 0,
       fastestPageTime: fastestTime,
-      quizzesCorrect: profile.quizzes_correct || 0
+      quizzesCorrect: profile.quizzes_correct || 0,
+      booksCompletedThisWeek
     };
 
     const newAchievements = [];

@@ -11,8 +11,11 @@ import ColoringCanvas from '../components/coloring/ColoringCanvas';
 import { checkAndAwardAchievements, awardPoints } from '../components/achievementManager';
 import StreakWidget from '../components/gamification/StreakWidget';
 import DailyChallengeCard from '../components/gamification/DailyChallengeCard';
+import DailyQuestCard from '../components/gamification/DailyQuestCard';
+import LevelProgressBar from '../components/gamification/LevelProgressBar';
 import { updateStreak, checkStreakAchievements } from '../components/gamification/streakManager';
 import { resetDailyChallenge } from '../components/gamification/dailyChallengeManager';
+import { resetDailyQuest } from '../components/gamification/DailyQuestManager';
 import { setupOfflineSync, syncOfflineData, getAllDownloadedBooks } from '../components/offlineManager';
 import ForYouSection from '../components/recommendations/ForYouSection';
 import { getRecommendations, getReadingPath, getBecauseYouRead } from '../components/recommendations/recommendationEngine';
@@ -72,9 +75,10 @@ export default function Library() {
       const profile = profiles.find(p => p.id === savedProfileId);
       if (profile) {
         setCurrentProfile(profile);
-        // Update streak and reset daily challenge on load
+        // Update streak and reset daily challenge/quest on load
         updateStreak(profile.id);
         resetDailyChallenge(profile.id);
+        resetDailyQuest(profile.id);
         
         // Generate recommendations when profile and books are loaded
         if (books.length > 0) {
@@ -349,8 +353,13 @@ export default function Library() {
       <div className="max-w-7xl mx-auto">
       {/* Welcome Header */}
       <div className="mb-8">
-        {/* Streak and Daily Challenge */}
-        <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Level Progress */}
+        <div className="mb-6">
+          <LevelProgressBar profile={currentProfile} />
+        </div>
+
+        {/* Streak, Daily Challenge, and Daily Quest */}
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
           <StreakWidget 
             currentStreak={currentProfile.current_streak || 0} 
             longestStreak={currentProfile.longest_streak || 0}
@@ -361,6 +370,9 @@ export default function Library() {
               await checkAndAwardAchievements(currentProfile.id);
               queryClient.invalidateQueries(['profiles']);
             }}
+          />
+          <DailyQuestCard 
+            profile={currentProfile}
           />
         </div>
 
