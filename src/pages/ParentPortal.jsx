@@ -1,25 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Button } from '@/components/ui/button';
+import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  User, Shield, Clock, Award, BookOpen, Palette, 
-  TrendingUp, Calendar, Star, Settings 
-} from 'lucide-react';
-import { toast } from 'sonner';
+import { ArrowLeft, Users, TrendingUp, Award, Calendar, Settings } from 'lucide-react';
+import ChildProgressCard from '../components/parent/ChildProgressCard';
 import ChildProgressOverview from '../components/parentportal/ChildProgressOverview';
 import ChildActivityFeed from '../components/parentportal/ChildActivityFeed';
 import ReadingHistory from '../components/parentportal/ReadingHistory';
 import QuizPerformance from '../components/parentportal/QuizPerformance';
+import ReadingGoalManager from '../components/parent/ReadingGoalManager';
+import ContentApprovalQueue from '../components/parent/ContentApprovalQueue';
 
 export default function ParentPortal() {
+  const [parentAccount, setParentAccount] = useState(null);
+  const [selectedChild, setSelectedChild] = useState(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const queryClient = useQueryClient();
 
   // Check authentication
   useEffect(() => {
@@ -30,6 +27,16 @@ export default function ParentPortal() {
           base44.auth.redirectToLogin(window.location.pathname);
           return;
         }
+        const user = await base44.auth.me();
+        
+        // Find parent account for this user
+        const accounts = await base44.entities.ParentAccount.filter({ 
+          parent_email: user.email 
+        });
+        
+        if (accounts.length > 0) {
+          setParentAccount(accounts[0]);
+        }
       } catch (error) {
         base44.auth.redirectToLogin(window.location.pathname);
         return;
@@ -39,62 +46,48 @@ export default function ParentPortal() {
     checkAuth();
   }, []);
 
-  // Fetch parent account
-  const { data: parentAccounts = [] } = useQuery({
-    queryKey: ['parentAccount'],
-    queryFn: () => base44.entities.ParentAccount.list(),
-  });
-
-  const parentAccount = parentAccounts[0];
-
   // Fetch child profiles
-  const { data: childProfiles = [] } = useQuery({
-    queryKey: ['childProfiles'],
-    queryFn: async () => {
-      if (!parentAccount?.child_profiles?.length) return [];
-      const profiles = await base44.entities.UserProfile.list();
-      return profiles.filter(p => parentAccount.child_profiles.includes(p.id));
-    },
+  const { data: allProfiles = [] } = useQuery({
+    queryKey: ['profiles'],
+    queryFn: () => base44.entities.UserProfile.list(),
     enabled: !!parentAccount,
   });
 
-  // Fetch activity logs for all children
-  const { data: activityLogs = [] } = useQuery({
-    queryKey: ['activityLogs', parentAccount?.child_profiles],
-    queryFn: async () => {
-      if (!parentAccount?.child_profiles?.length) return [];
-      const logs = await base44.entities.UserActivityLog.list('-created_date', 100);
-      return logs.filter(log => parentAccount.child_profiles.includes(log.profile_id));
-    },
+  // Fetch achievements
+  const { data: allAchievements = [] } = useQuery({
+    queryKey: ['achievements'],
+    queryFn: () => base44.entities.Achievement.list(),
     enabled: !!parentAccount,
   });
 
-  // Fetch quiz results for all children
-  const { data: quizResults = [] } = useQuery({
-    queryKey: ['quizResults', parentAccount?.child_profiles],
-    queryFn: async () => {
-      if (!parentAccount?.child_profiles?.length) return [];
-      const results = await base44.entities.QuizResult.list('-created_date', 100);
-      return results.filter(result => parentAccount.child_profiles.includes(result.profile_id));
-    },
+  // Fetch reading goals
+  const { data: allGoals = [] } = useQuery({
+    queryKey: ['readingGoals'],
+    queryFn: () => base44.entities.ReadingGoal.list(),
     enabled: !!parentAccount,
   });
 
-  // Fetch books for context
-  const { data: books = [] } = useQuery({
-    queryKey: ['books'],
-    queryFn: () => base44.entities.Book.list(),
+  // Fetch user submissions
+  const { data: allSubmissions = [] } = useQuery({
+    queryKey: ['userSubmissions'],
+    queryFn: () => base44.entities.UserSubmission.list('-created_date'),
+    enabled: !!parentAccount,
   });
 
-  const updateSettingsMutation = useMutation({
-    mutationFn: (settings) => {
-      return base44.entities.ParentAccount.update(parentAccount.id, settings);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['parentAccount']);
-      toast.success('Settings updated successfully!');
-    },
-  });
+  const childProfiles = allProfiles.filter(p => 
+    parentAccount?.child_profiles?.includes(p.id)
+  );
+
+  const childSubmissions = allSubmissions.filter(s =>
+    parentAccount?.child_profiles?.includes(s.profile_id)
+  );
+
+  const getChildStats = (profileId) => {
+    const achievements = allAchievements.filter(a => a.profile_id === profileId);
+    return {
+      achievements: achievements.length
+    };
+  };
 
   if (isCheckingAuth) {
     return (
@@ -111,208 +104,167 @@ export default function ParentPortal() {
     return (
       <div className="max-w-4xl mx-auto">
         <Card className="p-8 text-center">
-          <Shield className="w-16 h-16 mx-auto mb-4 text-blue-500" />
-          <h2 className="text-2xl font-bold mb-4">Welcome to Parent Portal</h2>
-          <p className="text-gray-600 mb-6">
-            Create a parent account to monitor your child's progress and manage settings.
+          <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">
+            Parent Account Not Found
+          </h2>
+          <p className="text-gray-600 mb-4">
+            No parent account is associated with this user account.
           </p>
-          <Button onClick={() => {
-            // Create parent account logic here
-            toast.info('Parent account setup coming soon!');
-          }}>
-            Create Parent Account
-          </Button>
+          <p className="text-sm text-gray-500">
+            Please contact support to set up a parent account.
+          </p>
         </Card>
       </div>
     );
   }
 
+  if (!selectedChild) {
+    return (
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">Parent Dashboard</h1>
+          <p className="text-gray-600">
+            Welcome, {parentAccount.parent_name}! Monitor your children's reading progress.
+          </p>
+        </div>
+
+        {/* Overview Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <Card className="p-6 bg-gradient-to-br from-blue-50 to-blue-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-blue-600 font-medium">Total Children</p>
+                <p className="text-3xl font-bold text-blue-800">{childProfiles.length}</p>
+              </div>
+              <Users className="w-12 h-12 text-blue-600 opacity-50" />
+            </div>
+          </Card>
+
+          <Card className="p-6 bg-gradient-to-br from-green-50 to-green-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-green-600 font-medium">Total Books Read</p>
+                <p className="text-3xl font-bold text-green-800">
+                  {childProfiles.reduce((sum, p) => sum + (p.books_completed?.length || 0), 0)}
+                </p>
+              </div>
+              <TrendingUp className="w-12 h-12 text-green-600 opacity-50" />
+            </div>
+          </Card>
+
+          <Card className="p-6 bg-gradient-to-br from-purple-50 to-purple-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-purple-600 font-medium">Pending Approvals</p>
+                <p className="text-3xl font-bold text-purple-800">
+                  {childSubmissions.filter(s => s.status === 'pending').length}
+                </p>
+              </div>
+              <Award className="w-12 h-12 text-purple-600 opacity-50" />
+            </div>
+          </Card>
+        </div>
+
+        {/* Content Approval Queue */}
+        {parentAccount.content_approval_required && childSubmissions.length > 0 && (
+          <div className="mb-8">
+            <ContentApprovalQueue 
+              submissions={childSubmissions}
+              childProfiles={childProfiles}
+            />
+          </div>
+        )}
+
+        {/* Children Grid */}
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Your Children</h2>
+          {childProfiles.length === 0 ? (
+            <Card className="p-8 text-center">
+              <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-600">No child profiles found</p>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {childProfiles.map((profile) => (
+                <ChildProgressCard
+                  key={profile.id}
+                  profile={profile}
+                  stats={getChildStats(profile.id)}
+                  onSelect={setSelectedChild}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Child Detail View
+  const childGoals = allGoals.filter(g => g.child_profile_id === selectedChild.id);
+
   return (
-    <div className="max-w-7xl mx-auto pb-24 md:pb-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-gray-800 mb-2">Parent Portal</h1>
-        <p className="text-gray-600">Monitor and manage your child's learning journey</p>
+    <div className="max-w-7xl mx-auto">
+      <div className="mb-6">
+        <Button
+          variant="outline"
+          onClick={() => setSelectedChild(null)}
+          className="mb-4"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Dashboard
+        </Button>
+
+        <div className="flex items-center gap-4 mb-6">
+          <div className="text-5xl">
+            {selectedChild.avatar_icon === 'jaguar' && '🐆'}
+            {selectedChild.avatar_icon === 'toucan' && '🦜'}
+            {selectedChild.avatar_icon === 'sloth' && '🦥'}
+            {!['jaguar', 'toucan', 'sloth'].includes(selectedChild.avatar_icon) && '👤'}
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800">
+              {selectedChild.child_name}'s Progress
+            </h1>
+            <p className="text-gray-600">
+              Level {selectedChild.level || 1} • {selectedChild.total_points || 0} points
+            </p>
+          </div>
+        </div>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList>
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="progress">Progress</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
-          <TabsTrigger value="safety">Safety</TabsTrigger>
+          <TabsTrigger value="activity">Activity</TabsTrigger>
+          <TabsTrigger value="reading">Reading</TabsTrigger>
+          <TabsTrigger value="quizzes">Quizzes</TabsTrigger>
+          <TabsTrigger value="goals">Goals</TabsTrigger>
         </TabsList>
 
-        {/* Overview Tab */}
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {childProfiles.map(child => (
-              <Card key={child.id} className="p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="text-3xl">{child.avatar_icon}</div>
-                  <div>
-                    <h3 className="font-bold">{child.child_name}</h3>
-                    <p className="text-sm text-gray-600">Level {child.level || 1}</p>
-                  </div>
-                </div>
-                
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Books Completed</span>
-                    <span className="font-semibold">{child.books_completed?.length || 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Pages Colored</span>
-                    <span className="font-semibold">{child.pages_colored?.length || 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Points</span>
-                    <span className="font-semibold">{child.total_points || 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Streak</span>
-                    <span className="font-semibold">{child.current_streak || 0} days</span>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
+        <TabsContent value="overview" className="mt-6">
+          <ChildProgressOverview profileId={selectedChild.id} />
         </TabsContent>
 
-        {/* Progress Tab */}
-        <TabsContent value="progress" className="space-y-6">
-          {childProfiles.map(child => {
-            const childActivityLogs = activityLogs.filter(log => log.profile_id === child.id);
-            const childQuizResults = quizResults.filter(result => result.profile_id === child.id);
-
-            return (
-              <div key={child.id} className="space-y-6">
-                <ChildProgressOverview
-                  profile={child}
-                  activityLogs={childActivityLogs}
-                  quizResults={childQuizResults}
-                />
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <ReadingHistory
-                    profile={child}
-                    books={books}
-                    activityLogs={childActivityLogs}
-                  />
-
-                  <QuizPerformance
-                    profile={child}
-                    quizResults={childQuizResults}
-                  />
-                </div>
-
-                <ChildActivityFeed
-                  profile={child}
-                  activityLogs={childActivityLogs}
-                  books={books}
-                />
-              </div>
-            );
-          })}
+        <TabsContent value="activity" className="mt-6">
+          <ChildActivityFeed profileId={selectedChild.id} />
         </TabsContent>
 
-        {/* Settings Tab */}
-        <TabsContent value="settings" className="space-y-6">
-          <Card className="p-6">
-            <h3 className="text-xl font-bold mb-6">Parental Controls</h3>
-            
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-base font-medium">Content Approval Required</Label>
-                  <p className="text-sm text-gray-600">
-                    Approve child's submissions before they're posted
-                  </p>
-                </div>
-                <Switch
-                  checked={parentAccount.content_approval_required}
-                  onCheckedChange={(checked) => {
-                    updateSettingsMutation.mutate({ content_approval_required: checked });
-                  }}
-                />
-              </div>
-
-              <div>
-                <Label className="text-base font-medium mb-2 block">Daily Screen Time Limit</Label>
-                <div className="flex items-center gap-4">
-                  <Input
-                    type="number"
-                    min="0"
-                    value={parentAccount.screen_time_limit || 0}
-                    onChange={(e) => {
-                      updateSettingsMutation.mutate({ 
-                        screen_time_limit: parseInt(e.target.value) || 0 
-                      });
-                    }}
-                    className="w-32"
-                  />
-                  <span className="text-sm text-gray-600">minutes (0 = no limit)</span>
-                </div>
-              </div>
-
-              <div>
-                <Label className="text-base font-medium mb-3 block">Allowed Features</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  {['reading', 'coloring', 'quizzes', 'showcase', 'forum', 'shop'].map(feature => (
-                    <div key={feature} className="flex items-center gap-2">
-                      <Switch
-                        checked={parentAccount.allowed_features?.includes(feature)}
-                        onCheckedChange={(checked) => {
-                          const current = parentAccount.allowed_features || [];
-                          const updated = checked
-                            ? [...current, feature]
-                            : current.filter(f => f !== feature);
-                          updateSettingsMutation.mutate({ allowed_features: updated });
-                        }}
-                      />
-                      <span className="capitalize">{feature}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </Card>
+        <TabsContent value="reading" className="mt-6">
+          <ReadingHistory profileId={selectedChild.id} />
         </TabsContent>
 
-        {/* Safety Tab */}
-        <TabsContent value="safety" className="space-y-6">
-          <Card className="p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <Shield className="w-8 h-8 text-blue-600" />
-              <div>
-                <h3 className="text-xl font-bold">Safety & Privacy</h3>
-                <p className="text-gray-600">Keep your child safe online</p>
-              </div>
-            </div>
+        <TabsContent value="quizzes" className="mt-6">
+          <QuizPerformance profileId={selectedChild.id} />
+        </TabsContent>
 
-            <div className="space-y-4">
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <h4 className="font-semibold text-green-800 mb-2">✓ All content is moderated</h4>
-                <p className="text-sm text-green-700">
-                  Community submissions are reviewed before being published
-                </p>
-              </div>
-
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <h4 className="font-semibold text-green-800 mb-2">✓ Age-appropriate content</h4>
-                <p className="text-sm text-green-700">
-                  All stories and activities are designed for children 6-12 years old
-                </p>
-              </div>
-
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <h4 className="font-semibold text-green-800 mb-2">✓ No personal data shared</h4>
-                <p className="text-sm text-green-700">
-                  Children's profiles use only first names and avatars
-                </p>
-              </div>
-            </div>
-          </Card>
+        <TabsContent value="goals" className="mt-6">
+          <ReadingGoalManager
+            parentAccountId={parentAccount.id}
+            childProfile={selectedChild}
+            goals={childGoals}
+          />
         </TabsContent>
       </Tabs>
     </div>
