@@ -195,7 +195,7 @@ export default function ColoringCanvas({
     }
   };
 
-  const floodFill = (ctx, startX, startY, fillColor, addToHistory = true) => {
+  const smartFill = (ctx, startX, startY, fillColor) => {
     const imageData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
     const data = imageData.data;
     const width = imageData.width;
@@ -214,10 +214,15 @@ export default function ColoringCanvas({
     // Don't fill if target is same as fill color
     if (targetR === fillRGB.r && targetG === fillRGB.g && targetB === fillRGB.b) return;
     
-    // Flood fill algorithm using stack
+    // Smart gap closing: First pass to identify boundaries
+    const boundaries = new Set();
+    const tolerance = fillTolerance;
+    const gapTolerance = 5; // Max gap size to close
+    
+    // Flood fill algorithm with gap detection
     const stack = [[startX, startY]];
     const visited = new Set();
-    const tolerance = fillTolerance; // Use adjustable tolerance
+    const fillPixels = [];
     
     while (stack.length > 0) {
       const point = stack.pop();
@@ -234,20 +239,48 @@ export default function ColoringCanvas({
       const g = data[index + 1];
       const b = data[index + 2];
       
+      // Check if pixel is a boundary (dark line)
+      const brightness = (r + g + b) / 3;
+      if (brightness < 100) {
+        boundaries.add(key);
+        continue;
+      }
+      
       // Check if color matches target (within tolerance)
       const dr = Math.abs(r - targetR);
       const dg = Math.abs(g - targetG);
       const db = Math.abs(b - targetB);
       
-      if (dr > tolerance || dg > tolerance || db > tolerance) continue;
+      if (dr > tolerance || dg > tolerance || db > tolerance) {
+        // Check for small gaps
+        let foundGap = false;
+        for (let gx = -gapTolerance; gx <= gapTolerance && !foundGap; gx++) {
+          for (let gy = -gapTolerance; gy <= gapTolerance && !foundGap; gy++) {
+            if (gx === 0 && gy === 0) continue;
+            const nx = x + gx;
+            const ny = y + gy;
+            if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+              const nIndex = (ny * width + nx) * 4;
+              const nr = data[nIndex];
+              const ng = data[nIndex + 1];
+              const nb = data[nIndex + 2];
+              const ndr = Math.abs(nr - targetR);
+              const ndg = Math.abs(ng - targetG);
+              const ndb = Math.abs(nb - targetB);
+              
+              if (ndr <= tolerance && ndg <= tolerance && ndb <= tolerance) {
+                // Found matching color nearby - this is a gap
+                stack.push([nx, ny]);
+                foundGap = true;
+              }
+            }
+          }
+        }
+        if (!foundGap) continue;
+      }
       
       visited.add(key);
-      
-      // Fill this pixel
-      data[index] = fillRGB.r;
-      data[index + 1] = fillRGB.g;
-      data[index + 2] = fillRGB.b;
-      data[index + 3] = 255;
+      fillPixels.push([x, y, index]);
       
       // Add neighbors to stack
       stack.push([x + 1, y]);
@@ -256,7 +289,19 @@ export default function ColoringCanvas({
       stack.push([x, y - 1]);
     }
     
+    // Apply fill to all collected pixels
+    fillPixels.forEach(([x, y, index]) => {
+      data[index] = fillRGB.r;
+      data[index + 1] = fillRGB.g;
+      data[index + 2] = fillRGB.b;
+      data[index + 3] = 255;
+    });
+    
     ctx.putImageData(imageData, 0, 0);
+  };
+
+  const floodFill = (ctx, startX, startY, fillColor, addToHistory = true) => {
+    smartFill(ctx, startX, startY, fillColor);
   };
 
   const hexToRgb = (hex) => {

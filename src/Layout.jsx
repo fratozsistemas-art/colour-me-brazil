@@ -25,6 +25,7 @@ export default function Layout({ children, currentPageName }) {
     {
       category: 'Community',
       items: [
+        { name: 'My Gallery', path: 'ArtGallery', icon: Palette },
         { name: 'Showcase', path: 'Showcase', icon: Palette },
         { name: 'Forum', path: 'Forum', icon: MessageSquare },
         { name: 'Stories', path: 'CollaborativeStories', icon: Book },
