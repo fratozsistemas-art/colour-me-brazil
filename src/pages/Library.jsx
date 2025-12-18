@@ -109,9 +109,15 @@ export default function Library() {
   useEffect(() => {
     setupOfflineSync();
     
-    const handleOnline = () => {
+    const handleOnline = async () => {
       setIsOnline(true);
-      syncOfflineData();
+      const result = await syncOfflineData();
+      if (result.success && (result.results.coloringSessions > 0 || result.results.readingProgress > 0)) {
+        queryClient.invalidateQueries(['profiles']);
+        queryClient.invalidateQueries(['coloringSessions']);
+        // Show success notification
+        console.log('Synced offline data:', result.message);
+      }
     };
     const handleOffline = () => setIsOnline(false);
     
@@ -182,6 +188,22 @@ export default function Library() {
   const updateReadingProgress = async (bookId, pageIndex) => {
     if (!currentProfile) return;
     
+    // Check if online
+    if (!navigator.onLine) {
+      const { saveReadingProgressOffline } = await import('../components/offlineManager');
+      await saveReadingProgressOffline(currentProfile.id, bookId, pageIndex);
+      
+      // Update local state
+      setCurrentProfile(prev => ({
+        ...prev,
+        reading_progress: {
+          ...(prev.reading_progress || {}),
+          [bookId]: pageIndex
+        }
+      }));
+      return;
+    }
+
     const newProgress = {
       ...(currentProfile.reading_progress || {}),
       [bookId]: pageIndex
@@ -227,6 +249,19 @@ export default function Library() {
     mutationFn: async (sessionData) => {
       const { canvas, is_completed, coloring_time, ...restData } = sessionData;
       
+      // Check if online
+      if (!navigator.onLine) {
+        // Save offline
+        const { saveColoringSessionOffline } = await import('../components/offlineManager');
+        await saveColoringSessionOffline(currentProfile.id, coloringPage.id, {
+          book_id: coloringPage.book_id,
+          ...restData,
+          coloring_time,
+          is_completed
+        });
+        return { offline: true };
+      }
+
       // If completed, save as ColoredArtwork
       if (is_completed && canvas) {
         try {
