@@ -67,9 +67,10 @@ export default function BookCard({ book, userProfile, onClick, onDownloadChange,
       a.click();
       window.URL.revokeObjectURL(url);
       a.remove();
-    } catch (error) {
-      console.error('Error generating printable:', error);
-      alert('Failed to generate printable version');
+    } catch (err) {
+      console.error('Error generating printable:', err);
+      const errorMessage = err?.message || err?.toString() || 'Failed to generate printable version';
+      alert(errorMessage);
     } finally {
       setIsPrinting(false);
     }
