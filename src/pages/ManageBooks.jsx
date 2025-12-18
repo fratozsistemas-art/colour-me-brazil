@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
-import { Plus, Edit, Trash2, Save, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Save, X, BookOpen, Palette } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Select,
@@ -18,11 +18,18 @@ import {
 export default function ManageBooks() {
   const [editingBook, setEditingBook] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [selectedBook, setSelectedBook] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: books = [], isLoading } = useQuery({
     queryKey: ['books'],
     queryFn: () => base44.entities.Book.list()
+  });
+
+  const { data: pages = [] } = useQuery({
+    queryKey: ['pages', selectedBook?.id],
+    queryFn: () => selectedBook ? base44.entities.Page.filter({ book_id: selectedBook.id }) : Promise.resolve([]),
+    enabled: !!selectedBook
   });
 
   const createMutation = useMutation({
@@ -45,6 +52,20 @@ export default function ManageBooks() {
     mutationFn: (id) => base44.entities.Book.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries(['books']);
+    }
+  });
+
+  const deletePageMutation = useMutation({
+    mutationFn: (id) => base44.entities.Page.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['pages']);
+    }
+  });
+
+  const updatePageMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Page.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['pages']);
     }
   });
 
@@ -271,6 +292,14 @@ export default function ManageBooks() {
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedBook(selectedBook?.id === book.id ? null : book)}
+                  >
+                    <BookOpen className="w-4 h-4 mr-2" />
+                    {selectedBook?.id === book.id ? 'Hide Pages' : 'Manage Pages'}
+                  </Button>
+                  <Button
+                    variant="outline"
                     size="icon"
                     onClick={() => setEditingBook(book)}
                   >
@@ -280,7 +309,7 @@ export default function ManageBooks() {
                     variant="outline"
                     size="icon"
                     onClick={() => {
-                      if (confirm('Are you sure you want to delete this book?')) {
+                      if (confirm('Are you sure you want to delete this book? This will also delete all its pages.')) {
                         deleteMutation.mutate(book.id);
                       }
                     }}
@@ -289,6 +318,84 @@ export default function ManageBooks() {
                   </Button>
                 </div>
               </div>
+            )}
+
+            {/* Pages Management */}
+            {selectedBook?.id === book.id && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mt-6 pt-6 border-t"
+              >
+                <h4 className="font-semibold text-lg mb-4">Pages for {book.title_en}</h4>
+                {pages.length === 0 ? (
+                  <p className="text-gray-500 text-sm">No pages found for this book.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {pages
+                      .sort((a, b) => (a.page_number || 0) - (b.page_number || 0))
+                      .map((page) => (
+                        <div
+                          key={page.id}
+                          className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm font-semibold text-gray-700">
+                                Page {page.page_number}
+                              </span>
+                              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                                {page.page_type || 'story'}
+                              </span>
+                              {page.illustration_url && (
+                                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full flex items-center gap-1">
+                                  <Palette className="w-3 h-3" />
+                                  Has Illustration
+                                </span>
+                              )}
+                            </div>
+                            {page.story_text_en && (
+                              <p className="text-xs text-gray-500 mt-1 line-clamp-1">
+                                {page.story_text_en}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            {page.illustration_url && (
+                              <label className="flex items-center gap-2 text-xs cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={page.page_type === 'coloring'}
+                                  onChange={(e) => {
+                                    updatePageMutation.mutate({
+                                      id: page.id,
+                                      data: { page_type: e.target.checked ? 'coloring' : 'story' }
+                                    });
+                                  }}
+                                  className="rounded"
+                                />
+                                <span className="text-gray-700">Enable Coloring</span>
+                              </label>
+                            )}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                if (confirm('Are you sure you want to delete this page?')) {
+                                  deletePageMutation.mutate(page.id);
+                                }
+                              }}
+                            >
+                              <Trash2 className="w-3 h-3 text-red-600" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </motion.div>
             )}
           </Card>
         ))}
