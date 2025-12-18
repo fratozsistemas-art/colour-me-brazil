@@ -19,7 +19,8 @@ export default function PurchaseModal({ book, onClose, onPurchaseComplete }) {
       const response = await base44.functions.invoke('createCheckoutSession', {
         itemType: isPrintedVersion ? 'printed_book' : 'book',
         itemId: book.id,
-        amount: isPrintedVersion ? 2499 : 499, // $24.99 or $4.99 in cents
+        amount: isPrintedVersion ? 2499 : 499, // R$ 24.99 or $4.99 in cents
+        currency: isPrintedVersion ? 'brl' : 'usd',
         itemName: isPrintedVersion ? `${book.title_en} (Printed Edition)` : book.title_en,
         successUrl: window.location.origin + '/Library?purchase=success&book_id=' + book.id,
         cancelUrl: window.location.origin + '/Library?purchase=cancelled'
@@ -156,7 +157,7 @@ export default function PurchaseModal({ book, onClose, onPurchaseComplete }) {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600">{isPrintedVersion ? 'Pre-order price' : 'One-time payment'}</p>
-                    <p className="text-3xl font-bold text-gray-800">{isPrintedVersion ? '$24.99' : '$4.99'}</p>
+                    <p className="text-3xl font-bold text-gray-800">{isPrintedVersion ? 'R$ 24.99' : '$4.99'}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-gray-500">{isPrintedVersion ? 'Ships in 2-3 weeks' : 'Lifetime access'}</p>

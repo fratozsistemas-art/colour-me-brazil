@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { itemType, itemId, amount, itemName, successUrl, cancelUrl } = await req.json();
+    const { itemType, itemId, amount, currency = 'usd', itemName, successUrl, cancelUrl } = await req.json();
 
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
       line_items: [
         {
           price_data: {
-            currency: 'usd',
+            currency: currency,
             product_data: {
               name: itemName,
               description: `Purchase ${itemType}: ${itemName}`,
@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
       item_type: itemType,
       item_id: itemId,
       amount: amount,
-      currency: 'usd',
+      currency: currency,
       stripe_payment_intent_id: session.payment_intent,
       status: 'pending'
     });

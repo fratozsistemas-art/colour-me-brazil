@@ -356,7 +356,7 @@ export default function BookCard({ book, userProfile, onClick, onDownloadChange,
                   className="flex items-center gap-2 text-xs font-semibold text-white bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 px-3 py-2 rounded-lg transition-all w-full justify-center"
                 >
                   <Package className="w-3 h-3" />
-                  <span>Pre-Order Printed - $24.99</span>
+                  <span>Pre-Order Printed - R$ 24.99</span>
                 </button>
               </>
             )}
