@@ -11,6 +11,8 @@ import ShareButton from '../components/social/ShareButton';
 import TierDisplay from '../components/profile/TierDisplay';
 import { getTierFromPoints } from '../components/gamification/tierSystem';
 import { getMasteryBadgeProgress, checkAndAwardMasteryBadges } from '../components/gamification/masteryBadgeManager';
+import AvatarDisplay from '../components/profile/AvatarDisplay';
+import { BRAZILIAN_FAUNA_AVATARS } from '../components/profile/BrazilianFaunaAvatars';
 
 export default function Profile() {
   const currentProfileId = localStorage.getItem('currentProfileId');
@@ -72,15 +74,7 @@ export default function Profile() {
     );
   }
 
-  const AVATAR_OPTIONS = [
-    { id: 'jaguar', emoji: '🐆' }, { id: 'sloth', emoji: '🦥' }, { id: 'toucan', emoji: '🦜' },
-    { id: 'monkey', emoji: '🐒' }, { id: 'samba_dancer', emoji: '💃' }, { id: 'football', emoji: '⚽' },
-    { id: 'carnival_mask', emoji: '🎭' }, { id: 'palm_tree', emoji: '🌴' }, { id: 'amazon_river', emoji: '🌊' },
-    { id: 'coffee', emoji: '☕' }, { id: 'fruit', emoji: '🍹' }, { id: 'capybara', emoji: '🦫' },
-    { id: 'macaw', emoji: '🦚' }, { id: 'flower', emoji: '🌺' }, { id: 'sun', emoji: '☀️' }
-  ];
-
-  const avatar = AVATAR_OPTIONS.find(a => a.id === profile.avatar_icon);
+  const avatar = BRAZILIAN_FAUNA_AVATARS.find(a => a.id === profile.avatar_icon);
   const totalPages = books.reduce((sum, book) => sum + (book.page_count || 0), 0);
   const completedSessions = coloringSessions.filter(s => s.is_completed);
   const coloredPages = completedSessions.length;
@@ -122,7 +116,13 @@ export default function Profile() {
         />
         <div className="relative z-10 flex flex-col md:flex-row items-center gap-6">
           <div className="relative">
-            <div className="text-8xl">{avatar?.emoji || '👤'}</div>
+            <AvatarDisplay
+              avatarId={profile.avatar_icon}
+              level={profile.level || 1}
+              size="xlarge"
+              showName={false}
+              language={profile.preferred_language || 'en'}
+            />
             {currentTier.rewards.avatarFrame && (
               <div className={`absolute inset-0 rounded-full border-4 ${currentTier.borderStyle} pointer-events-none`} />
             )}
