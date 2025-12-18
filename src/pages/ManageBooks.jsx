@@ -54,6 +54,7 @@ export default function ManageBooks() {
       title_pt: '',
       subtitle_en: '',
       subtitle_pt: '',
+      author: '',
       collection: 'culture',
       cover_image_url: '',
       cultural_tags: [],
@@ -105,6 +106,15 @@ export default function ManageBooks() {
                 onChange={(e) => setFormData({ ...formData, subtitle_pt: e.target.value })}
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Author</label>
+            <Input
+              value={formData.author}
+              onChange={(e) => setFormData({ ...formData, author: e.target.value })}
+              placeholder="Author name"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -236,6 +246,9 @@ export default function ManageBooks() {
                 <div className="flex-1">
                   <h3 className="text-xl font-bold text-gray-800">{book.title_en}</h3>
                   <p className="text-gray-600">{book.title_pt}</p>
+                  {book.author && (
+                    <p className="text-sm text-gray-500 mt-1">by {book.author}</p>
+                  )}
                   <div className="flex gap-2 mt-2 flex-wrap">
                     <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
                       {book.collection === 'amazon' ? '🌿 Amazon' : '🎨 Culture'}

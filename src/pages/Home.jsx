@@ -99,6 +99,38 @@ export default function Home() {
         <div className="absolute bottom-1/4 left-20 text-5xl animate-pulse" style={{ animationDelay: '1s' }}>🎨</div>
       </section>
 
+      {/* About Us Section */}
+      <section className="py-16 px-4 bg-gradient-to-br from-orange-50 to-blue-50">
+        <div className="container mx-auto max-w-4xl">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center"
+          >
+            <h2 className="text-4xl font-bold mb-6 text-gray-800">About Colour Me Brazil</h2>
+            <div className="space-y-4 text-lg text-gray-700 leading-relaxed">
+              <p>
+                Welcome to <strong>Colour Me Brazil</strong>, where culture meets creativity! We're on a mission to bring 
+                Brazilian heritage to life through interactive, bilingual storytelling and art.
+              </p>
+              <p>
+                Our platform offers children aged 6-12 an immersive experience exploring the Amazon rainforest, 
+                rich folklore, vibrant traditions, and unique wildlife of Brazil. Each story is carefully crafted 
+                to educate and inspire young minds while celebrating the beauty and diversity of Brazilian culture.
+              </p>
+              <p>
+                Through engaging narratives, stunning illustrations, and hands-on coloring activities, children 
+                can develop language skills, cultural awareness, and artistic expression—all while having fun!
+              </p>
+              <p className="text-xl font-semibold text-orange-600 mt-6">
+                Join us on this colorful journey through Brazil! 🇧🇷✨
+              </p>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
       {/* Features Section */}
       <section className="py-16 px-4 bg-white">
         <div className="container mx-auto max-w-6xl">
