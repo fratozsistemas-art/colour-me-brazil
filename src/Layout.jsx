@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from './utils';
-import { Book, Settings, User, Palette, ShoppingBag, Trophy, Upload, Shield, MessageSquare, Sparkles, Users, Menu } from 'lucide-react';
+import { Book, Settings, User, Palette, ShoppingBag, Trophy, Upload, Shield, MessageSquare, Sparkles, Users, Menu, Image, BookOpen, Route, FileText } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,11 +25,11 @@ export default function Layout({ children, currentPageName }) {
     {
       category: 'Community',
       items: [
-        { name: 'My Gallery', path: 'ArtGallery', icon: Palette },
-        { name: 'Showcase', path: 'Showcase', icon: Palette },
+        { name: 'My Gallery', path: 'ArtGallery', icon: Image },
+        { name: 'Showcase', path: 'Showcase', icon: Sparkles },
         { name: 'Forum', path: 'Forum', icon: MessageSquare },
-        { name: 'Stories', path: 'CollaborativeStories', icon: Book },
-        { name: 'Paths', path: 'ReadingPaths', icon: Book },
+        { name: 'Stories', path: 'CollaborativeStories', icon: BookOpen },
+        { name: 'Paths', path: 'ReadingPaths', icon: Route },
         { name: 'Submit', path: 'SubmitContent', icon: Upload }
       ]
     },
@@ -38,7 +38,7 @@ export default function Layout({ children, currentPageName }) {
       items: [
         { name: 'Leaderboard', path: 'Leaderboard', icon: Trophy },
         { name: 'Events', path: 'Events', icon: Sparkles },
-        { name: 'Rewards', path: 'RewardsShop', icon: Sparkles }
+        { name: 'Rewards', path: 'RewardsShop', icon: ShoppingBag }
       ]
     },
     {
@@ -47,7 +47,7 @@ export default function Layout({ children, currentPageName }) {
         { name: 'Manage', path: 'ManageBooks', icon: Settings },
         { name: 'Users', path: 'ManageUsers', icon: Users },
         { name: 'Moderate', path: 'ContentModeration', icon: Shield },
-        { name: 'Parent', path: 'ParentPortal', icon: Shield }
+        { name: 'Parent', path: 'ParentPortal', icon: FileText }
       ]
     }
   ];

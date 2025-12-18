@@ -1,7 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Undo, Redo, Eraser, Save, Download, X, Paintbrush, Grid3x3, ZoomIn, ZoomOut, Maximize2, Share2, Palette, Loader2 } from 'lucide-react';
+import { Undo, Redo, Eraser, Save, Download, X, Paintbrush, Grid3x3, ZoomIn, ZoomOut, Maximize2, Share2, Palette, Loader2, Upload } from 'lucide-react';
+import { base44 } from '@/api/base44Client';
 import ShareButton from '../social/ShareButton';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getBookPalette, THEME_PALETTES, getAllPaletteNames } from './colorPalettes';
@@ -482,6 +483,37 @@ export default function ColoringCanvas({
     link.click();
   };
 
+  const handleShareInApp = async () => {
+    const canvas = canvasRef.current;
+    try {
+      // Convert canvas to blob
+      const blob = await new Promise(resolve => 
+        canvas.toBlob(resolve, 'image/png', 1.0)
+      );
+      
+      // Upload the artwork
+      const uploadResult = await base44.integrations.Core.UploadFile({
+        file: blob
+      });
+      
+      // Create ColoredArtwork entity with showcased flag
+      await base44.entities.ColoredArtwork.create({
+        profile_id: profileId,
+        book_id: bookId,
+        page_id: pageId,
+        artwork_url: uploadResult.file_url,
+        coloring_time_seconds: Math.floor((Date.now() - startTime) / 1000),
+        is_showcased: true
+      });
+
+      // Navigate to showcase or gallery
+      window.location.href = '/ArtGallery';
+    } catch (error) {
+      console.error('Error sharing artwork:', error);
+      alert('Failed to share artwork. Please try again.');
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
       <motion.div
@@ -809,22 +841,32 @@ export default function ColoringCanvas({
                 <Save className="w-4 h-4 mr-2" />
                 Save Progress
               </Button>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={handleDownload}
+                    className="w-full"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download
+                  </Button>
+                  <ShareButton
+                    title="My Coloring Page"
+                    text="Check out my coloring page on Colour Me Brazil! 🎨"
+                    variant="outline"
+                    size="default"
+                    showText={false}
+                  />
+                </div>
                 <Button
                   variant="outline"
-                  onClick={handleDownload}
-                  className="w-full"
+                  onClick={handleShareInApp}
+                  className="w-full bg-purple-50 hover:bg-purple-100 border-purple-300"
                 >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download
+                  <Upload className="w-4 h-4 mr-2" />
+                  Share to Gallery
                 </Button>
-                <ShareButton
-                  title="My Coloring Page"
-                  text="Check out my coloring page on Colour Me Brazil! 🎨"
-                  variant="outline"
-                  size="default"
-                  showText={false}
-                />
               </div>
             </div>
 
