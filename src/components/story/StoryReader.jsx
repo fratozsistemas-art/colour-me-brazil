@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { 
   ChevronLeft, ChevronRight, X, Volume2, VolumeX, 
-  Palette, Play, Pause, RotateCcw, Languages, CheckCircle2, Zap, Wand2 
+  Palette, Play, Pause, RotateCcw, Languages, CheckCircle2, Zap, Wand2, Bookmark, BookmarkCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
@@ -242,6 +242,8 @@ export default function StoryReader({
   const [generatedVariation, setGeneratedVariation] = useState(null);
   const [useTTSMode, setUseTTSMode] = useState(false);
   const [ttsPitch, setTTSPitch] = useState(1);
+  const [bookmarks, setBookmarks] = useState([]);
+  const [showBookmarks, setShowBookmarks] = useState(false);
 
   // Get current text for TTS
   const getCurrentText = () => {
@@ -278,6 +280,7 @@ export default function StoryReader({
     // Load user preferences
     if (book.profileId) {
       loadUserPreferences(book.profileId);
+      loadBookmarks(book.profileId);
     }
 
     return () => {
@@ -300,6 +303,65 @@ export default function StoryReader({
       console.error('Error loading preferences:', error);
     }
   };
+
+  const loadBookmarks = async (profileId) => {
+    try {
+      const profiles = await base44.entities.UserProfile.filter({ id: profileId });
+      if (profiles.length > 0) {
+        const profile = profiles[0];
+        const bookBookmarks = profile.bookmarks || {};
+        setBookmarks(bookBookmarks[book.id] || []);
+      }
+    } catch (error) {
+      console.error('Error loading bookmarks:', error);
+    }
+  };
+
+  const toggleBookmark = async () => {
+    if (!book.profileId) return;
+
+    try {
+      const profiles = await base44.entities.UserProfile.filter({ id: book.profileId });
+      if (profiles.length === 0) return;
+
+      const profile = profiles[0];
+      const allBookmarks = profile.bookmarks || {};
+      const bookBookmarks = allBookmarks[book.id] || [];
+
+      const pageId = currentPage.id;
+      const isBookmarked = bookBookmarks.includes(pageId);
+
+      let updatedBookmarks;
+      if (isBookmarked) {
+        updatedBookmarks = bookBookmarks.filter(id => id !== pageId);
+      } else {
+        updatedBookmarks = [...bookBookmarks, pageId];
+      }
+
+      allBookmarks[book.id] = updatedBookmarks;
+
+      await base44.entities.UserProfile.update(book.profileId, {
+        bookmarks: allBookmarks
+      });
+
+      setBookmarks(updatedBookmarks);
+      toast.success(isBookmarked ? 'Bookmark removed' : 'Page bookmarked!');
+    } catch (error) {
+      console.error('Error toggling bookmark:', error);
+      toast.error('Failed to update bookmark');
+    }
+  };
+
+  const goToBookmark = (pageId) => {
+    const index = pages.findIndex(p => p.id === pageId);
+    if (index !== -1) {
+      setPageIndex(index);
+      if (onPageChange) onPageChange(index);
+      setShowBookmarks(false);
+    }
+  };
+
+  const isCurrentPageBookmarked = bookmarks.includes(currentPage?.id);
 
   const trackReadingTime = async () => {
     if (!readingStartTime || !book.profileId) return;
@@ -493,6 +555,27 @@ export default function StoryReader({
                 Quiz
               </Button>
             )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={toggleBookmark}
+              className={`text-white border-white/20 ${isCurrentPageBookmarked ? 'bg-yellow-500/20' : ''}`}
+              title={isCurrentPageBookmarked ? 'Remove bookmark' : 'Bookmark this page'}
+            >
+              {isCurrentPageBookmarked ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
+            </Button>
+            {bookmarks.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowBookmarks(!showBookmarks)}
+                className="text-white border-white/20"
+                title="View bookmarks"
+              >
+                <BookmarkCheck className="w-4 h-4 mr-1" />
+                {bookmarks.length}
+              </Button>
+            )}
             <div className="flex items-center gap-2">
               {/* Font Size Control */}
               <select
@@ -549,12 +632,49 @@ export default function StoryReader({
                 {language === 'en' ? '🇺🇸 EN' : '🇧🇷 PT'}
               </Button>
             </div>
-          </div>
-        </div>
-      </div>
+            </div>
+            </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+            {/* Bookmarks Dropdown */}
+            <AnimatePresence>
+            {showBookmarks && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="absolute top-full right-4 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 p-3 z-50 min-w-[200px]"
+            >
+              <h3 className="font-semibold text-gray-800 mb-2 text-sm">Bookmarked Pages</h3>
+              <div className="space-y-1 max-h-60 overflow-y-auto">
+                {bookmarks.map((pageId) => {
+                  const page = pages.find(p => p.id === pageId);
+                  const pageNum = page?.page_number || pages.findIndex(p => p.id === pageId) + 1;
+                  return (
+                    <button
+                      key={pageId}
+                      onClick={() => goToBookmark(pageId)}
+                      className="w-full text-left px-3 py-2 rounded hover:bg-gray-100 transition-colors text-sm"
+                    >
+                      <div className="flex items-center gap-2">
+                        <BookmarkCheck className="w-3 h-3 text-yellow-600" />
+                        <span className="font-medium text-gray-700">Page {pageNum}</span>
+                      </div>
+                      {page?.story_text_en && (
+                        <p className="text-xs text-gray-500 line-clamp-1 mt-1 ml-5">
+                          {page.story_text_en.substring(0, 40)}...
+                        </p>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.div>
+            )}
+            </AnimatePresence>
+            </div>
+
+            {/* Main Content */}
+            <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         {/* Illustration */}
         <div className="flex-1 flex items-center justify-center p-8 bg-gradient-to-br from-gray-800 to-gray-900">
           <motion.div
