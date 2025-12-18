@@ -416,14 +416,16 @@ export default function StoryReader({
               </div>
             )}
             
-            {/* Color This Page Button */}
-            <Button
-              onClick={() => onColorPage(currentPage)}
-              className="absolute bottom-4 right-4 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 shadow-xl"
-            >
-              <Palette className="w-4 h-4 mr-2" />
-              Color This Page
-            </Button>
+            {/* Color This Page Button - Hidden for introduction page */}
+            {currentPage.page_number !== 1 && (
+              <Button
+                onClick={() => onColorPage(currentPage)}
+                className="absolute bottom-4 right-4 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 shadow-xl"
+              >
+                <Palette className="w-4 h-4 mr-2" />
+                Color This Page
+              </Button>
+            )}
             
             {/* Quiz Modal */}
             <AnimatePresence>
@@ -507,6 +509,22 @@ export default function StoryReader({
                 transition={{ duration: 0.3 }}
               >
                 {renderHighlightedText()}
+
+                {/* Skip Introduction Button for Page 1 */}
+                {currentPage.page_number === 1 && (
+                  <div className="mt-8 text-center">
+                    <Button
+                      onClick={() => {
+                        const newIndex = 1; // Jump to page 2 (first story)
+                        setPageIndex(newIndex);
+                        if (onPageChange) onPageChange(newIndex);
+                      }}
+                      className="bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white px-8 py-3 text-lg"
+                    >
+                      {language === 'en' ? 'Start Reading Stories →' : 'Começar a Ler Histórias →'}
+                    </Button>
+                  </div>
+                )}
               </motion.div>
             </AnimatePresence>
           </div>
