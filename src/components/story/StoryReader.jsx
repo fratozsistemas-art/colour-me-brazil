@@ -713,22 +713,21 @@ export default function StoryReader({
               </Button>
             </div>
           </div>
-          </div>
-          </div>
-          </div>
+        </div>
+      </div>
 
-          {/* AI Story Tools */}
-          <AnimatePresence>
-          {showAITools && (
+      {/* AI Story Tools */}
+      <AnimatePresence>
+        {showAITools && (
           <StoryAdaptationControls
-          onApplyAdaptation={handleApplyAdaptation}
-          onGenerateVariation={handleGenerateVariation}
-          currentLanguage={language}
-          isLoading={isAdapting}
-          onClose={() => setShowAITools(false)}
+            onApplyAdaptation={handleApplyAdaptation}
+            onGenerateVariation={handleGenerateVariation}
+            currentLanguage={language}
+            isLoading={isAdapting}
+            onClose={() => setShowAITools(false)}
           />
-          )}
-          </AnimatePresence>
-          </div>
-          );
-          }
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
