@@ -144,10 +144,10 @@ export default function Home() {
               transition={{ delay: 0.1 }}
               viewport={{ once: true }}
             >
-              <Card className="p-6 h-full border-2 border-orange-200 hover:shadow-xl transition-shadow">
+              <Card className="p-6 h-full border-2 border-orange-200 hover:shadow-xl transition-shadow flex flex-col">
                 <Book className="w-12 h-12 text-orange-500 mb-4" />
                 <h3 className="text-xl font-bold mb-3 text-gray-800">Interactive Stories</h3>
-                <p className="text-gray-600">
+                <p className="text-gray-600 flex-grow">
                   Bilingual narrated stories in English and Portuguese with audio, 
                   quizzes, and cultural facts to make learning fun.
                 </p>
@@ -160,10 +160,10 @@ export default function Home() {
               transition={{ delay: 0.2 }}
               viewport={{ once: true }}
             >
-              <Card className="p-6 h-full border-2 border-blue-200 hover:shadow-xl transition-shadow">
+              <Card className="p-6 h-full border-2 border-blue-200 hover:shadow-xl transition-shadow flex flex-col">
                 <Palette className="w-12 h-12 text-blue-500 mb-4" />
                 <h3 className="text-xl font-bold mb-3 text-gray-800">Creative Coloring</h3>
-                <p className="text-gray-600">
+                <p className="text-gray-600 flex-grow">
                   Advanced digital coloring tools with brushes, fill patterns, 
                   and the ability to save and share artwork.
                 </p>
@@ -176,10 +176,10 @@ export default function Home() {
               transition={{ delay: 0.3 }}
               viewport={{ once: true }}
             >
-              <Card className="p-6 h-full border-2 border-purple-200 hover:shadow-xl transition-shadow">
+              <Card className="p-6 h-full border-2 border-purple-200 hover:shadow-xl transition-shadow flex flex-col">
                 <Trophy className="w-12 h-12 text-purple-500 mb-4" />
                 <h3 className="text-xl font-bold mb-3 text-gray-800">Gamification</h3>
-                <p className="text-gray-600">
+                <p className="text-gray-600 flex-grow">
                   Earn points, unlock achievements, climb tiers, and compete on 
                   leaderboards while learning about Brazilian culture.
                 </p>
@@ -192,10 +192,10 @@ export default function Home() {
               transition={{ delay: 0.4 }}
               viewport={{ once: true }}
             >
-              <Card className="p-6 h-full border-2 border-green-200 hover:shadow-xl transition-shadow">
+              <Card className="p-6 h-full border-2 border-green-200 hover:shadow-xl transition-shadow flex flex-col">
                 <Globe className="w-12 h-12 text-green-500 mb-4" />
                 <h3 className="text-xl font-bold mb-3 text-gray-800">Cultural Learning</h3>
-                <p className="text-gray-600">
+                <p className="text-gray-600 flex-grow">
                   Explore Brazilian folklore, Amazon wildlife, traditions, 
                   and vocabulary through engaging content.
                 </p>
@@ -208,10 +208,10 @@ export default function Home() {
               transition={{ delay: 0.5 }}
               viewport={{ once: true }}
             >
-              <Card className="p-6 h-full border-2 border-pink-200 hover:shadow-xl transition-shadow">
+              <Card className="p-6 h-full border-2 border-pink-200 hover:shadow-xl transition-shadow flex flex-col">
                 <Star className="w-12 h-12 text-pink-500 mb-4" />
                 <h3 className="text-xl font-bold mb-3 text-gray-800">Community</h3>
-                <p className="text-gray-600">
+                <p className="text-gray-600 flex-grow">
                   Share artwork, collaborate on stories, create reading paths, 
                   and connect with other young artists.
                 </p>
@@ -224,10 +224,10 @@ export default function Home() {
               transition={{ delay: 0.6 }}
               viewport={{ once: true }}
             >
-              <Card className="p-6 h-full border-2 border-yellow-200 hover:shadow-xl transition-shadow">
+              <Card className="p-6 h-full border-2 border-yellow-200 hover:shadow-xl transition-shadow flex flex-col">
                 <Sparkles className="w-12 h-12 text-yellow-500 mb-4" />
                 <h3 className="text-xl font-bold mb-3 text-gray-800">Offline Mode</h3>
-                <p className="text-gray-600">
+                <p className="text-gray-600 flex-grow">
                   Download books and color anywhere, even without internet. 
                   Perfect for travel and on-the-go learning.
                 </p>
