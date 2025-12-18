@@ -45,21 +45,28 @@ Deno.serve(async (req) => {
           }
         });
 
-        if (audioResponse.data?.success) {
+        console.log(`Audio generation response for page ${page.id}:`, audioResponse.data);
+        
+        if (audioResponse.data?.success && audioResponse.data?.audio_url) {
           // Update the page with the audio URL
           await base44.asServiceRole.entities.Page.update(page.id, {
-            [audioField]: audioResponse.data.audioUrl
+            [audioField]: audioResponse.data.audio_url
           });
 
           results.push({
             pageId: page.id,
+            pageNumber: page.page_number,
             success: true,
-            audioUrl: audioResponse.data.audioUrl
+            audioUrl: audioResponse.data.audio_url
           });
         } else {
+          const errorMsg = audioResponse.data?.error || 'Failed to generate audio';
+          console.error(`Error generating audio for page ${page.id}:`, errorMsg);
           errors.push({
             pageId: page.id,
-            error: audioResponse.data?.error || 'Failed to generate audio'
+            pageNumber: page.page_number,
+            error: errorMsg,
+            details: audioResponse.data?.details || null
           });
         }
 
@@ -67,9 +74,12 @@ Deno.serve(async (req) => {
         await new Promise(resolve => setTimeout(resolve, 1000));
 
       } catch (error) {
+        console.error(`Exception generating audio for page ${page.id}:`, error);
         errors.push({
           pageId: page.id,
-          error: error.message
+          pageNumber: page.page_number,
+          error: error.message,
+          stack: error.stack
         });
       }
     }

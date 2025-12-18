@@ -101,11 +101,26 @@ export default function ManageBooks() {
       });
       
       if (response.data.success) {
-        alert(`Audio generation completed!\nGenerated: ${response.data.generated}\nSkipped: ${response.data.skipped}\nErrors: ${response.data.errors}`);
+        const errorDetails = response.data.errors && response.data.errors.length > 0 
+          ? '\n\nErrors:\n' + response.data.errors.map(e => 
+              `Page ${e.pageNumber}: ${e.error}`
+            ).join('\n')
+          : '';
+        
+        alert(
+          `Audio generation completed!\n\n` +
+          `Generated: ${response.data.generated}\n` +
+          `Skipped: ${response.data.skipped}\n` +
+          `Errors: ${response.data.errors.length}` +
+          errorDetails
+        );
+        
         queryClient.invalidateQueries(['pages']);
       } else {
         alert(`Failed: ${response.data.error || 'Unknown error'}`);
       }
+      
+      console.log('Batch audio generation results:', response.data);
     } catch (error) {
       console.error('Error batch generating audio:', error);
       alert(`Failed to generate audio: ${error.message}`);
