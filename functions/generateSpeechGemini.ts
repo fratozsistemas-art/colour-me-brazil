@@ -15,9 +15,12 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'text is required' }, { status: 400 });
     }
 
-    const apiKey = Deno.env.get('GEMINI_API_KEY');
+    const apiKey = Deno.env.get('GOOGLE_CLOUD_API_KEY');
     if (!apiKey) {
-      return Response.json({ error: 'GEMINI_API_KEY not configured' }, { status: 500 });
+      return Response.json({ 
+        success: false,
+        error: 'GOOGLE_CLOUD_API_KEY not configured. Please set it in the dashboard.' 
+      }, { status: 200 });
     }
 
     // Use Google Cloud Text-to-Speech API
