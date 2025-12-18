@@ -16,6 +16,7 @@ import Home from './pages/Home';
 import RewardsShop from './pages/RewardsShop';
 import ParentPortal from './pages/ParentPortal';
 import ManageUsers from './pages/ManageUsers';
+import AudioGenerator from './pages/AudioGenerator';
 import __Layout from './Layout.jsx';
 
 
@@ -38,6 +39,7 @@ export const PAGES = {
     "RewardsShop": RewardsShop,
     "ParentPortal": ParentPortal,
     "ManageUsers": ManageUsers,
+    "AudioGenerator": AudioGenerator,
 }
 
 export const pagesConfig = {
