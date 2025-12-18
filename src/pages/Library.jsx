@@ -8,6 +8,7 @@ import BookCard from '../components/library/BookCard';
 import ProfileSelector from '../components/profile/ProfileSelector';
 import StoryReader from '../components/story/StoryReader';
 import ColoringCanvas from '../components/coloring/ColoringCanvas';
+import PurchaseModal from '../components/shop/PurchaseModal';
 import { checkAndAwardAchievements, awardPoints } from '../components/achievementManager';
 import StreakWidget from '../components/gamification/StreakWidget';
 import DailyChallengeCard from '../components/gamification/DailyChallengeCard';
@@ -35,6 +36,7 @@ export default function Library() {
   const [becauseYouRead, setBecauseYouRead] = useState(null);
   const [showForYou, setShowForYou] = useState(true);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [purchaseBook, setPurchaseBook] = useState(null);
   
   const queryClient = useQueryClient();
 
@@ -144,8 +146,8 @@ export default function Library() {
 
   const handleBookClick = async (book) => {
     if (book.is_locked) {
-      // Show paywall (will be implemented in Sprint 4)
-      alert('This book is locked. Purchase the full collection to unlock!');
+      // Show purchase modal
+      setPurchaseBook(book);
     } else {
       // Load pages for this book
       const pages = await base44.entities.Page.filter({ book_id: book.id });
@@ -352,8 +354,37 @@ export default function Library() {
     return <ProfileSelector onProfileCreated={handleProfileCreated} existingProfiles={profiles} />;
   }
 
+  // Check for purchase success/cancel in URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const purchaseStatus = urlParams.get('purchase');
+    const bookId = urlParams.get('book_id');
+
+    if (purchaseStatus === 'success' && bookId) {
+      // Refresh books to reflect purchase
+      queryClient.invalidateQueries(['books']);
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (purchaseStatus === 'cancelled') {
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
+
   return (
     <>
+      {/* Purchase Modal */}
+      {purchaseBook && (
+        <PurchaseModal
+          book={purchaseBook}
+          onClose={() => setPurchaseBook(null)}
+          onPurchaseComplete={() => {
+            setPurchaseBook(null);
+            queryClient.invalidateQueries(['books']);
+          }}
+        />
+      )}
+
       {/* Story Reader Modal */}
       {selectedBook && storyPages.length > 0 && !coloringPage && (
         <StoryReader
@@ -589,7 +620,7 @@ export default function Library() {
           <p className="text-gray-500">Try adjusting your search or filters</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-24 md:pb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-24 md:pb-8 auto-rows-fr">
           {filteredBooks.map((book) => (
             <BookCard
               key={book.id}
@@ -597,6 +628,7 @@ export default function Library() {
               userProfile={currentProfile}
               onClick={() => handleBookClick(book)}
               onDownloadChange={loadDownloadedCount}
+              onPurchaseClick={setPurchaseBook}
               showProgress={true}
             />
           ))}

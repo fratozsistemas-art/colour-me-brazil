@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, Download, CheckCircle2, Cloud, Trash2, Loader2, Volume2 } from 'lucide-react';
+import { Lock, Download, CheckCircle2, Cloud, Trash2, Loader2, Volume2, ShoppingCart } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getDownloadStatus, downloadBook, deleteDownloadedBook } from '../offlineManager';
 
-export default function BookCard({ book, userProfile, onClick, onDownloadChange, showProgress = false }) {
+export default function BookCard({ book, userProfile, onClick, onDownloadChange, showProgress = false, onPurchaseClick }) {
   const [downloadStatus, setDownloadStatus] = useState({ status: 'not_downloaded', progress: 0 });
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -68,16 +68,16 @@ export default function BookCard({ book, userProfile, onClick, onDownloadChange,
       whileHover={{ scale: 1.02, y: -4 }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      className="cursor-pointer group"
+      className="cursor-pointer group h-full"
     >
-      <div className="bg-white rounded-2xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl border-2 border-transparent" style={{ borderColor: 'transparent' }} onMouseEnter={(e) => e.currentTarget.style.borderColor = '#A8DADC'} onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}>
+      <div className="bg-white rounded-2xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl border-2 border-transparent h-full flex flex-col" style={{ borderColor: 'transparent' }} onMouseEnter={(e) => e.currentTarget.style.borderColor = '#A8DADC'} onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}>
         {/* Cover Image Container */}
-        <div className="relative aspect-square bg-gradient-to-br from-gray-100 to-gray-200">
+        <div className="relative aspect-square bg-gradient-to-br from-gray-100 to-gray-200 flex-shrink-0">
           {book.cover_image_url ? (
             <img
               src={book.cover_image_url}
               alt={book.title_en}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain p-2"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
@@ -213,7 +213,7 @@ export default function BookCard({ book, userProfile, onClick, onDownloadChange,
         </div>
 
         {/* Book Info */}
-        <div className="p-4">
+        <div className="p-4 flex flex-col flex-grow">
           <h3 className="font-bold text-lg line-clamp-2 mb-1 transition-colors" style={{ color: '#1A2332' }} onMouseEnter={(e) => e.currentTarget.style.color = '#FF6B35'} onMouseLeave={(e) => e.currentTarget.style.color = '#1A2332'}>
             {book.title_en}
           </h3>
@@ -237,9 +237,11 @@ export default function BookCard({ book, userProfile, onClick, onDownloadChange,
             </div>
           )}
 
+          <div className="flex-grow" />
+
           {/* Progress Bar */}
           {progressPercent > 0 && (
-            <div className="space-y-1">
+            <div className="space-y-1 mt-3">
               <div className="flex justify-between items-center text-xs text-gray-600">
                 <span>{pagesColored} of {book.page_count} pages</span>
                 <span className="font-semibold" style={{ color: '#06A77D' }}>{progressPercent}%</span>
@@ -256,36 +258,45 @@ export default function BookCard({ book, userProfile, onClick, onDownloadChange,
             </div>
           )}
 
-          {/* Download Actions */}
-          {!book.is_locked && (
-            <div className="mt-3">
-              {downloadStatus.status === 'completed' ? (
-                <button
-                  onClick={handleDelete}
-                  className="flex items-center gap-2 text-xs text-red-600 hover:text-red-700 transition-colors"
-                >
-                  <Trash2 className="w-3 h-3" />
-                  <span>Remove offline copy</span>
-                </button>
-              ) : isDownloading ? (
-                <div className="flex items-center gap-2 text-xs text-blue-600">
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                  <span>Downloading... {downloadStatus.progress}%</span>
-                </div>
-              ) : (
-                <button
-                  onClick={handleDownload}
-                  className="flex items-center gap-2 text-xs transition-colors"
-                  style={{ color: '#06A77D' }}
-                  onMouseEnter={(e) => e.currentTarget.style.color = '#2E86AB'}
-                  onMouseLeave={(e) => e.currentTarget.style.color = '#06A77D'}
-                >
-                  <Download className="w-3 h-3" />
-                  <span>Download for offline</span>
-                </button>
-              )}
-            </div>
-          )}
+          {/* Download Actions / Purchase Button */}
+          <div className="mt-3">
+            {book.is_locked ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onPurchaseClick) onPurchaseClick(book);
+                }}
+                className="flex items-center gap-2 text-xs font-semibold text-white bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 px-3 py-2 rounded-lg transition-all w-full justify-center"
+              >
+                <ShoppingCart className="w-3 h-3" />
+                <span>Unlock - $4.99</span>
+              </button>
+            ) : downloadStatus.status === 'completed' ? (
+              <button
+                onClick={handleDelete}
+                className="flex items-center gap-2 text-xs text-red-600 hover:text-red-700 transition-colors"
+              >
+                <Trash2 className="w-3 h-3" />
+                <span>Remove offline copy</span>
+              </button>
+            ) : isDownloading ? (
+              <div className="flex items-center gap-2 text-xs text-blue-600">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                <span>Downloading... {downloadStatus.progress}%</span>
+              </div>
+            ) : (
+              <button
+                onClick={handleDownload}
+                className="flex items-center gap-2 text-xs transition-colors"
+                style={{ color: '#06A77D' }}
+                onMouseEnter={(e) => e.currentTarget.style.color = '#2E86AB'}
+                onMouseLeave={(e) => e.currentTarget.style.color = '#06A77D'}
+              >
+                <Download className="w-3 h-3" />
+                <span>Download for offline</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </motion.div>
