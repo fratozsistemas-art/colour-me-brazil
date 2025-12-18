@@ -1,7 +1,16 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from './utils';
-import { Book, Settings, User, Palette, ShoppingBag, Trophy, Upload, Shield, MessageSquare, Sparkles, Users } from 'lucide-react';
+import { Book, Settings, User, Palette, ShoppingBag, Trophy, Upload, Shield, MessageSquare, Sparkles, Users, Menu } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 
 export default function Layout({ children, currentPageName }) {
   const menuItems = [
@@ -69,36 +78,59 @@ export default function Layout({ children, currentPageName }) {
             </Link>
 
             {/* Navigation */}
-            <nav className="hidden lg:flex items-center gap-2">
-              {menuItems.map((category, catIndex) => (
-                <React.Fragment key={category.category}>
-                  {catIndex > 0 && <div className="w-px h-6 bg-gray-300 mx-1" />}
-                  {category.items.map(({ name, path, icon: Icon }) => (
-                    <Link
-                      key={path}
-                      to={createPageUrl(path)}
-                      className={`flex items-center gap-1 px-2 py-1.5 rounded-lg transition-all text-xs ${
-                        currentPageName === path
-                          ? 'font-semibold shadow-md'
-                          : 'hover:shadow-sm'
-                      }`}
-                      style={currentPageName === path ? {
-                        background: category.category === 'Main' ? 'linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%)' :
-                                    category.category === 'Community' ? 'linear-gradient(135deg, #A855F7 0%, #EC4899 100%)' :
-                                    category.category === 'Gamification' ? 'linear-gradient(135deg, #FFD23F 0%, #FF8C42 100%)' :
-                                    'linear-gradient(135deg, #2E86AB 0%, #06A77D 100%)',
-                        color: '#FFFFFF'
-                      } : {
-                        color: '#6C757D'
-                      }}
-                      title={`${category.category}: ${name}`}
-                    >
-                      <Icon className="w-4 h-4" />
-                      <span>{name}</span>
-                    </Link>
-                  ))}
-                </React.Fragment>
+            <nav className="hidden lg:flex items-center gap-3">
+              {/* Main Navigation Items */}
+              {menuItems[0].items.map(({ name, path, icon: Icon }) => (
+                <Link
+                  key={path}
+                  to={createPageUrl(path)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
+                    currentPageName === path
+                      ? 'font-semibold shadow-md'
+                      : 'hover:shadow-sm hover:bg-gray-50'
+                  }`}
+                  style={currentPageName === path ? {
+                    background: 'linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%)',
+                    color: '#FFFFFF'
+                  } : {
+                    color: '#6C757D'
+                  }}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>{name}</span>
+                </Link>
               ))}
+
+              {/* More Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Menu className="w-4 h-4" />
+                    More
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  {menuItems.slice(1).map((category, idx) => (
+                    <React.Fragment key={category.category}>
+                      {idx > 0 && <DropdownMenuSeparator />}
+                      <DropdownMenuLabel className="text-xs font-semibold text-gray-500">
+                        {category.category}
+                      </DropdownMenuLabel>
+                      {category.items.map(({ name, path, icon: Icon }) => (
+                        <DropdownMenuItem key={path} asChild>
+                          <Link
+                            to={createPageUrl(path)}
+                            className="flex items-center gap-2 cursor-pointer"
+                          >
+                            <Icon className="w-4 h-4" />
+                            <span>{name}</span>
+                          </Link>
+                        </DropdownMenuItem>
+                      ))}
+                    </React.Fragment>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </nav>
           </div>
         </div>
