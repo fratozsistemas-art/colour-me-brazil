@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, Download, CheckCircle2, Cloud, Trash2, Loader2, Volume2, ShoppingCart } from 'lucide-react';
+import { Lock, Download, CheckCircle2, Cloud, Trash2, Loader2, Volume2, ShoppingCart, Printer } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getDownloadStatus, downloadBook, deleteDownloadedBook } from '../offlineManager';
+import { base44 } from '@/api/base44Client';
 
 export default function BookCard({ book, userProfile, onClick, onDownloadChange, showProgress = false, onPurchaseClick }) {
   const [downloadStatus, setDownloadStatus] = useState({ status: 'not_downloaded', progress: 0 });
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
 
   useEffect(() => {
     loadDownloadStatus();
@@ -43,6 +45,33 @@ export default function BookCard({ book, userProfile, onClick, onDownloadChange,
       if (onDownloadChange) onDownloadChange();
     } catch (error) {
       console.error('Delete failed:', error);
+    }
+  };
+
+  const handlePrint = async (e) => {
+    e.stopPropagation();
+    setIsPrinting(true);
+    try {
+      const language = userProfile?.preferred_language || 'en';
+      const response = await base44.functions.invoke('generatePrintableBook', {
+        book_id: book.id,
+        language
+      });
+      
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${book.title_en.replace(/[^a-z0-9]/gi, '_')}_Printable.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (error) {
+      console.error('Error generating printable:', error);
+      alert('Failed to generate printable version');
+    } finally {
+      setIsPrinting(false);
     }
   };
 
@@ -259,7 +288,7 @@ export default function BookCard({ book, userProfile, onClick, onDownloadChange,
           )}
 
           {/* Download Actions / Purchase Button */}
-          <div className="mt-3">
+          <div className="mt-3 space-y-2">
             {book.is_locked ? (
               <button
                 onClick={(e) => {
@@ -271,30 +300,54 @@ export default function BookCard({ book, userProfile, onClick, onDownloadChange,
                 <ShoppingCart className="w-3 h-3" />
                 <span>Unlock - $4.99</span>
               </button>
-            ) : downloadStatus.status === 'completed' ? (
-              <button
-                onClick={handleDelete}
-                className="flex items-center gap-2 text-xs text-red-600 hover:text-red-700 transition-colors"
-              >
-                <Trash2 className="w-3 h-3" />
-                <span>Remove offline copy</span>
-              </button>
-            ) : isDownloading ? (
-              <div className="flex items-center gap-2 text-xs text-blue-600">
-                <Loader2 className="w-3 h-3 animate-spin" />
-                <span>Downloading... {downloadStatus.progress}%</span>
-              </div>
             ) : (
-              <button
-                onClick={handleDownload}
-                className="flex items-center gap-2 text-xs transition-colors"
-                style={{ color: '#06A77D' }}
-                onMouseEnter={(e) => e.currentTarget.style.color = '#2E86AB'}
-                onMouseLeave={(e) => e.currentTarget.style.color = '#06A77D'}
-              >
-                <Download className="w-3 h-3" />
-                <span>Download for offline</span>
-              </button>
+              <>
+                {downloadStatus.status === 'completed' ? (
+                  <button
+                    onClick={handleDelete}
+                    className="flex items-center gap-2 text-xs text-red-600 hover:text-red-700 transition-colors"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>Remove offline copy</span>
+                  </button>
+                ) : isDownloading ? (
+                  <div className="flex items-center gap-2 text-xs text-blue-600">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    <span>Downloading... {downloadStatus.progress}%</span>
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleDownload}
+                    className="flex items-center gap-2 text-xs transition-colors"
+                    style={{ color: '#06A77D' }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = '#2E86AB'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = '#06A77D'}
+                  >
+                    <Download className="w-3 h-3" />
+                    <span>Download for offline</span>
+                  </button>
+                )}
+                <button
+                  onClick={handlePrint}
+                  disabled={isPrinting}
+                  className="flex items-center gap-2 text-xs transition-colors"
+                  style={{ color: '#FF6B35' }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = '#FF8C42'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#FF6B35'}
+                >
+                  {isPrinting ? (
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      <span>Generating PDF...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Printer className="w-3 h-3" />
+                      <span>Download printable version</span>
+                    </>
+                  )}
+                </button>
+              </>
             )}
           </div>
         </div>
