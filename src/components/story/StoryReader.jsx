@@ -416,14 +416,16 @@ export default function StoryReader({
               </div>
             )}
             
-            {/* Color This Page Button */}
-            <Button
-              onClick={() => onColorPage(currentPage)}
-              className="absolute bottom-4 right-4 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 shadow-xl"
-            >
-              <Palette className="w-4 h-4 mr-2" />
-              Color This Page
-            </Button>
+            {/* Color This Page Button - Only show if illustration exists */}
+            {currentPage.illustration_url && (
+              <Button
+                onClick={() => onColorPage(currentPage)}
+                className="absolute bottom-4 right-4 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 shadow-xl"
+              >
+                <Palette className="w-4 h-4 mr-2" />
+                Color This Page
+              </Button>
+            )}
             
             {/* Quiz Modal */}
             <AnimatePresence>
