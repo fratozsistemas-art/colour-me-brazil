@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Undo, Redo, Eraser, Save, Download, X, Paintbrush, Grid3x3, ZoomIn, ZoomOut, Maximize2, Share2, Palette } from 'lucide-react';
+import { Undo, Redo, Eraser, Save, Download, X, Paintbrush, Grid3x3, ZoomIn, ZoomOut, Maximize2, Share2, Palette, Loader2 } from 'lucide-react';
 import ShareButton from '../social/ShareButton';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getBookPalette, THEME_PALETTES, getAllPaletteNames } from './colorPalettes';
@@ -47,6 +47,7 @@ export default function ColoringCanvas({
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [brushType, setBrushType] = useState('solid');
   const [fillTolerance, setFillTolerance] = useState(30);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Use lineArtUrl if provided, otherwise fall back to illustrationUrl
   const effectiveImageUrl = lineArtUrl || illustrationUrl;
@@ -54,14 +55,20 @@ export default function ColoringCanvas({
   // Load background image
   useEffect(() => {
     if (effectiveImageUrl) {
+      setIsLoading(true);
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.onload = () => {
         setBackgroundImage(img);
-        redrawCanvas();
+        // Small delay to ensure canvas is ready
+        setTimeout(() => {
+          redrawCanvas();
+          setIsLoading(false);
+        }, 100);
       };
       img.onerror = () => {
         console.error('Failed to load illustration from:', effectiveImageUrl);
+        setIsLoading(false);
       };
       img.src = effectiveImageUrl;
     }
@@ -185,6 +192,10 @@ export default function ColoringCanvas({
 
   const handleCanvasClick = (e) => {
     e.preventDefault();
+    
+    if (isLoading || !backgroundImage) {
+      return; // Prevent filling before image is loaded
+    }
     
     if (paintMode === 'fill') {
       const point = getCanvasPoint(e);
@@ -522,8 +533,16 @@ export default function ColoringCanvas({
             <div 
               ref={containerRef}
               className="relative max-w-3xl w-full aspect-square bg-white rounded-lg shadow-lg overflow-hidden"
-              style={{ cursor: isPanning ? 'grabbing' : (paintMode === 'fill' ? 'pointer' : 'crosshair') }}
+              style={{ cursor: isLoading ? 'wait' : (isPanning ? 'grabbing' : (paintMode === 'fill' ? 'pointer' : 'crosshair')) }}
             >
+              {isLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
+                  <div className="text-center">
+                    <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600">Loading image...</p>
+                  </div>
+                </div>
+              )}
               <canvas
                 ref={canvasRef}
                 width={1024}
