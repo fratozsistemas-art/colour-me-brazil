@@ -3,13 +3,15 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { 
   ChevronLeft, ChevronRight, X, Volume2, VolumeX, 
-  Palette, Play, Pause, RotateCcw, Languages, CheckCircle2, Zap 
+  Palette, Play, Pause, RotateCcw, Languages, CheckCircle2, Zap, Wand2 
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import InteractiveHotspot from './InteractiveHotspot';
 import QuizModal from './QuizModal';
 import InteractiveWord from './InteractiveWord';
+import StoryAdaptationControls from './StoryAdaptationControls';
+import { toast } from 'sonner';
 
 export default function StoryReader({ 
   book, 
@@ -213,6 +215,10 @@ export default function StoryReader({
   const [readingStartTime, setReadingStartTime] = useState(null);
   const [fontSize, setFontSize] = useState('medium');
   const [backgroundColor, setBackgroundColor] = useState('white');
+  const [showAITools, setShowAITools] = useState(false);
+  const [isAdapting, setIsAdapting] = useState(false);
+  const [adaptedText, setAdaptedText] = useState(null);
+  const [generatedVariation, setGeneratedVariation] = useState(null);
 
   useEffect(() => {
     loadWordDefinitions();
@@ -294,8 +300,68 @@ export default function StoryReader({
     return backgroundColor === 'night' ? 'text-gray-100' : 'text-gray-900';
   };
 
+  const handleApplyAdaptation = async ({ reading_level, vocabulary_preference }) => {
+    setIsAdapting(true);
+    try {
+      const currentText = language === 'en' ? currentPage.story_text_en : currentPage.story_text_pt;
+      const response = await base44.functions.invoke('adaptStoryText', {
+        story_text: currentText,
+        language,
+        reading_level,
+        vocabulary_preference,
+        cultural_context: book.cultural_tags?.join(', ')
+      });
+
+      setAdaptedText(response.data.adapted_text);
+      toast.success('Story adapted to your preferences!');
+    } catch (error) {
+      console.error('Error adapting story:', error);
+      toast.error('Failed to adapt story. Please try again.');
+    } finally {
+      setIsAdapting(false);
+    }
+  };
+
+  const handleGenerateVariation = async ({ variation_type }) => {
+    setIsAdapting(true);
+    try {
+      const currentText = language === 'en' ? currentPage.story_text_en : currentPage.story_text_pt;
+      const response = await base44.functions.invoke('generateStoryVariation', {
+        book_title: language === 'en' ? book.title_en : book.title_pt,
+        original_story: currentText,
+        variation_type,
+        language,
+        cultural_theme: book.cultural_tags?.join(', '),
+        user_interests: book.profileId ? 'Brazilian culture, adventure, learning' : undefined
+      });
+
+      setGeneratedVariation(response.data.variation_text);
+      toast.success('New story variation created!');
+    } catch (error) {
+      console.error('Error generating variation:', error);
+      toast.error('Failed to generate variation. Please try again.');
+    } finally {
+      setIsAdapting(false);
+    }
+  };
+
+  const resetToOriginal = () => {
+    setAdaptedText(null);
+    setGeneratedVariation(null);
+    toast.info('Restored original story');
+  };
+
   const renderHighlightedText = () => {
-    const text = language === 'en' ? currentPage.story_text_en : currentPage.story_text_pt;
+    // Use adapted text, generated variation, or original text
+    let text;
+    if (generatedVariation) {
+      text = generatedVariation;
+    } else if (adaptedText) {
+      text = adaptedText;
+    } else {
+      text = language === 'en' ? currentPage.story_text_en : currentPage.story_text_pt;
+    }
+    
     if (!text) return null;
 
     const words = text.split(' ');
@@ -404,6 +470,28 @@ export default function StoryReader({
               >
                 {backgroundColor === 'night' ? '☀️' : '🌙'}
               </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAITools(!showAITools)}
+                className={`text-white border-white/20 ${showAITools ? 'bg-purple-500/20' : ''}`}
+                title="AI Story Tools"
+              >
+                <Wand2 className="w-4 h-4" />
+              </Button>
+
+              {(adaptedText || generatedVariation) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={resetToOriginal}
+                  className="text-white border-white/20"
+                  title="Reset to original"
+                >
+                  Reset
+                </Button>
+              )}
 
               <Button
                 variant="outline"
@@ -546,9 +634,22 @@ export default function StoryReader({
 
           {/* Story Text */}
           <div className="flex-1 overflow-y-auto p-6 touch-pan-y overscroll-contain">
+            {(adaptedText || generatedVariation) && (
+              <div className="mb-4 p-3 rounded-lg bg-purple-100 text-purple-800 text-sm flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Wand2 className="w-4 h-4" />
+                  <span className="font-medium">
+                    {generatedVariation ? 'AI Generated Variation' : 'AI Adapted Story'}
+                  </span>
+                </div>
+                <button onClick={resetToOriginal} className="text-xs underline hover:no-underline">
+                  View Original
+                </button>
+              </div>
+            )}
             <AnimatePresence mode="wait">
               <motion.div
-                key={`${pageIndex}-${language}`}
+                key={`${pageIndex}-${language}-${adaptedText ? 'adapted' : 'original'}-${generatedVariation ? 'variation' : ''}`}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
@@ -613,7 +714,21 @@ export default function StoryReader({
             </div>
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
+        </div>
+        </div>
+
+        {/* AI Story Tools */}
+        <AnimatePresence>
+        {showAITools && (
+        <StoryAdaptationControls
+          onApplyAdaptation={handleApplyAdaptation}
+          onGenerateVariation={handleGenerateVariation}
+          currentLanguage={language}
+          isLoading={isAdapting}
+          onClose={() => setShowAITools(false)}
+        />
+        )}
+        </AnimatePresence>
+        </div>
+        );
+        }
