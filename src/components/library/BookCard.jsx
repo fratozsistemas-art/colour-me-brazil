@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, Download, CheckCircle2, Cloud, Trash2, Loader2, Volume2, ShoppingCart, Printer } from 'lucide-react';
+import { Lock, Download, CheckCircle2, Cloud, Trash2, Loader2, Volume2, ShoppingCart, Printer, Package } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getDownloadStatus, downloadBook, deleteDownloadedBook } from '../offlineManager';
 import { base44 } from '@/api/base44Client';
@@ -347,6 +347,16 @@ export default function BookCard({ book, userProfile, onClick, onDownloadChange,
                       <span>Download printable version</span>
                     </>
                   )}
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onPurchaseClick) onPurchaseClick({ ...book, isPrintedVersion: true });
+                  }}
+                  className="flex items-center gap-2 text-xs font-semibold text-white bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 px-3 py-2 rounded-lg transition-all w-full justify-center"
+                >
+                  <Package className="w-3 h-3" />
+                  <span>Pre-Order Printed - $24.99</span>
                 </button>
               </>
             )}

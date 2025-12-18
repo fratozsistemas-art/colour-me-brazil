@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Lock, CreditCard, Loader2, CheckCircle2 } from 'lucide-react';
+import { X, Lock, CreditCard, Loader2, CheckCircle2, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,6 +8,7 @@ import { base44 } from '@/api/base44Client';
 export default function PurchaseModal({ book, onClose, onPurchaseComplete }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState(null);
+  const isPrintedVersion = book?.isPrintedVersion || false;
 
   const handlePurchase = async () => {
     setIsProcessing(true);
@@ -16,10 +17,10 @@ export default function PurchaseModal({ book, onClose, onPurchaseComplete }) {
     try {
       // Create checkout session
       const response = await base44.functions.invoke('createCheckoutSession', {
-        itemType: 'book',
+        itemType: isPrintedVersion ? 'printed_book' : 'book',
         itemId: book.id,
-        amount: 499, // $4.99 in cents
-        itemName: book.title_en,
+        amount: isPrintedVersion ? 2499 : 499, // $24.99 or $4.99 in cents
+        itemName: isPrintedVersion ? `${book.title_en} (Printed Edition)` : book.title_en,
         successUrl: window.location.origin + '/Library?purchase=success&book_id=' + book.id,
         cancelUrl: window.location.origin + '/Library?purchase=cancelled'
       });
@@ -63,11 +64,15 @@ export default function PurchaseModal({ book, onClose, onPurchaseComplete }) {
               
               <div className="flex items-center gap-3">
                 <div className="bg-white/20 p-3 rounded-lg">
-                  <Lock className="w-6 h-6" />
+                  {isPrintedVersion ? <Package className="w-6 h-6" /> : <Lock className="w-6 h-6" />}
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold">Unlock Book</h2>
-                  <p className="text-white/90 text-sm">One-time purchase</p>
+                  <h2 className="text-2xl font-bold">
+                    {isPrintedVersion ? 'Pre-Order Printed Book' : 'Unlock Book'}
+                  </h2>
+                  <p className="text-white/90 text-sm">
+                    {isPrintedVersion ? 'Physical copy + digital access' : 'One-time purchase'}
+                  </p>
                 </div>
               </div>
             </div>
@@ -103,9 +108,29 @@ export default function PurchaseModal({ book, onClose, onPurchaseComplete }) {
               <div className="bg-gradient-to-br from-blue-50 to-green-50 rounded-lg p-4">
                 <h4 className="font-semibold text-gray-800 mb-3">What's Included:</h4>
                 <ul className="space-y-2">
+                  {isPrintedVersion && (
+                    <>
+                      <li className="flex items-center gap-2 text-sm text-gray-700">
+                        <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                        <span>High-quality printed book (shipped to you)</span>
+                      </li>
+                      <li className="flex items-center gap-2 text-sm text-gray-700">
+                        <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                        <span>Free shipping within the US</span>
+                      </li>
+                      <li className="flex items-center gap-2 text-sm text-gray-700">
+                        <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                        <span>Bilingual text (English & Portuguese)</span>
+                      </li>
+                      <li className="flex items-center gap-2 text-sm text-gray-700">
+                        <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                        <span>Blank coloring pages included</span>
+                      </li>
+                    </>
+                  )}
                   <li className="flex items-center gap-2 text-sm text-gray-700">
                     <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
-                    <span>Interactive bilingual story (EN/PT)</span>
+                    <span>Interactive digital story (EN/PT)</span>
                   </li>
                   <li className="flex items-center gap-2 text-sm text-gray-700">
                     <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
@@ -113,7 +138,7 @@ export default function PurchaseModal({ book, onClose, onPurchaseComplete }) {
                   </li>
                   <li className="flex items-center gap-2 text-sm text-gray-700">
                     <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
-                    <span>Colorable illustrations</span>
+                    <span>Digital coloring tools</span>
                   </li>
                   <li className="flex items-center gap-2 text-sm text-gray-700">
                     <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
@@ -130,12 +155,12 @@ export default function PurchaseModal({ book, onClose, onPurchaseComplete }) {
               <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-4 border-2 border-purple-200">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">One-time payment</p>
-                    <p className="text-3xl font-bold text-gray-800">$4.99</p>
+                    <p className="text-sm text-gray-600">{isPrintedVersion ? 'Pre-order price' : 'One-time payment'}</p>
+                    <p className="text-3xl font-bold text-gray-800">{isPrintedVersion ? '$24.99' : '$4.99'}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-gray-500">Lifetime access</p>
-                    <p className="text-xs text-gray-500">All profiles</p>
+                    <p className="text-xs text-gray-500">{isPrintedVersion ? 'Ships in 2-3 weeks' : 'Lifetime access'}</p>
+                    <p className="text-xs text-gray-500">{isPrintedVersion ? '+ Digital access' : 'All profiles'}</p>
                   </div>
                 </div>
               </div>
@@ -151,7 +176,11 @@ export default function PurchaseModal({ book, onClose, onPurchaseComplete }) {
               <Button
                 onClick={handlePurchase}
                 disabled={isProcessing}
-                className="w-full py-6 text-lg font-semibold bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600"
+                className={`w-full py-6 text-lg font-semibold ${
+                  isPrintedVersion 
+                    ? 'bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700'
+                    : 'bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600'
+                }`}
               >
                 {isProcessing ? (
                   <>
@@ -160,8 +189,8 @@ export default function PurchaseModal({ book, onClose, onPurchaseComplete }) {
                   </>
                 ) : (
                   <>
-                    <CreditCard className="w-5 h-5 mr-2" />
-                    Purchase Now
+                    {isPrintedVersion ? <Package className="w-5 h-5 mr-2" /> : <CreditCard className="w-5 h-5 mr-2" />}
+                    {isPrintedVersion ? 'Pre-Order Now' : 'Purchase Now'}
                   </>
                 )}
               </Button>
