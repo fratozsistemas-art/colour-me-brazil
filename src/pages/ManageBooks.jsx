@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
-import { Plus, Edit, Trash2, Save, X, BookOpen, Palette } from 'lucide-react';
+import { Plus, Edit, Trash2, Save, X, BookOpen, Palette, Volume2, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Select,
@@ -19,6 +19,9 @@ export default function ManageBooks() {
   const [editingBook, setEditingBook] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
   const [selectedBook, setSelectedBook] = useState(null);
+  const [audioGenerationBookId, setAudioGenerationBookId] = useState(null);
+  const [audioGenerationLanguage, setAudioGenerationLanguage] = useState('en');
+  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: books = [], isLoading } = useQuery({
@@ -85,6 +88,30 @@ export default function ManageBooks() {
     } catch (error) {
       console.error('Error renumbering pages:', error);
       alert('Failed to renumber pages');
+    }
+  };
+
+  const handleBatchGenerateAudio = async (bookId, language) => {
+    setIsGeneratingAudio(true);
+    try {
+      const response = await base44.functions.invoke('batchGenerateAudio', { 
+        bookId, 
+        language,
+        forceRegenerate: false 
+      });
+      
+      if (response.data.success) {
+        alert(`Audio generation completed!\nGenerated: ${response.data.generated}\nSkipped: ${response.data.skipped}\nErrors: ${response.data.errors}`);
+        queryClient.invalidateQueries(['pages']);
+      } else {
+        alert(`Failed: ${response.data.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error batch generating audio:', error);
+      alert(`Failed to generate audio: ${error.message}`);
+    } finally {
+      setIsGeneratingAudio(false);
+      setAudioGenerationBookId(null);
     }
   };
 
@@ -319,6 +346,15 @@ export default function ManageBooks() {
                   </Button>
                   <Button
                     variant="outline"
+                    size="sm"
+                    onClick={() => setAudioGenerationBookId(audioGenerationBookId === book.id ? null : book.id)}
+                    className="text-purple-600"
+                  >
+                    <Volume2 className="w-4 h-4 mr-2" />
+                    Audio
+                  </Button>
+                  <Button
+                    variant="outline"
                     size="icon"
                     onClick={() => setEditingBook(book)}
                   >
@@ -337,6 +373,52 @@ export default function ManageBooks() {
                   </Button>
                 </div>
               </div>
+            )}
+
+            {/* Audio Generation */}
+            {audioGenerationBookId === book.id && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mt-6 pt-6 border-t"
+              >
+                <h4 className="font-semibold text-lg mb-4">Batch Generate Audio</h4>
+                <div className="flex items-center gap-4">
+                  <Select
+                    value={audioGenerationLanguage}
+                    onValueChange={setAudioGenerationLanguage}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="en">🇺🇸 English</SelectItem>
+                      <SelectItem value="pt">🇧🇷 Portuguese</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    onClick={() => handleBatchGenerateAudio(book.id, audioGenerationLanguage)}
+                    disabled={isGeneratingAudio}
+                    className="bg-purple-600 hover:bg-purple-700"
+                  >
+                    {isGeneratingAudio ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Volume2 className="w-4 h-4 mr-2" />
+                        Generate All Pages
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-500 mt-3">
+                  This will generate audio narration for all pages that don't have audio yet. Existing audio will be skipped.
+                </p>
+              </motion.div>
             )}
 
             {/* Pages Management */}
