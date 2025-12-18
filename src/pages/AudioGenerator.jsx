@@ -69,13 +69,13 @@ export default function AudioGenerator() {
             message: 'Generating English audio...'
           }]);
 
-          const enResult = await base44.functions.invoke('generateSpeech', {
+          const enResult = await base44.functions.invoke('generateSpeechGemini', {
             text: page.story_text_en,
             language: 'en'
           });
 
           if (enResult.data?.success) {
-            audioEnUrl = enResult.data.audio_url;
+            audioEnUrl = enResult.data.audioUrl;
             setProgress(prev => prev.map(p => 
               p.pageNumber === page.page_number && p.language === 'en'
                 ? { ...p, status: 'success', message: 'English audio generated' }
@@ -96,13 +96,13 @@ export default function AudioGenerator() {
             message: 'Generating Portuguese audio...'
           }]);
 
-          const ptResult = await base44.functions.invoke('generateSpeech', {
+          const ptResult = await base44.functions.invoke('generateSpeechGemini', {
             text: page.story_text_pt,
             language: 'pt'
           });
 
           if (ptResult.data?.success) {
-            audioPtUrl = ptResult.data.audio_url;
+            audioPtUrl = ptResult.data.audioUrl;
             setProgress(prev => prev.map(p => 
               p.pageNumber === page.page_number && p.language === 'pt'
                 ? { ...p, status: 'success', message: 'Portuguese audio generated' }
