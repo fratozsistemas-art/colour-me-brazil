@@ -280,13 +280,27 @@ export default function StoryReader({
     );
   };
 
+  const getFontSizeClass = () => {
+    switch(fontSize) {
+      case 'small': return 'text-sm md:text-base';
+      case 'medium': return 'text-base md:text-lg';
+      case 'large': return 'text-lg md:text-xl';
+      case 'extra-large': return 'text-xl md:text-2xl';
+      default: return 'text-base md:text-lg';
+    }
+  };
+
+  const getTextColor = () => {
+    return backgroundColor === 'night' ? 'text-gray-100' : 'text-gray-900';
+  };
+
   const renderHighlightedText = () => {
     const text = language === 'en' ? currentPage.story_text_en : currentPage.story_text_pt;
     if (!text) return null;
 
     const words = text.split(' ');
     return (
-      <p className="text-lg md:text-xl leading-relaxed">
+      <p className={`${getFontSizeClass()} ${getTextColor()} leading-relaxed`}>
         {words.map((word, index) => {
           const definition = getWordDefinition(word);
           
@@ -367,15 +381,40 @@ export default function StoryReader({
                 Quiz
               </Button>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={toggleLanguage}
-              className="text-white border-white/20"
-            >
-              <Languages className="w-4 h-4 mr-2" />
-              {language === 'en' ? '🇺🇸 EN' : '🇧🇷 PT'}
-            </Button>
+            <div className="flex items-center gap-2">
+              {/* Font Size Control */}
+              <select
+                value={fontSize}
+                onChange={(e) => setFontSize(e.target.value)}
+                className="text-sm bg-white/10 text-white border border-white/20 rounded px-2 py-1"
+              >
+                <option value="small">Small</option>
+                <option value="medium">Medium</option>
+                <option value="large">Large</option>
+                <option value="extra-large">Extra Large</option>
+              </select>
+
+              {/* Night Mode Toggle */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setBackgroundColor(backgroundColor === 'night' ? 'white' : 'night')}
+                className="text-white border-white/20"
+                title="Toggle night mode"
+              >
+                {backgroundColor === 'night' ? '☀️' : '🌙'}
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleLanguage}
+                className="text-white border-white/20"
+              >
+                <Languages className="w-4 h-4 mr-2" />
+                {language === 'en' ? '🇺🇸 EN' : '🇧🇷 PT'}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -443,9 +482,16 @@ export default function StoryReader({
         </div>
 
         {/* Story Text & Controls */}
-        <div className="w-full md:w-96 bg-white flex flex-col max-h-screen">
+        <div className={`w-full md:w-96 flex flex-col max-h-screen transition-colors ${
+          backgroundColor === 'night' ? 'bg-gray-900' : 
+          backgroundColor === 'sepia' ? 'bg-amber-50' : 
+          backgroundColor === 'cream' ? 'bg-yellow-50' : 
+          'bg-white'
+        }`}>
           {/* Audio Controls */}
-          <div className="border-b p-4 bg-gray-50 flex-shrink-0">
+          <div className={`border-b p-4 flex-shrink-0 ${
+            backgroundColor === 'night' ? 'bg-gray-800 border-gray-700' : 'bg-gray-50'
+          }`}>
             <div className="flex items-center gap-2 mb-3">
               <Button
                 variant="outline"
@@ -475,7 +521,7 @@ export default function StoryReader({
                 variant="outline"
                 size="sm"
                 onClick={changePlaybackSpeed}
-                className="bg-white px-3 font-semibold"
+                className={`px-3 font-semibold ${backgroundColor === 'night' ? 'bg-gray-700 text-white border-gray-600' : 'bg-white'}`}
                 title="Playback speed"
               >
                 {playbackSpeed}x
@@ -514,7 +560,9 @@ export default function StoryReader({
           </div>
 
           {/* Navigation */}
-          <div className="border-t p-4 bg-gray-50 flex-shrink-0">
+          <div className={`border-t p-4 flex-shrink-0 ${
+            backgroundColor === 'night' ? 'bg-gray-800 border-gray-700' : 'bg-gray-50'
+          }`}>
             {showCompleteButton && (
               <Button
                 onClick={handleCompleteBook}
