@@ -18,6 +18,7 @@ import ParentPortal from './pages/ParentPortal';
 import ManageUsers from './pages/ManageUsers';
 import AudioGenerator from './pages/AudioGenerator';
 import ArtGallery from './pages/ArtGallery';
+import ManifestLibrary from './pages/ManifestLibrary';
 import __Layout from './Layout.jsx';
 
 
@@ -42,6 +43,7 @@ export const PAGES = {
     "ManageUsers": ManageUsers,
     "AudioGenerator": AudioGenerator,
     "ArtGallery": ArtGallery,
+    "ManifestLibrary": ManifestLibrary,
 }
 
 export const pagesConfig = {
