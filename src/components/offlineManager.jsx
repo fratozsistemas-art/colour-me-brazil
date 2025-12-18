@@ -2,7 +2,7 @@ import { base44 } from '@/api/base44Client';
 
 const CACHE_NAME = 'colour-me-brazil-v1';
 const DB_NAME = 'ColourMeBrazilDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 // Initialize IndexedDB
 function openDB() {
@@ -22,6 +22,16 @@ function openDB() {
       }
       if (!db.objectStoreNames.contains('downloads')) {
         db.createObjectStore('downloads', { keyPath: 'book_id' });
+      }
+      if (!db.objectStoreNames.contains('coloring_sessions')) {
+        const sessionsStore = db.createObjectStore('coloring_sessions', { keyPath: 'id' });
+        sessionsStore.createIndex('profile_id', 'profile_id', { unique: false });
+        sessionsStore.createIndex('synced', 'synced', { unique: false });
+      }
+      if (!db.objectStoreNames.contains('reading_progress')) {
+        const progressStore = db.createObjectStore('reading_progress', { keyPath: 'id' });
+        progressStore.createIndex('profile_id', 'profile_id', { unique: false });
+        progressStore.createIndex('synced', 'synced', { unique: false });
       }
     };
   });
@@ -232,12 +242,175 @@ export async function getOfflineBook(bookId) {
   }
 }
 
+// Save coloring session offline
+export async function saveColoringSessionOffline(profileId, pageId, sessionData) {
+  const db = await openDB();
+  const transaction = db.transaction(['coloring_sessions'], 'readwrite');
+  const store = transaction.objectStore('coloring_sessions');
+  
+  const session = {
+    id: `${profileId}_${pageId}`,
+    profile_id: profileId,
+    page_id: pageId,
+    ...sessionData,
+    synced: false,
+    last_modified: new Date().toISOString()
+  };
+  
+  return new Promise((resolve, reject) => {
+    const request = store.put(session);
+    request.onsuccess = () => resolve(session);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+// Save reading progress offline
+export async function saveReadingProgressOffline(profileId, bookId, pageIndex) {
+  const db = await openDB();
+  const transaction = db.transaction(['reading_progress'], 'readwrite');
+  const store = transaction.objectStore('reading_progress');
+  
+  const progress = {
+    id: `${profileId}_${bookId}`,
+    profile_id: profileId,
+    book_id: bookId,
+    page_index: pageIndex,
+    synced: false,
+    timestamp: new Date().toISOString()
+  };
+  
+  return new Promise((resolve, reject) => {
+    const request = store.put(progress);
+    request.onsuccess = () => resolve(progress);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+// Get unsynced data
+async function getUnsyncedData() {
+  const db = await openDB();
+  const unsyncedData = {
+    coloringSessions: [],
+    readingProgress: []
+  };
+  
+  // Get unsynced coloring sessions
+  const sessionsTx = db.transaction(['coloring_sessions'], 'readonly');
+  const sessionsStore = sessionsTx.objectStore('coloring_sessions');
+  const allSessions = await new Promise((resolve, reject) => {
+    const request = sessionsStore.getAll();
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  unsyncedData.coloringSessions = allSessions.filter(s => !s.synced);
+  
+  // Get unsynced reading progress
+  const progressTx = db.transaction(['reading_progress'], 'readonly');
+  const progressStore = progressTx.objectStore('reading_progress');
+  const allProgress = await new Promise((resolve, reject) => {
+    const request = progressStore.getAll();
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  unsyncedData.readingProgress = allProgress.filter(p => !p.synced);
+  
+  return unsyncedData;
+}
+
 // Sync when online
 export async function syncOfflineData() {
-  if (!navigator.onLine) return;
+  if (!navigator.onLine) return { success: false, message: 'No internet connection' };
 
   try {
-    // Get all downloaded books and check if they need updates
+    const results = {
+      coloringSessions: 0,
+      readingProgress: 0,
+      bookUpdates: 0,
+      errors: []
+    };
+
+    // Get unsynced data
+    const unsyncedData = await getUnsyncedData();
+
+    // Sync coloring sessions
+    for (const session of unsyncedData.coloringSessions) {
+      try {
+        const existing = await base44.entities.ColoringSession.filter({
+          profile_id: session.profile_id,
+          page_id: session.page_id
+        });
+
+        if (existing.length > 0) {
+          await base44.entities.ColoringSession.update(existing[0].id, {
+            strokes: session.strokes,
+            coloring_time: session.coloring_time,
+            is_completed: session.is_completed,
+            thumbnail_data: session.thumbnail_data,
+            last_modified: session.last_modified
+          });
+        } else {
+          await base44.entities.ColoringSession.create({
+            profile_id: session.profile_id,
+            page_id: session.page_id,
+            book_id: session.book_id,
+            strokes: session.strokes,
+            coloring_time: session.coloring_time,
+            is_completed: session.is_completed,
+            thumbnail_data: session.thumbnail_data,
+            last_modified: session.last_modified
+          });
+        }
+
+        // Mark as synced
+        const db = await openDB();
+        const tx = db.transaction(['coloring_sessions'], 'readwrite');
+        const store = tx.objectStore('coloring_sessions');
+        session.synced = true;
+        await new Promise((resolve, reject) => {
+          const request = store.put(session);
+          request.onsuccess = () => resolve();
+          request.onerror = () => reject(request.error);
+        });
+        
+        results.coloringSessions++;
+      } catch (error) {
+        console.error('Error syncing coloring session:', error);
+        results.errors.push({ type: 'coloring_session', error: error.message });
+      }
+    }
+
+    // Sync reading progress
+    for (const progress of unsyncedData.readingProgress) {
+      try {
+        const profiles = await base44.entities.UserProfile.filter({ id: progress.profile_id });
+        if (profiles.length > 0) {
+          const currentProgress = profiles[0].reading_progress || {};
+          currentProgress[progress.book_id] = progress.page_index;
+          
+          await base44.entities.UserProfile.update(progress.profile_id, {
+            reading_progress: currentProgress
+          });
+
+          // Mark as synced
+          const db = await openDB();
+          const tx = db.transaction(['reading_progress'], 'readwrite');
+          const store = tx.objectStore('reading_progress');
+          progress.synced = true;
+          await new Promise((resolve, reject) => {
+            const request = store.put(progress);
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+          });
+          
+          results.readingProgress++;
+        }
+      } catch (error) {
+        console.error('Error syncing reading progress:', error);
+        results.errors.push({ type: 'reading_progress', error: error.message });
+      }
+    }
+
+    // Check downloaded books for updates
     const db = await openDB();
     const transaction = db.transaction(['books'], 'readonly');
     const store = transaction.objectStore('books');
@@ -247,21 +420,29 @@ export async function syncOfflineData() {
       request.onerror = () => reject(request.error);
     });
 
-    // Check each book for updates
     for (const localBook of books) {
-      const remoteBooks = await base44.entities.Book.filter({ id: localBook.book_id });
-      const remoteBook = remoteBooks[0];
-      
-      if (remoteBook && remoteBook.updated_date > localBook.updated_date) {
-        // Book has been updated, re-download
-        await downloadBook(localBook.book_id);
+      try {
+        const remoteBooks = await base44.entities.Book.filter({ id: localBook.book_id });
+        const remoteBook = remoteBooks[0];
+        
+        if (remoteBook && remoteBook.updated_date > localBook.updated_date) {
+          await downloadBook(localBook.book_id);
+          results.bookUpdates++;
+        }
+      } catch (error) {
+        console.error('Error checking book updates:', error);
+        results.errors.push({ type: 'book_update', error: error.message });
       }
     }
 
-    return { success: true, synced: books.length };
+    return { 
+      success: true, 
+      results,
+      message: `Synced ${results.coloringSessions} coloring sessions, ${results.readingProgress} reading progress, ${results.bookUpdates} book updates`
+    };
   } catch (error) {
     console.error('Error syncing offline data:', error);
-    return { success: false, error: error?.message || error?.toString() || 'Sync failed' };
+    return { success: false, message: error?.message || error?.toString() || 'Sync failed' };
   }
 }
 
