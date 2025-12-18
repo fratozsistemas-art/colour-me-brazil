@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, X, Languages, Type, Image as ImageIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Languages, Type, Image as ImageIcon, Volume2, VolumeX, Play, Pause, RotateCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTTS, HighlightedText } from '../story/TTSController';
 
 export default function ReaderText({ 
   manifest,
@@ -16,10 +17,31 @@ export default function ReaderText({
   const [viewMode, setViewMode] = useState('text'); // 'text' or 'image'
   const [fontSize, setFontSize] = useState('medium');
   const [backgroundColor, setBackgroundColor] = useState('white');
+  const [isMuted, setIsMuted] = useState(false);
 
   const currentPage = pages[pageIndex];
+  const currentText = currentPage?.text?.[language] || currentPage?.text?.en || '';
+
+  // TTS Controller
+  const {
+    isPlaying: isTTSPlaying,
+    currentWordIndex,
+    playbackRate,
+    pitch,
+    setPlaybackRate,
+    setPitch,
+    togglePlayPause: toggleTTS,
+    stop: stopTTS
+  } = useTTS({
+    text: currentText,
+    language,
+    onEnd: () => {
+      // Auto-advance to next page if desired
+    }
+  });
 
   useEffect(() => {
+    stopTTS(); // Stop TTS when page changes
     if (onPageChange) onPageChange(pageIndex);
   }, [pageIndex]);
 
@@ -58,11 +80,12 @@ export default function ReaderText({
   const renderTextContent = () => {
     if (!currentPage || !currentPage.text) return null;
     
-    const textContent = currentPage.text[language] || currentPage.text.en || '';
-    
     return (
       <div className={`${getFontSizeClass()} leading-relaxed whitespace-pre-wrap`}>
-        {textContent}
+        <HighlightedText 
+          text={currentText}
+          currentWordIndex={currentWordIndex}
+        />
       </div>
     );
   };
@@ -89,6 +112,67 @@ export default function ReaderText({
           </div>
 
           <div className="flex items-center gap-2">
+            {/* TTS Controls */}
+            {viewMode === 'text' && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={toggleTTS}
+                  className="text-white border-white/20"
+                  title={isTTSPlaying ? 'Pause' : 'Read aloud'}
+                >
+                  {isTTSPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={stopTTS}
+                  className="text-white border-white/20"
+                  title="Stop"
+                  disabled={!isTTSPlaying}
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsMuted(!isMuted)}
+                  className="text-white border-white/20"
+                  title={isMuted ? 'Unmute' : 'Mute'}
+                >
+                  {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                </Button>
+                {/* Playback Speed */}
+                <select
+                  value={playbackRate}
+                  onChange={(e) => setPlaybackRate(Number(e.target.value))}
+                  className="text-sm bg-white/10 text-white border border-white/20 rounded px-2 py-1"
+                  title="Playback speed"
+                >
+                  <option value="0.5">0.5x</option>
+                  <option value="0.75">0.75x</option>
+                  <option value="1">1x</option>
+                  <option value="1.25">1.25x</option>
+                  <option value="1.5">1.5x</option>
+                  <option value="2">2x</option>
+                </select>
+                {/* Pitch Control */}
+                <select
+                  value={pitch}
+                  onChange={(e) => setPitch(Number(e.target.value))}
+                  className="text-sm bg-white/10 text-white border border-white/20 rounded px-2 py-1"
+                  title="Voice pitch"
+                >
+                  <option value="0.5">Low</option>
+                  <option value="0.75">Lower</option>
+                  <option value="1">Normal</option>
+                  <option value="1.25">Higher</option>
+                  <option value="1.5">High</option>
+                </select>
+              </>
+            )}
+
             {/* View Mode Toggle */}
             {currentPage.imageFallback && (
               <Button

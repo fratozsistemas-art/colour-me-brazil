@@ -12,6 +12,7 @@ import QuizModal from './QuizModal';
 import InteractiveWord from './InteractiveWord';
 import StoryAdaptationControls from './StoryAdaptationControls';
 import { toast } from 'sonner';
+import { useTTS, HighlightedText } from './TTSController';
 
 export default function StoryReader({ 
   book, 
@@ -48,6 +49,9 @@ export default function StoryReader({
       setIsPlaying(false);
       setCurrentWord(-1);
     }
+    
+    // Stop TTS when page changes
+    stopTTS();
     
     // Load interactive elements and quizzes for current page
     loadInteractiveElements();
@@ -100,6 +104,16 @@ export default function StoryReader({
   }, [currentPage, language, playbackSpeed]);
 
   const togglePlayPause = () => {
+    // Use TTS if enabled or no audio URL available
+    const audioUrl = language === 'en' 
+      ? currentPage?.audio_narration_en_url 
+      : currentPage?.audio_narration_pt_url;
+
+    if (useTTSMode || !audioUrl) {
+      toggleTTS();
+      return;
+    }
+
     if (!audioRef.current) return;
 
     if (isPlaying) {
@@ -192,12 +206,19 @@ export default function StoryReader({
   };
   
   const changePlaybackSpeed = () => {
-    const speeds = [0.75, 1, 1.25, 1.5];
-    const currentIndex = speeds.indexOf(playbackSpeed);
-    const nextSpeed = speeds[(currentIndex + 1) % speeds.length];
-    setPlaybackSpeed(nextSpeed);
-    if (audioRef.current) {
-      audioRef.current.playbackRate = nextSpeed;
+    const speeds = [0.5, 0.75, 1, 1.25, 1.5, 2];
+    
+    if (useTTSMode || !audioRef.current?.src) {
+      const currentIndex = speeds.indexOf(ttsPlaybackRate);
+      const nextSpeed = speeds[(currentIndex + 1) % speeds.length];
+      setTTSPlaybackRate(nextSpeed);
+    } else {
+      const currentIndex = speeds.indexOf(playbackSpeed);
+      const nextSpeed = speeds[(currentIndex + 1) % speeds.length];
+      setPlaybackSpeed(nextSpeed);
+      if (audioRef.current) {
+        audioRef.current.playbackRate = nextSpeed;
+      }
     }
   };
   
@@ -219,6 +240,36 @@ export default function StoryReader({
   const [isAdapting, setIsAdapting] = useState(false);
   const [adaptedText, setAdaptedText] = useState(null);
   const [generatedVariation, setGeneratedVariation] = useState(null);
+  const [useTTSMode, setUseTTSMode] = useState(false);
+  const [ttsPitch, setTTSPitch] = useState(1);
+
+  // Get current text for TTS
+  const getCurrentText = () => {
+    if (generatedVariation) return generatedVariation;
+    if (adaptedText) return adaptedText;
+    return language === 'en' ? currentPage?.story_text_en : currentPage?.story_text_pt;
+  };
+
+  // TTS Controller
+  const {
+    isPlaying: isTTSPlaying,
+    currentWordIndex: ttsWordIndex,
+    playbackRate: ttsPlaybackRate,
+    pitch: currentPitch,
+    setPlaybackRate: setTTSPlaybackRate,
+    setPitch: setTTSPitchControl,
+    togglePlayPause: toggleTTS,
+    stop: stopTTS
+  } = useTTS({
+    text: getCurrentText(),
+    language,
+    onWordHighlight: (wordIndex) => {
+      setCurrentWord(wordIndex);
+    },
+    onEnd: () => {
+      setCurrentWord(-1);
+    }
+  });
 
   useEffect(() => {
     loadWordDefinitions();
@@ -353,18 +404,13 @@ export default function StoryReader({
 
   const renderHighlightedText = () => {
     // Use adapted text, generated variation, or original text
-    let text;
-    if (generatedVariation) {
-      text = generatedVariation;
-    } else if (adaptedText) {
-      text = adaptedText;
-    } else {
-      text = language === 'en' ? currentPage.story_text_en : currentPage.story_text_pt;
-    }
+    let text = getCurrentText();
     
     if (!text) return null;
 
     const words = text.split(' ');
+    const activeWordIndex = useTTSMode || !audioRef.current?.src ? ttsWordIndex : currentWord;
+
     return (
       <p className={`${getFontSizeClass()} ${getTextColor()} leading-relaxed`}>
         {words.map((word, index) => {
@@ -380,7 +426,7 @@ export default function StoryReader({
             >
               <motion.span
                 animate={{
-                  backgroundColor: index === currentWord ? 'rgba(255, 223, 0, 0.4)' : 'transparent'
+                  backgroundColor: index === activeWordIndex ? 'rgba(255, 223, 0, 0.4)' : 'transparent'
                 }}
                 transition={{ duration: 0.3 }}
                 className="inline-block px-1 rounded"
@@ -392,7 +438,7 @@ export default function StoryReader({
             <motion.span
               key={index}
               animate={{
-                backgroundColor: index === currentWord ? 'rgba(255, 223, 0, 0.4)' : 'transparent'
+                backgroundColor: index === activeWordIndex ? 'rgba(255, 223, 0, 0.4)' : 'transparent'
               }}
               transition={{ duration: 0.3 }}
               className="inline-block px-1 rounded"
@@ -612,8 +658,45 @@ export default function StoryReader({
                 className={`px-3 font-semibold ${backgroundColor === 'night' ? 'bg-gray-700 text-white border-gray-600' : 'bg-white'}`}
                 title="Playback speed"
               >
-                {playbackSpeed}x
+                {(useTTSMode || !audioRef.current?.src ? ttsPlaybackRate : playbackSpeed)}x
               </Button>
+              
+              {/* TTS Mode Toggle & Pitch Control */}
+              {(useTTSMode || !currentPage?.audio_narration_en_url) && (
+                <select
+                  value={currentPitch}
+                  onChange={(e) => setTTSPitchControl(Number(e.target.value))}
+                  className={`text-xs px-2 py-1 rounded ${backgroundColor === 'night' ? 'bg-gray-700 text-white border-gray-600' : 'bg-white'}`}
+                  title="Voice pitch"
+                >
+                  <option value="0.5">Low</option>
+                  <option value="0.75">Lower</option>
+                  <option value="1">Normal</option>
+                  <option value="1.25">Higher</option>
+                  <option value="1.5">High</option>
+                </select>
+              )}
+              
+              {/* TTS Toggle Button (only show if audio URL exists) */}
+              {(currentPage?.audio_narration_en_url || currentPage?.audio_narration_pt_url) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    stopTTS();
+                    if (audioRef.current) {
+                      audioRef.current.pause();
+                      audioRef.current.currentTime = 0;
+                    }
+                    setIsPlaying(false);
+                    setUseTTSMode(!useTTSMode);
+                  }}
+                  className={`text-xs ${backgroundColor === 'night' ? 'bg-gray-700 text-white border-gray-600' : 'bg-white'}`}
+                  title={useTTSMode ? 'Use recorded audio' : 'Use text-to-speech'}
+                >
+                  {useTTSMode ? '🎙️ TTS' : '🎵 Audio'}
+                </Button>
+              )}
               
               {/* Progress Bar */}
               <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
