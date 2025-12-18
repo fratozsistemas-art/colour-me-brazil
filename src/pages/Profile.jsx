@@ -3,7 +3,8 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trophy, Book, Palette, Clock, Star, Award, Zap, Globe, Shield } from 'lucide-react';
+import { Trophy, Book, Palette, Clock, Star, Award, Zap, Globe, Shield, TrendingUp, Target } from 'lucide-react';
+import { BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getProfileAchievements, checkAndAwardAchievements, calculateLevel, getPointsForNextLevel } from '../components/achievementManager';
 import LevelProgressBar from '../components/gamification/LevelProgressBar';
@@ -188,69 +189,106 @@ export default function Profile() {
       {/* Tier Progression */}
       <TierDisplay points={profile.total_points || 0} showRewards={true} />
 
-      <div className="grid md:grid-cols-2 gap-8 mt-8">
-        {/* Statistics */}
-        <Card className="p-6">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-            <Star className="w-6 h-6 text-yellow-500" />
-            Statistics
-          </h2>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center p-4 rounded-lg" style={{ backgroundColor: '#FFF8F0' }}>
-              <div className="flex items-center gap-3">
-                <Book className="w-6 h-6" style={{ color: '#FF6B35' }} />
-                <span className="font-medium">Books Completed</span>
-              </div>
-              <span className="text-2xl font-bold" style={{ color: '#FF6B35' }}>
-                {profile.books_completed?.length || 0}
-              </span>
-            </div>
-            <div className="flex justify-between items-center p-4 rounded-lg" style={{ backgroundColor: '#FFF8F0' }}>
-              <div className="flex items-center gap-3">
-                <Palette className="w-6 h-6" style={{ color: '#2E86AB' }} />
-                <span className="font-medium">Pages Colored</span>
-              </div>
-              <span className="text-2xl font-bold" style={{ color: '#2E86AB' }}>{coloredPages}</span>
-            </div>
-            <div className="flex justify-between items-center p-4 rounded-lg" style={{ backgroundColor: '#FFF8F0' }}>
-              <div className="flex items-center gap-3">
-                <Clock className="w-6 h-6" style={{ color: '#06A77D' }} />
-                <span className="font-medium">Time Spent</span>
-              </div>
-              <span className="text-2xl font-bold" style={{ color: '#06A77D' }}>
-                {Math.floor(stats.totalTime / 3600)}h {Math.floor((stats.totalTime % 3600) / 60)}m
-              </span>
-            </div>
-            <div className="flex justify-between items-center p-4 rounded-lg" style={{ backgroundColor: '#FFF8F0' }}>
-              <div className="flex items-center gap-3">
-                <Zap className="w-6 h-6" style={{ color: '#FF8C42' }} />
-                <span className="font-medium">Total Strokes</span>
-              </div>
-              <span className="text-2xl font-bold" style={{ color: '#FF8C42' }}>
-                {stats.totalStrokes.toLocaleString()}
-              </span>
-            </div>
-            <div className="flex justify-between items-center p-4 rounded-lg" style={{ backgroundColor: '#FFF8F0' }}>
-              <div className="flex items-center gap-3">
-                <Book className="w-6 h-6" style={{ color: '#A8DADC' }} />
-                <span className="font-medium">Books In Progress</span>
-              </div>
-              <span className="text-2xl font-bold" style={{ color: '#2E86AB' }}>
-                {stats.booksInProgress}
-              </span>
-            </div>
-            <div className="flex justify-between items-center p-4 rounded-lg" style={{ backgroundColor: '#FFF8F0' }}>
-              <div className="flex items-center gap-3">
-                <Trophy className="w-6 h-6" style={{ color: '#FFD23F' }} />
-                <span className="font-medium">Achievements</span>
-              </div>
-              <span className="text-2xl font-bold" style={{ color: '#FFD23F' }}>
-                {unlockedAchievements.length}/{achievements.length}
-              </span>
+      {/* Statistics - Full Width with Graphs */}
+      <Card className="p-8 mt-8">
+        <h2 className="text-3xl font-bold text-gray-800 mb-8 flex items-center gap-3">
+          <TrendingUp className="w-8 h-8" style={{ color: '#FF6B35' }} />
+          Your Statistics
+        </h2>
+        
+        <div className="grid md:grid-cols-3 gap-8 mb-8">
+          {/* Activity Breakdown Chart */}
+          <div className="md:col-span-2">
+            <h3 className="text-lg font-semibold text-gray-700 mb-4">Activity Breakdown</h3>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={[
+                { name: 'Books', completed: profile.books_completed?.length || 0, inProgress: stats.booksInProgress, color: '#FF6B35' },
+                { name: 'Pages', completed: coloredPages, total: totalPages, color: '#2E86AB' },
+                { name: 'Achievements', completed: unlockedAchievements.length, total: achievements.length, color: '#FFD23F' }
+              ]}>
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="completed" fill="#06A77D" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="inProgress" fill="#FFD23F" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Progress Pie Chart */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-700 mb-4">Overall Progress</h3>
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie
+                  data={[
+                    { name: 'Completed', value: coloredPages, color: '#06A77D' },
+                    { name: 'Remaining', value: Math.max(totalPages - coloredPages, 0), color: '#E5E7EB' }
+                  ]}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={90}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {[
+                    { name: 'Completed', value: coloredPages, color: '#06A77D' },
+                    { name: 'Remaining', value: Math.max(totalPages - coloredPages, 0), color: '#E5E7EB' }
+                  ].map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="text-center mt-2">
+              <div className="text-4xl font-bold" style={{ color: '#06A77D' }}>{overallProgress}%</div>
+              <div className="text-sm text-gray-600">Complete</div>
             </div>
           </div>
-        </Card>
+        </div>
 
+        {/* Key Metrics Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="text-center p-4 rounded-xl bg-gradient-to-br from-orange-50 to-orange-100">
+            <Book className="w-8 h-8 mx-auto mb-2" style={{ color: '#FF6B35' }} />
+            <div className="text-3xl font-bold" style={{ color: '#FF6B35' }}>
+              {profile.books_completed?.length || 0}
+            </div>
+            <div className="text-sm text-gray-600">Books Done</div>
+          </div>
+          <div className="text-center p-4 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100">
+            <Palette className="w-8 h-8 mx-auto mb-2" style={{ color: '#2E86AB' }} />
+            <div className="text-3xl font-bold" style={{ color: '#2E86AB' }}>{coloredPages}</div>
+            <div className="text-sm text-gray-600">Pages Colored</div>
+          </div>
+          <div className="text-center p-4 rounded-xl bg-gradient-to-br from-teal-50 to-teal-100">
+            <Clock className="w-8 h-8 mx-auto mb-2" style={{ color: '#06A77D' }} />
+            <div className="text-3xl font-bold" style={{ color: '#06A77D' }}>
+              {Math.floor(stats.totalTime / 3600)}h
+            </div>
+            <div className="text-sm text-gray-600">Time Spent</div>
+          </div>
+          <div className="text-center p-4 rounded-xl bg-gradient-to-br from-amber-50 to-amber-100">
+            <Zap className="w-8 h-8 mx-auto mb-2" style={{ color: '#FF8C42' }} />
+            <div className="text-3xl font-bold" style={{ color: '#FF8C42' }}>
+              {(stats.totalStrokes / 1000).toFixed(1)}k
+            </div>
+            <div className="text-sm text-gray-600">Total Strokes</div>
+          </div>
+          <div className="text-center p-4 rounded-xl bg-gradient-to-br from-yellow-50 to-yellow-100">
+            <Trophy className="w-8 h-8 mx-auto mb-2" style={{ color: '#FFD23F' }} />
+            <div className="text-3xl font-bold" style={{ color: '#FFD23F' }}>
+              {unlockedAchievements.length}
+            </div>
+            <div className="text-sm text-gray-600">Achievements</div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Achievements and Mastery Badges Side by Side */}
+      <div className="grid md:grid-cols-2 gap-8 mt-8">
         {/* Achievements */}
         <Card className="p-6">
           <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center justify-between">
@@ -276,7 +314,7 @@ export default function Profile() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4 max-h-[500px] overflow-y-auto">
             <AnimatePresence>
               {achievements.map((achievement, index) => (
                 <motion.div
@@ -287,7 +325,7 @@ export default function Profile() {
                   className={`p-4 rounded-xl border-2 text-center transition-all cursor-pointer hover:scale-105 ${
                     achievement.unlocked
                       ? 'shadow-lg'
-                      : 'bg-gray-50 border-gray-200 opacity-50 grayscale hover:opacity-70'
+                      : 'bg-gray-50 border-gray-200'
                   }`}
                   style={achievement.unlocked ? {
                     background: 'linear-gradient(135deg, #FFF8F0 0%, #FFD23F 30%)',
@@ -297,14 +335,14 @@ export default function Profile() {
                   <motion.div
                     animate={achievement.unlocked ? { rotate: [0, 10, -10, 0] } : {}}
                     transition={{ duration: 0.5 }}
-                    className="text-4xl mb-2"
+                    className={`text-4xl mb-2 ${!achievement.unlocked ? 'grayscale opacity-40' : ''}`}
                   >
                     {achievement.icon}
                   </motion.div>
-                  <div className="font-semibold text-sm text-gray-800 mb-1">
+                  <div className={`font-semibold text-sm mb-1 ${achievement.unlocked ? 'text-gray-800' : 'text-gray-400'}`}>
                     {achievement.name_en}
                   </div>
-                  <div className="text-xs text-gray-600">
+                  <div className={`text-xs ${achievement.unlocked ? 'text-gray-600' : 'text-gray-400'}`}>
                     {achievement.description_en}
                   </div>
                   {achievement.unlocked && achievement.unlockedAt && (
@@ -339,7 +377,7 @@ export default function Profile() {
             </span>
           </h2>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4 max-h-[500px] overflow-y-auto">
             {masteryBadges.map((badge, index) => {
               const progressPercent = Math.min((badge.progress / badge.requiredProgress) * 100, 100);
               
@@ -352,15 +390,17 @@ export default function Profile() {
                   className={`p-4 rounded-xl border-2 transition-all ${
                     badge.unlocked
                       ? 'bg-gradient-to-br from-blue-50 to-purple-50 border-blue-400 shadow-lg'
-                      : 'bg-gray-50 border-gray-200 opacity-70'
+                      : 'bg-gray-50 border-gray-200'
                   }`}
                 >
                   <div className="text-center">
-                    <div className="text-4xl mb-2">{badge.icon}</div>
-                    <div className="font-bold text-sm text-gray-800 mb-1">
+                    <div className={`text-4xl mb-2 ${!badge.unlocked ? 'grayscale opacity-40' : ''}`}>
+                      {badge.icon}
+                    </div>
+                    <div className={`font-bold text-sm mb-1 ${badge.unlocked ? 'text-gray-800' : 'text-gray-400'}`}>
                       {badge.name_en}
                     </div>
-                    <p className="text-xs text-gray-600 mb-3 line-clamp-2">
+                    <p className={`text-xs mb-3 line-clamp-2 ${badge.unlocked ? 'text-gray-600' : 'text-gray-400'}`}>
                       {badge.description_en}
                     </p>
                     
