@@ -337,6 +337,23 @@ export default function Library() {
     culture: books.filter(b => b.collection === 'culture').length
   };
 
+  // Check for purchase success/cancel in URL (must be before conditional returns)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const purchaseStatus = urlParams.get('purchase');
+    const bookId = urlParams.get('book_id');
+
+    if (purchaseStatus === 'success' && bookId) {
+      // Refresh books to reflect purchase
+      queryClient.invalidateQueries(['books']);
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (purchaseStatus === 'cancelled') {
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
+
   // Show loading while checking authentication
   if (isCheckingAuth) {
     return (
@@ -353,23 +370,6 @@ export default function Library() {
   if (!currentProfile) {
     return <ProfileSelector onProfileCreated={handleProfileCreated} existingProfiles={profiles} />;
   }
-
-  // Check for purchase success/cancel in URL
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const purchaseStatus = urlParams.get('purchase');
-    const bookId = urlParams.get('book_id');
-
-    if (purchaseStatus === 'success' && bookId) {
-      // Refresh books to reflect purchase
-      queryClient.invalidateQueries(['books']);
-      // Clean URL
-      window.history.replaceState({}, '', window.location.pathname);
-    } else if (purchaseStatus === 'cancelled') {
-      // Clean URL
-      window.history.replaceState({}, '', window.location.pathname);
-    }
-  }, []);
 
   return (
     <>
