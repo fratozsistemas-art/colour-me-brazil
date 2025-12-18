@@ -3,8 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, User } from 'lucide-react';
+import { Sparkles, User, Info } from 'lucide-react';
 import { BRAZILIAN_FAUNA_AVATARS } from './BrazilianFaunaAvatars';
+import AvatarInfoModal from './AvatarInfoModal';
 
 const AVATAR_OPTIONS = BRAZILIAN_FAUNA_AVATARS;
 
@@ -13,6 +14,7 @@ export default function ProfileSelector({ onProfileCreated, existingProfiles = [
   const [childName, setChildName] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState(AVATAR_OPTIONS[0].id);
   const [preferredLanguage, setPreferredLanguage] = useState('en');
+  const [showAvatarInfo, setShowAvatarInfo] = useState(null);
 
   const handleCreateProfile = () => {
     if (childName.trim().length >= 2) {
@@ -81,32 +83,49 @@ export default function ProfileSelector({ onProfileCreated, existingProfiles = [
                     const tagline = preferredLanguage === 'en' ? avatar.taglineEn : avatar.taglinePt;
                     
                     return (
-                      <motion.button
-                        key={avatar.id}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => setSelectedAvatar(avatar.id)}
-                        className={`aspect-square rounded-xl border-4 p-2 flex flex-col items-center justify-center transition-all relative group ${
-                          isSelected
-                            ? 'border-green-500 bg-green-50 shadow-lg'
-                            : 'border-gray-200 hover:border-green-300 bg-white'
-                        }`}
-                        title={`${displayName} - ${tagline}`}
-                      >
-                        <div className="text-3xl mb-1">{avatar.emoji}</div>
-                        <div className="text-[8px] font-semibold text-center text-gray-600 leading-tight">
-                          {displayName}
-                        </div>
+                      <div key={avatar.id} className="relative">
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => setSelectedAvatar(avatar.id)}
+                          className={`w-full aspect-square rounded-xl border-4 p-2 flex flex-col items-center justify-center transition-all relative group ${
+                            isSelected
+                              ? 'border-green-500 bg-green-50 shadow-lg'
+                              : 'border-gray-200 hover:border-green-300 bg-white'
+                          }`}
+                          title={`${displayName} - ${tagline}`}
+                        >
+                          <div className="text-3xl mb-1">{avatar.emoji}</div>
+                          <div className="text-[8px] font-semibold text-center text-gray-600 leading-tight">
+                            {displayName}
+                          </div>
+                        </motion.button>
                         
-                        {/* Tooltip on hover */}
-                        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                          {tagline}
-                        </div>
-                      </motion.button>
+                        {/* Info Button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowAvatarInfo(avatar);
+                          }}
+                          className="absolute -top-1 -right-1 bg-blue-500 text-white rounded-full w-5 h-5 flex items-center justify-center hover:bg-blue-600 transition-colors shadow-md z-10"
+                          title={preferredLanguage === 'en' ? 'Learn more' : 'Saiba mais'}
+                        >
+                          <Info className="w-3 h-3" />
+                        </button>
+                      </div>
                     );
                   })}
                 </div>
               </div>
+              
+              {/* Avatar Info Modal */}
+              {showAvatarInfo && (
+                <AvatarInfoModal
+                  avatar={showAvatarInfo}
+                  language={preferredLanguage}
+                  onClose={() => setShowAvatarInfo(null)}
+                />
+              )}
 
               {/* Language Selection */}
               <div>
