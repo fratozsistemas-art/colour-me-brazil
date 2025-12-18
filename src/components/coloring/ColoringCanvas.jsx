@@ -15,7 +15,8 @@ export default function ColoringCanvas({
   onSave,
   onClose,
   initialStrokes = [],
-  bookData = null
+  bookData = null,
+  lineArtUrl = null // PNG line art from manifest
 }) {
   const canvasRef = useRef(null);
   const fillCanvasRef = useRef(null);
@@ -47,18 +48,24 @@ export default function ColoringCanvas({
   const [brushType, setBrushType] = useState('solid');
   const [fillTolerance, setFillTolerance] = useState(30);
 
+  // Use lineArtUrl if provided, otherwise fall back to illustrationUrl
+  const effectiveImageUrl = lineArtUrl || illustrationUrl;
+
   // Load background image
   useEffect(() => {
-    if (illustrationUrl) {
+    if (effectiveImageUrl) {
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.onload = () => {
         setBackgroundImage(img);
         redrawCanvas();
       };
-      img.src = illustrationUrl;
+      img.onerror = () => {
+        console.error('Failed to load illustration from:', effectiveImageUrl);
+      };
+      img.src = effectiveImageUrl;
     }
-  }, [illustrationUrl]);
+  }, [effectiveImageUrl]);
 
   // Redraw canvas whenever strokes or fills change
   useEffect(() => {
