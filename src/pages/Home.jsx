@@ -317,6 +317,41 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Meet Grace Section */}
+      <section className="py-16 px-4 bg-gradient-to-br from-purple-50 to-pink-50">
+        <div className="container mx-auto max-w-4xl">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="flex flex-col md:flex-row items-center gap-8"
+          >
+            <div className="w-48 h-48 rounded-full bg-gradient-to-br from-orange-200 to-pink-200 flex items-center justify-center flex-shrink-0 shadow-xl">
+              <span className="text-7xl">👩‍🎨</span>
+            </div>
+            <div className="flex-1 text-center md:text-left">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4" style={{
+                background: 'linear-gradient(135deg, #FF6B35 0%, #2E86AB 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }}>
+                Meet Grace
+              </h2>
+              <p className="text-lg text-gray-700 mb-4 leading-relaxed">
+                Grace is an educator and artist passionate about bringing Brazilian culture to children around the world. 
+                With a background in children's literature and multicultural education, she created Colour Me Brazil to 
+                make learning about Brazil's rich heritage fun, interactive, and accessible.
+              </p>
+              <p className="text-gray-600 leading-relaxed italic">
+                "Every child deserves to explore the world through art and stories. Brazil's vibrant culture, incredible 
+                wildlife, and beautiful traditions should be celebrated and shared with the next generation."
+              </p>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
       {/* Stats Section */}
       <section className="py-16 px-4 bg-white">
         <div className="container mx-auto max-w-6xl">
