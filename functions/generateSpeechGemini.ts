@@ -51,14 +51,25 @@ Deno.serve(async (req) => {
 
     if (!ttsResponse.ok) {
       const errorData = await ttsResponse.json();
-      throw new Error(errorData.error?.message || 'TTS API request failed');
+      console.error('Google Cloud TTS API error:', errorData);
+      console.error('TTS API status:', ttsResponse.status);
+      return Response.json({
+        success: false,
+        error: `Google Cloud TTS error (${ttsResponse.status}): ${errorData.error?.message || 'TTS API request failed'}`,
+        details: errorData
+      }, { status: 200 });
     }
 
     const ttsData = await ttsResponse.json();
     const audioContent = ttsData.audioContent;
 
     if (!audioContent) {
-      throw new Error('No audio content returned from TTS API');
+      console.error('No audio content in TTS response:', ttsData);
+      return Response.json({
+        success: false,
+        error: 'No audio content returned from TTS API',
+        details: ttsData
+      }, { status: 200 });
     }
 
     // Convert base64 to blob
@@ -71,16 +82,18 @@ Deno.serve(async (req) => {
 
     return Response.json({
       success: true,
-      audioUrl: uploadResult.file_url,
+      audio_url: uploadResult.file_url,
       language: languageCode,
       voiceName
     });
 
   } catch (error) {
     console.error('Error generating speech:', error);
-    return Response.json(
-      { error: error.message || 'Failed to generate speech' },
-      { status: 500 }
-    );
+    console.error('Error stack:', error.stack);
+    return Response.json({
+      success: false,
+      error: error.message || 'Failed to generate speech',
+      stack: error.stack
+    }, { status: 200 });
   }
 });
