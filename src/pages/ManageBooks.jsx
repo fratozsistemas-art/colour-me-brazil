@@ -69,6 +69,25 @@ export default function ManageBooks() {
     }
   });
 
+  const renumberPages = async (bookId) => {
+    try {
+      const bookPages = await base44.entities.Page.filter({ book_id: bookId });
+      const sortedPages = bookPages.sort((a, b) => (a.page_number || 0) - (b.page_number || 0));
+      
+      for (let i = 0; i < sortedPages.length; i++) {
+        await base44.entities.Page.update(sortedPages[i].id, {
+          page_number: i + 1
+        });
+      }
+      
+      queryClient.invalidateQueries(['pages']);
+      alert('Pages renumbered successfully!');
+    } catch (error) {
+      console.error('Error renumbering pages:', error);
+      alert('Failed to renumber pages');
+    }
+  };
+
   const BookForm = ({ book, onSave, onCancel }) => {
     const [formData, setFormData] = useState(book || {
       title_en: '',
@@ -328,7 +347,17 @@ export default function ManageBooks() {
                 exit={{ opacity: 0, height: 0 }}
                 className="mt-6 pt-6 border-t"
               >
-                <h4 className="font-semibold text-lg mb-4">Pages for {book.title_en}</h4>
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="font-semibold text-lg">Pages for {book.title_en}</h4>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => renumberPages(book.id)}
+                    className="text-blue-600"
+                  >
+                    Renumber Pages
+                  </Button>
+                </div>
                 {pages.length === 0 ? (
                   <p className="text-gray-500 text-sm">No pages found for this book.</p>
                 ) : (
