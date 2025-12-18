@@ -223,6 +223,35 @@ export default function Library() {
 
   const saveColoringSession = useMutation({
     mutationFn: async (sessionData) => {
+      const { canvas, is_completed, coloring_time, ...restData } = sessionData;
+      
+      // If completed, save as ColoredArtwork
+      if (is_completed && canvas) {
+        try {
+          // Convert canvas to blob
+          const blob = await new Promise(resolve => 
+            canvas.toBlob(resolve, 'image/png', 1.0)
+          );
+          
+          // Upload the artwork
+          const uploadResult = await base44.integrations.Core.UploadFile({
+            file: blob
+          });
+          
+          // Create ColoredArtwork entity
+          await base44.entities.ColoredArtwork.create({
+            profile_id: currentProfile.id,
+            book_id: coloringPage.book_id,
+            page_id: coloringPage.id,
+            artwork_url: uploadResult.file_url,
+            coloring_time_seconds: coloring_time,
+            is_showcased: false
+          });
+        } catch (error) {
+          console.error('Error saving artwork:', error);
+        }
+      }
+      
       const existing = await base44.entities.ColoringSession.filter({
         profile_id: currentProfile.id,
         page_id: coloringPage.id
@@ -231,7 +260,9 @@ export default function Library() {
       if (existing.length > 0) {
         // Update existing session
         return base44.entities.ColoringSession.update(existing[0].id, {
-          ...sessionData,
+          ...restData,
+          coloring_time,
+          is_completed,
           last_modified: new Date().toISOString()
         });
       } else {
@@ -240,7 +271,9 @@ export default function Library() {
           profile_id: currentProfile.id,
           page_id: coloringPage.id,
           book_id: coloringPage.book_id,
-          ...sessionData,
+          ...restData,
+          coloring_time,
+          is_completed,
           last_modified: new Date().toISOString()
         });
       }

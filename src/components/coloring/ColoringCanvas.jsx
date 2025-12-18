@@ -397,13 +397,15 @@ export default function ColoringCanvas({
     const canvas = canvasRef.current;
     const thumbnail = canvas.toDataURL('image/jpeg', 0.5);
     const coloringTime = Math.floor((Date.now() - startTime) / 1000);
+    const isCompleted = strokes.length > 10 || fillHistory.length > 5;
     
     if (onSave) {
       await onSave({
         strokes: JSON.stringify({ strokes, fillHistory }),
         thumbnail_data: thumbnail,
         coloring_time: coloringTime,
-        is_completed: strokes.length > 10 || fillHistory.length > 5
+        is_completed: isCompleted,
+        canvas: canvas
       });
     }
   };
