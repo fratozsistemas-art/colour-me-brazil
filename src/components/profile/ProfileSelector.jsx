@@ -85,20 +85,22 @@ export default function ProfileSelector({ onProfileCreated, existingProfiles = [
                     return (
                       <div key={avatar.id} className="relative">
                         <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => setSelectedAvatar(avatar.id)}
-                          className={`w-full aspect-square rounded-xl border-4 p-2 flex flex-col items-center justify-center transition-all relative group ${
-                            isSelected
-                              ? 'border-green-500 bg-green-50 shadow-lg'
-                              : 'border-gray-200 hover:border-green-300 bg-white'
-                          }`}
-                          title={`${displayName} - ${tagline}`}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setSelectedAvatar(avatar.id)}
+                        className={`w-full aspect-square rounded-xl border-4 p-2 flex flex-col items-center justify-center transition-all relative group overflow-hidden ${
+                          isSelected
+                            ? 'border-green-500 bg-green-50 shadow-lg'
+                            : 'border-gray-200 hover:border-green-300 bg-white'
+                        }`}
+                        title={`${displayName} - ${tagline}`}
                         >
-                          <div className="text-3xl mb-1">{avatar.emoji}</div>
+                        <div className="w-full h-full flex flex-col items-center justify-center">
+                          <div className="w-14 h-14 mb-1">{avatar.svg}</div>
                           <div className="text-[8px] font-semibold text-center text-gray-600 leading-tight">
                             {displayName}
                           </div>
+                        </div>
                         </motion.button>
                         
                         {/* Info Button */}
@@ -202,7 +204,7 @@ export default function ProfileSelector({ onProfileCreated, existingProfiles = [
                     onClick={() => handleSelectProfile(profile)}
                     className="p-6 rounded-2xl border-2 border-gray-200 hover:border-green-400 bg-white shadow-md hover:shadow-xl transition-all"
                   >
-                    <div className="text-6xl mb-3">{avatar?.emoji || '👤'}</div>
+                    <div className="w-20 h-20 mx-auto mb-3">{avatar?.svg || '👤'}</div>
                     <div className="font-bold text-lg text-gray-800">{profile.child_name}</div>
                     <div className="text-sm text-gray-500 mt-1">
                       {profile.books_completed?.length || 0} books completed
