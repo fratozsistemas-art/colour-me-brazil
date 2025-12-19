@@ -4,12 +4,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, UserPlus, Edit, Trash2, Shield, Users, Mail, Calendar } from 'lucide-react';
+import { Search, UserPlus, Edit, Trash2, Shield, Users, Mail, Calendar, CheckSquare, Square } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function ManageUsers() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedUserIds, setSelectedUserIds] = useState([]);
   const queryClient = useQueryClient();
 
   // Fetch all user profiles
@@ -32,6 +33,39 @@ export default function ManageUsers() {
       setSelectedUser(null);
     }
   });
+
+  // Bulk delete mutation
+  const bulkDeleteProfiles = useMutation({
+    mutationFn: async (profileIds) => {
+      await Promise.all(profileIds.map(id => base44.entities.UserProfile.delete(id)));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['allProfiles']);
+      setSelectedUserIds([]);
+    }
+  });
+
+  const toggleUserSelection = (userId) => {
+    setSelectedUserIds(prev => 
+      prev.includes(userId) 
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedUserIds.length === filteredProfiles.length) {
+      setSelectedUserIds([]);
+    } else {
+      setSelectedUserIds(filteredProfiles.map(p => p.id));
+    }
+  };
+
+  const handleBulkDelete = () => {
+    if (confirm(`Delete ${selectedUserIds.length} selected users?`)) {
+      bulkDeleteProfiles.mutate(selectedUserIds);
+    }
+  };
 
   // Filter profiles
   const filteredProfiles = profiles.filter(profile =>
@@ -110,7 +144,7 @@ export default function ManageUsers() {
 
       {/* Search Bar */}
       <Card className="p-6 mb-6">
-        <div className="flex gap-4">
+        <div className="flex gap-4 items-center">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <Input
@@ -121,6 +155,17 @@ export default function ManageUsers() {
               className="pl-10"
             />
           </div>
+          {selectedUserIds.length > 0 && (
+            <Button
+              variant="destructive"
+              onClick={handleBulkDelete}
+              disabled={bulkDeleteProfiles.isPending}
+              className="gap-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete {selectedUserIds.length} Selected
+            </Button>
+          )}
         </div>
       </Card>
 
@@ -141,6 +186,18 @@ export default function ManageUsers() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b">
                 <tr>
+                  <th className="px-4 py-4 text-left">
+                    <button
+                      onClick={toggleSelectAll}
+                      className="text-gray-600 hover:text-gray-800"
+                    >
+                      {selectedUserIds.length === filteredProfiles.length ? (
+                        <CheckSquare className="w-5 h-5" />
+                      ) : (
+                        <Square className="w-5 h-5" />
+                      )}
+                    </button>
+                  </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">
                     User
                   </th>
@@ -174,8 +231,22 @@ export default function ManageUsers() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05 }}
-                      className="hover:bg-gray-50 transition-colors"
+                      className={`hover:bg-gray-50 transition-colors ${
+                        selectedUserIds.includes(profile.id) ? 'bg-blue-50' : ''
+                      }`}
                     >
+                      <td className="px-4 py-4">
+                        <button
+                          onClick={() => toggleUserSelection(profile.id)}
+                          className="text-gray-600 hover:text-gray-800"
+                        >
+                          {selectedUserIds.includes(profile.id) ? (
+                            <CheckSquare className="w-5 h-5 text-blue-600" />
+                          ) : (
+                            <Square className="w-5 h-5" />
+                          )}
+                        </button>
+                      </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="text-2xl">
