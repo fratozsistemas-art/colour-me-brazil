@@ -20,6 +20,7 @@ import AudioGenerator from './pages/AudioGenerator';
 import ArtGallery from './pages/ArtGallery';
 import ManifestLibrary from './pages/ManifestLibrary';
 import CuratorDashboard from './pages/CuratorDashboard';
+import ManifestBookReader from './pages/ManifestBookReader';
 import __Layout from './Layout.jsx';
 
 
@@ -46,6 +47,7 @@ export const PAGES = {
     "ArtGallery": ArtGallery,
     "ManifestLibrary": ManifestLibrary,
     "CuratorDashboard": CuratorDashboard,
+    "ManifestBookReader": ManifestBookReader,
 }
 
 export const pagesConfig = {
