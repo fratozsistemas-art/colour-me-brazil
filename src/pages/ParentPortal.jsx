@@ -12,6 +12,8 @@ import ReadingHistory from '../components/parentportal/ReadingHistory';
 import QuizPerformance from '../components/parentportal/QuizPerformance';
 import ReadingGoalManager from '../components/parent/ReadingGoalManager';
 import ContentApprovalQueue from '../components/parent/ContentApprovalQueue';
+import ChildSettingsManager from '../components/parent/ChildSettingsManager';
+import DetailedProgressReport from '../components/parent/DetailedProgressReport';
 
 export default function ParentPortal() {
   const [parentAccount, setParentAccount] = useState(null);
@@ -235,16 +237,22 @@ export default function ParentPortal() {
       </div>
 
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="report">Report</TabsTrigger>
           <TabsTrigger value="activity">Activity</TabsTrigger>
           <TabsTrigger value="reading">Reading</TabsTrigger>
           <TabsTrigger value="quizzes">Quizzes</TabsTrigger>
           <TabsTrigger value="goals">Goals</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-6">
           <ChildProgressOverview profileId={selectedChild.id} />
+        </TabsContent>
+
+        <TabsContent value="report" className="mt-6">
+          <DetailedProgressReport profileId={selectedChild.id} />
         </TabsContent>
 
         <TabsContent value="activity" className="mt-6">
@@ -264,6 +272,13 @@ export default function ParentPortal() {
             parentAccountId={parentAccount.id}
             childProfile={selectedChild}
             goals={childGoals}
+          />
+        </TabsContent>
+
+        <TabsContent value="settings" className="mt-6">
+          <ChildSettingsManager
+            childProfile={selectedChild}
+            parentAccount={parentAccount}
           />
         </TabsContent>
       </Tabs>
