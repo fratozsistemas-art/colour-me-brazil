@@ -14,11 +14,13 @@ import { getTierFromPoints } from '../components/gamification/tierSystem';
 import { getMasteryBadgeProgress, checkAndAwardMasteryBadges } from '../components/gamification/masteryBadgeManager';
 import AvatarDisplay from '../components/profile/AvatarDisplay';
 import { BRAZILIAN_FAUNA_AVATARS } from '../components/profile/BrazilianFaunaAvatars';
+import PersonalizationSettings from '../components/profile/PersonalizationSettings';
+import ColoringHistory from '../components/profile/ColoringHistory';
 
 export default function Profile() {
   const currentProfileId = localStorage.getItem('currentProfileId');
 
-  const { data: profile } = useQuery({
+  const { data: profile, refetch: refetchProfile } = useQuery({
     queryKey: ['profile', currentProfileId],
     queryFn: async () => {
       if (!currentProfileId) return null;
@@ -431,30 +433,11 @@ export default function Profile() {
         </Card>
       </div>
 
-      {/* Settings Section */}
-      <Card className="p-6 mt-8">
-        <h2 className="text-2xl font-bold text-gray-800 mb-6">Settings</h2>
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <div className="font-medium">Preferred Language</div>
-              <div className="text-sm text-gray-600">
-                {profile.preferred_language === 'en' ? '🇺🇸 English' : '🇧🇷 Português'}
-              </div>
-            </div>
-            <Button variant="outline">Change</Button>
-          </div>
-          <div className="flex justify-between items-center pt-4 border-t">
-            <div>
-              <div className="font-medium">Account</div>
-              <div className="text-sm text-gray-600">Member since {new Date(profile.created_date).toLocaleDateString()}</div>
-            </div>
-            <Button variant="outline" className="text-red-600 border-red-300 hover:bg-red-50">
-              Delete Profile
-            </Button>
-          </div>
-        </div>
-      </Card>
+      {/* Personalization and History */}
+      <div className="grid md:grid-cols-2 gap-8 mt-8">
+        <PersonalizationSettings profile={profile} onUpdate={refetchProfile} />
+        <ColoringHistory profileId={currentProfileId} />
+      </div>
     </div>
   );
 }
