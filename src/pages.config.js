@@ -19,6 +19,7 @@ import ManageUsers from './pages/ManageUsers';
 import AudioGenerator from './pages/AudioGenerator';
 import ArtGallery from './pages/ArtGallery';
 import ManifestLibrary from './pages/ManifestLibrary';
+import CuratorDashboard from './pages/CuratorDashboard';
 import __Layout from './Layout.jsx';
 
 
@@ -44,6 +45,7 @@ export const PAGES = {
     "AudioGenerator": AudioGenerator,
     "ArtGallery": ArtGallery,
     "ManifestLibrary": ManifestLibrary,
+    "CuratorDashboard": CuratorDashboard,
 }
 
 export const pagesConfig = {
