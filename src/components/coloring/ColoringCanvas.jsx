@@ -264,7 +264,7 @@ export default function ColoringCanvas({
   };
 
   const handleCanvasHover = (e) => {
-    if (paintMode !== 'fill' || !showFillPreview || isLoading) {
+    if (paintMode !== 'fill' || !gradientMode || !showFillPreview || isLoading) {
       if (fillPreview) setFillPreview(null);
       return;
     }
