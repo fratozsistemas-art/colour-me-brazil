@@ -58,12 +58,27 @@ export default function Library() {
     checkAuth();
   }, []);
 
-  // Fetch user profiles with error handling
+  // Fetch user profiles with error handling - only profiles linked to current user's account
   const { data: profiles = [], error: profilesError } = useQuery({
     queryKey: ['profiles'],
     queryFn: async () => {
       try {
-        return await base44.entities.UserProfile.list();
+        const currentUser = await base44.auth.me();
+        if (!currentUser) return [];
+
+        // Get the current user's parent account
+        const parentAccounts = await base44.entities.ParentAccount.filter({ 
+          parent_user_id: currentUser.id 
+        });
+        
+        if (parentAccounts.length === 0) return [];
+
+        const parentAccount = parentAccounts[0];
+        
+        // Filter UserProfiles by parent_account_id
+        return await base44.entities.UserProfile.filter({ 
+          parent_account_id: parentAccount.id 
+        });
       } catch (error) {
         console.error('Failed to load profiles:', error);
         return [];
