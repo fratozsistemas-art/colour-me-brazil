@@ -58,16 +58,30 @@ export default function Library() {
     checkAuth();
   }, []);
 
-  // Fetch user profiles
-  const { data: profiles = [] } = useQuery({
+  // Fetch user profiles with error handling
+  const { data: profiles = [], error: profilesError } = useQuery({
     queryKey: ['profiles'],
-    queryFn: () => base44.entities.UserProfile.list(),
+    queryFn: async () => {
+      try {
+        return await base44.entities.UserProfile.list();
+      } catch (error) {
+        console.error('Failed to load profiles:', error);
+        return [];
+      }
+    },
   });
 
-  // Fetch books
-  const { data: books = [], isLoading: booksLoading } = useQuery({
+  // Fetch books with error handling
+  const { data: books = [], isLoading: booksLoading, error: booksError } = useQuery({
     queryKey: ['books'],
-    queryFn: () => base44.entities.Book.list('order_index'),
+    queryFn: async () => {
+      try {
+        return await base44.entities.Book.list('order_index');
+      } catch (error) {
+        console.error('Failed to load books:', error);
+        return [];
+      }
+    },
   });
 
   // Load saved profile from localStorage and generate recommendations
