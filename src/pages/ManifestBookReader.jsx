@@ -239,32 +239,32 @@ export default function ManifestBookReader() {
 
           {/* Controls */}
           <div className="p-6 border-t bg-gray-50">
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Button
                 onClick={handlePrevious}
                 disabled={currentIndex === 0}
                 variant="outline"
+                className="w-full sm:w-auto"
               >
                 <ChevronLeft className="w-4 h-4 mr-2" />
                 Previous
               </Button>
 
-              <div className="flex gap-2">
-                {(currentPage.type === 'color' || coloringPageId) && (
-                  <Button
-                    onClick={handleOpenColoring}
-                    className="bg-gradient-to-r from-purple-500 to-pink-500"
-                  >
-                    <Palette className="w-4 h-4 mr-2" />
-                    Color This Page
-                  </Button>
-                )}
-              </div>
+              {(currentPage.type === 'color' || coloringPageId) && (
+                <Button
+                  onClick={handleOpenColoring}
+                  className="bg-gradient-to-r from-purple-500 to-pink-500 w-full sm:w-auto"
+                >
+                  <Palette className="w-4 h-4 mr-2" />
+                  Color This Page
+                </Button>
+              )}
 
               <Button
                 onClick={handleNext}
                 disabled={currentIndex >= pages.length - 1}
                 variant="outline"
+                className="w-full sm:w-auto"
               >
                 Next
                 <ChevronRight className="w-4 h-4 ml-2" />
