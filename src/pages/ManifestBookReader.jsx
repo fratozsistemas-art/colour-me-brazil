@@ -61,7 +61,7 @@ export default function ManifestBookReader() {
       });
   }, [bookId, pageId]);
 
-  // Fetch audio and text for current page from Base44 Page entity
+  // Fetch audio and text for current page from Base44 Page entity, with manifest fallback
   useEffect(() => {
     if (!currentPage || !bookId) return;
     
@@ -81,11 +81,18 @@ export default function ManifestBookReader() {
           setAudioUrl(dbPage[audioField] || null);
           setPageText(dbPage[textField] || null);
         } else {
+          // Fallback to manifest data if no database entry
           setAudioUrl(null);
-          setPageText(null);
+          // Use text array from manifest if available
+          const textContent = currentPage.text ? currentPage.text.join('\n\n') : null;
+          setPageText(textContent);
         }
       } catch (error) {
         console.error('Error fetching page data:', error);
+        // Fallback to manifest on error
+        setAudioUrl(null);
+        const textContent = currentPage.text ? currentPage.text.join('\n\n') : null;
+        setPageText(textContent);
       }
     };
     
