@@ -916,9 +916,98 @@ export default function ColoringCanvas({
                       Lower values = stricter boundaries. Recommended: 15-30 for line art.
                     </p>
                   </div>
-                </div>
-              )}
-              </div>
+
+                  {/* Gradient Fill Mode */}
+                  <div className="mt-3">
+                    <Button
+                      variant={gradientMode ? 'default' : 'outline'}
+                      onClick={() => {
+                        setGradientMode(!gradientMode);
+                        if (!gradientMode) setSelectedAreas([]);
+                      }}
+                      className="w-full"
+                    >
+                      🌈 Gradient Fill Mode
+                    </Button>
+
+                    {gradientMode && (
+                      <div className="mt-3 space-y-3 bg-purple-50 border border-purple-200 rounded-lg p-3">
+                        <p className="text-xs text-purple-700 font-medium">
+                          💡 Click areas to select, then apply gradient
+                        </p>
+
+                        {/* Gradient Color Stops */}
+                        <div>
+                          <label className="text-xs font-medium text-gray-700 mb-2 block">
+                            Gradient Colors ({gradientColors.length} stops)
+                          </label>
+                          <div className="flex flex-wrap gap-2">
+                            {gradientColors.map((color, idx) => (
+                              <div key={idx} className="flex items-center gap-1">
+                                <input
+                                  type="color"
+                                  value={color}
+                                  onChange={(e) => {
+                                    const newColors = [...gradientColors];
+                                    newColors[idx] = e.target.value;
+                                    setGradientColors(newColors);
+                                  }}
+                                  className="w-8 h-8 rounded cursor-pointer"
+                                />
+                                {gradientColors.length > 2 && (
+                                  <button
+                                    onClick={() => {
+                                      const newColors = gradientColors.filter((_, i) => i !== idx);
+                                      setGradientColors(newColors);
+                                    }}
+                                    className="text-red-500 text-xs"
+                                  >
+                                    ✕
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                            {gradientColors.length < 5 && (
+                              <button
+                                onClick={() => setGradientColors([...gradientColors, currentColor])}
+                                className="w-8 h-8 border-2 border-dashed border-gray-300 rounded flex items-center justify-center text-gray-400 hover:border-gray-400"
+                              >
+                                +
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Selected Areas Count */}
+                        <div className="text-xs text-purple-700">
+                          Selected areas: <strong>{selectedAreas.length}</strong>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={applyGradientToAreas}
+                            disabled={selectedAreas.length === 0}
+                            className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500"
+                          >
+                            Apply Gradient
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setSelectedAreas([])}
+                            disabled={selectedAreas.length === 0}
+                          >
+                            Clear
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  </div>
+                  )}
+                  </div>
 
             {/* Recent Colors */}
             {recentColors.length > 0 && (
