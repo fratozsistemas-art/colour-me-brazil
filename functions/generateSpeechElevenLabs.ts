@@ -57,12 +57,16 @@ Deno.serve(async (req) => {
       }, { status: response.status });
     }
 
-    // Get audio as blob
-    const audioBlob = await response.blob();
+    // Get audio as array buffer
+    const audioBuffer = await response.arrayBuffer();
+    const audioBlob = new Blob([audioBuffer], { type: 'audio/mpeg' });
+
+    // Create a File object from the blob
+    const audioFile = new File([audioBlob], 'speech.mp3', { type: 'audio/mpeg' });
 
     // Upload to Base44 storage
     const uploadResult = await base44.asServiceRole.integrations.Core.UploadFile({
-      file: audioBlob
+      file: audioFile
     });
 
     return Response.json({
