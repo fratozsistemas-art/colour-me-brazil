@@ -61,11 +61,7 @@ export default function ColoringCanvas({
       img.crossOrigin = 'anonymous';
       img.onload = () => {
         setBackgroundImage(img);
-        // Small delay to ensure canvas is ready
-        setTimeout(() => {
-          redrawCanvas();
-          setIsLoading(false);
-        }, 100);
+        setIsLoading(false);
       };
       img.onerror = () => {
         console.error('Failed to load illustration from:', effectiveImageUrl);
@@ -75,9 +71,11 @@ export default function ColoringCanvas({
     }
   }, [effectiveImageUrl]);
 
-  // Redraw canvas whenever strokes or fills change
+  // Redraw canvas whenever strokes, fills, or background image changes
   useEffect(() => {
-    redrawCanvas();
+    if (backgroundImage) {
+      redrawCanvas();
+    }
   }, [strokes, backgroundImage, fillHistory]);
 
   const redrawCanvas = () => {
