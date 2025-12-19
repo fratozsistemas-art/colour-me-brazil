@@ -115,11 +115,10 @@ export default function ManifestBookReader() {
   }, [currentPage, bookId, manifest]);
 
   const pages = manifest ? [...manifest.pages].sort((a, b) => a.order - b.order) : [];
-  const prevPage = currentIndex > 0 ? pages[currentIndex - 1] : null;
-  const nextPage = currentIndex < pages.length - 1 ? pages[currentIndex + 1] : null;
 
   const handlePrevious = () => {
-    if (prevPage) {
+    if (currentIndex > 0) {
+      const prevPage = pages[currentIndex - 1];
       setCurrentIndex(currentIndex - 1);
       setCurrentPage(prevPage);
       setSearchParams({ bookId, pageId: prevPage.id });
@@ -127,7 +126,8 @@ export default function ManifestBookReader() {
   };
 
   const handleNext = () => {
-    if (nextPage) {
+    if (currentIndex < pages.length - 1) {
+      const nextPage = pages[currentIndex + 1];
       setCurrentIndex(currentIndex + 1);
       setCurrentPage(nextPage);
       setSearchParams({ bookId, pageId: nextPage.id });
@@ -242,7 +242,7 @@ export default function ManifestBookReader() {
             <div className="flex items-center justify-between gap-4">
               <Button
                 onClick={handlePrevious}
-                disabled={!prevPage}
+                disabled={currentIndex === 0}
                 variant="outline"
               >
                 <ChevronLeft className="w-4 h-4 mr-2" />
@@ -263,7 +263,7 @@ export default function ManifestBookReader() {
 
               <Button
                 onClick={handleNext}
-                disabled={!nextPage}
+                disabled={currentIndex >= pages.length - 1}
                 variant="outline"
               >
                 Next
