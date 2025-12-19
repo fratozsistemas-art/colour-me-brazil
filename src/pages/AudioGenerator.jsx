@@ -24,12 +24,13 @@ export default function AudioGenerator() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const isAuth = await base44.auth.isAuthenticated();
-        if (!isAuth) {
+        const user = await base44.auth.me();
+        if (!user) {
           base44.auth.redirectToLogin(window.location.pathname);
           return;
         }
       } catch (error) {
+        console.error('Auth error:', error);
         base44.auth.redirectToLogin(window.location.pathname);
       }
     };
