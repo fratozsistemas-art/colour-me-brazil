@@ -228,18 +228,35 @@ export default function ColoringCanvas({
     const targetG = data[targetIndex + 1];
     const targetB = data[targetIndex + 2];
     
+    // Don't fill if clicking on a dark line/boundary
+    const targetBrightness = (targetR + targetG + targetB) / 3;
+    if (targetBrightness < 50) {
+      return; // Clicked on a line, don't fill
+    }
+    
     // Don't fill if target is same as fill color
     if (targetR === fillRGB.r && targetG === fillRGB.g && targetB === fillRGB.b) return;
     
-    // Smart gap closing: First pass to identify boundaries
-    const boundaries = new Set();
     const tolerance = fillTolerance;
-    const gapTolerance = 5; // Max gap size to close
     
-    // Flood fill algorithm with gap detection
+    // Simple flood fill without gap tolerance to prevent bleeding
     const stack = [[startX, startY]];
     const visited = new Set();
     const fillPixels = [];
+    
+    // Helper function to check if a pixel is a boundary
+    const isBoundary = (r, g, b) => {
+      const brightness = (r + g + b) / 3;
+      return brightness < 50; // Strict boundary detection
+    };
+    
+    // Helper function to check if color matches target
+    const matchesTarget = (r, g, b) => {
+      const dr = Math.abs(r - targetR);
+      const dg = Math.abs(g - targetG);
+      const db = Math.abs(b - targetB);
+      return dr <= tolerance && dg <= tolerance && db <= tolerance;
+    };
     
     while (stack.length > 0) {
       const point = stack.pop();
@@ -251,52 +268,24 @@ export default function ColoringCanvas({
       if (visited.has(key)) continue;
       if (x < 0 || x >= width || y < 0 || y >= height) continue;
       
+      visited.add(key);
+      
       const index = (y * width + x) * 4;
       const r = data[index];
       const g = data[index + 1];
       const b = data[index + 2];
       
-      // Check if pixel is a boundary (dark line)
-      const brightness = (r + g + b) / 3;
-      if (brightness < 100) {
-        boundaries.add(key);
+      // Stop at boundaries
+      if (isBoundary(r, g, b)) {
         continue;
       }
       
-      // Check if color matches target (within tolerance)
-      const dr = Math.abs(r - targetR);
-      const dg = Math.abs(g - targetG);
-      const db = Math.abs(b - targetB);
-      
-      if (dr > tolerance || dg > tolerance || db > tolerance) {
-        // Check for small gaps
-        let foundGap = false;
-        for (let gx = -gapTolerance; gx <= gapTolerance && !foundGap; gx++) {
-          for (let gy = -gapTolerance; gy <= gapTolerance && !foundGap; gy++) {
-            if (gx === 0 && gy === 0) continue;
-            const nx = x + gx;
-            const ny = y + gy;
-            if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-              const nIndex = (ny * width + nx) * 4;
-              const nr = data[nIndex];
-              const ng = data[nIndex + 1];
-              const nb = data[nIndex + 2];
-              const ndr = Math.abs(nr - targetR);
-              const ndg = Math.abs(ng - targetG);
-              const ndb = Math.abs(nb - targetB);
-              
-              if (ndr <= tolerance && ndg <= tolerance && ndb <= tolerance) {
-                // Found matching color nearby - this is a gap
-                stack.push([nx, ny]);
-                foundGap = true;
-              }
-            }
-          }
-        }
-        if (!foundGap) continue;
+      // Stop if color doesn't match target
+      if (!matchesTarget(r, g, b)) {
+        continue;
       }
       
-      visited.add(key);
+      // This pixel should be filled
       fillPixels.push([x, y, index]);
       
       // Add neighbors to stack
