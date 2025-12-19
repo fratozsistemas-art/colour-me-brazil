@@ -193,6 +193,8 @@ export default function ManifestBookReader() {
                 text={pageText}
                 audioUrl={audioUrl}
                 language={manifest.language || 'en'}
+                bookId={bookId}
+                pageId={currentPage.id}
               />
             ) : (
               <img
