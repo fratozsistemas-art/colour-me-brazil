@@ -97,7 +97,7 @@ export default function ColoringCanvas({
 
     // Draw all fill regions first
     fillHistory.forEach(fill => {
-      floodFill(ctx, fill.x, fill.y, fill.color, false);
+      smartFill(ctx, fill.x, fill.y, fill.color, false);
     });
 
     // Draw all strokes on top
