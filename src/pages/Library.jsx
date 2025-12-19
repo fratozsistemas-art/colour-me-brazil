@@ -143,8 +143,36 @@ export default function Library() {
       setCurrentProfile(profileData);
       localStorage.setItem('currentProfileId', profileData.id);
     } else {
-      // New profile created
-      const newProfile = await base44.entities.UserProfile.create(profileData);
+      // New profile created - get or create parent account first
+      const user = await base44.auth.me();
+      let parentAccount = await base44.entities.ParentAccount.filter({ 
+        parent_email: user.email 
+      });
+      
+      if (parentAccount.length === 0) {
+        // Create parent account if it doesn't exist
+        parentAccount = [await base44.entities.ParentAccount.create({
+          parent_user_id: user.id,
+          parent_email: user.email,
+          parent_name: user.full_name || user.email,
+          child_profiles: [],
+          content_approval_required: false,
+          screen_time_limit: 0,
+          allowed_features: ['reading', 'coloring', 'quizzes', 'showcase', 'forum']
+        })];
+      }
+      
+      // Create profile with parent_account_id
+      const newProfile = await base44.entities.UserProfile.create({
+        ...profileData,
+        parent_account_id: parentAccount[0].id
+      });
+      
+      // Update parent account to include this profile
+      await base44.entities.ParentAccount.update(parentAccount[0].id, {
+        child_profiles: [...(parentAccount[0].child_profiles || []), newProfile.id]
+      });
+      
       setCurrentProfile(newProfile);
       localStorage.setItem('currentProfileId', newProfile.id);
     }
