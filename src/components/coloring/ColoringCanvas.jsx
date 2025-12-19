@@ -50,6 +50,8 @@ export default function ColoringCanvas({
   const [brushParams, setBrushParams] = useState({});
   const [fillTolerance, setFillTolerance] = useState(30);
   const [isLoading, setIsLoading] = useState(true);
+  const [fillPreview, setFillPreview] = useState(null);
+  const [showFillPreview, setShowFillPreview] = useState(true);
 
   // Use lineArtUrl if provided, otherwise fall back to illustrationUrl
   const effectiveImageUrl = lineArtUrl || illustrationUrl;
@@ -218,110 +220,175 @@ export default function ColoringCanvas({
 
   const handleCanvasClick = (e) => {
     e.preventDefault();
-    
+
     if (isLoading || !backgroundImage) {
-      return; // Prevent filling before image is loaded
+      return;
     }
-    
+
     if (paintMode === 'fill') {
       const point = getCanvasPoint(e);
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
-      
-      const newFill = { x: Math.floor(point.x), y: Math.floor(point.y), color: currentColor };
-      const newFillHistory = [...fillHistory, newFill];
-      setFillHistory(newFillHistory);
-      
-      saveToHistory(strokes, newFillHistory);
-      addToRecentColors(currentColor);
-      
-      floodFill(ctx, Math.floor(point.x), Math.floor(point.y), currentColor, true);
+
+      const result = smartFill(ctx, Math.floor(point.x), Math.floor(point.y), currentColor, false);
+
+      if (result && result.length > 0) {
+        const newFill = { x: Math.floor(point.x), y: Math.floor(point.y), color: currentColor };
+        const newFillHistory = [...fillHistory, newFill];
+        setFillHistory(newFillHistory);
+
+        saveToHistory(strokes, newFillHistory);
+        addToRecentColors(currentColor);
+        setFillPreview(null);
+      }
     }
   };
 
-  const smartFill = (ctx, startX, startY, fillColor) => {
+  const handleCanvasHover = (e) => {
+    if (paintMode !== 'fill' || !showFillPreview || isLoading) {
+      if (fillPreview) setFillPreview(null);
+      return;
+    }
+
+    const point = getCanvasPoint(e);
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+
+    const pixels = smartFill(ctx, Math.floor(point.x), Math.floor(point.y), currentColor, true);
+
+    if (pixels && pixels.length > 0) {
+      setFillPreview({ x: Math.floor(point.x), y: Math.floor(point.y), pixels });
+    } else {
+      setFillPreview(null);
+    }
+  };
+
+  const smartFill = (ctx, startX, startY, fillColor, preview = false) => {
     const imageData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
     const data = imageData.data;
     const width = imageData.width;
     const height = imageData.height;
-    
+
     // Convert hex color to RGB
     const fillRGB = hexToRgb(fillColor);
-    if (!fillRGB) return;
-    
+    if (!fillRGB) return null;
+
     // Get target color at click point
     const targetIndex = (startY * width + startX) * 4;
     const targetR = data[targetIndex];
     const targetG = data[targetIndex + 1];
     const targetB = data[targetIndex + 2];
-    
-    // Don't fill if clicking on a dark line/boundary
-    const targetBrightness = (targetR + targetG + targetB) / 3;
-    if (targetBrightness < 50) {
-      return; // Clicked on a line, don't fill
+    const targetA = data[targetIndex + 3];
+
+    // Enhanced boundary detection - check if pixel is part of a line
+    const isBoundaryPixel = (r, g, b, a) => {
+      // Check for dark colors (black lines)
+      const brightness = (r + g + b) / 3;
+      if (brightness < 60) return true;
+
+      // Check for semi-transparent pixels (anti-aliasing edges)
+      if (a < 200) return true;
+
+      return false;
+    };
+
+    // Don't fill if clicking on a boundary
+    if (isBoundaryPixel(targetR, targetG, targetB, targetA)) {
+      return null;
     }
-    
-    // Don't fill if target is same as fill color
-    if (targetR === fillRGB.r && targetG === fillRGB.g && targetB === fillRGB.b) return;
-    
+
+    // Don't fill if target is already the fill color
+    if (Math.abs(targetR - fillRGB.r) < 5 && 
+        Math.abs(targetG - fillRGB.g) < 5 && 
+        Math.abs(targetB - fillRGB.b) < 5) {
+      return null;
+    }
+
     const tolerance = fillTolerance;
-    
-    // Simple flood fill without gap tolerance to prevent bleeding
+
+    // Scanline flood fill for better performance
     const stack = [[startX, startY]];
     const visited = new Set();
     const fillPixels = [];
-    
-    // Helper function to check if a pixel is a boundary
-    const isBoundary = (r, g, b) => {
-      const brightness = (r + g + b) / 3;
-      return brightness < 50; // Strict boundary detection
-    };
-    
+
     // Helper function to check if color matches target
-    const matchesTarget = (r, g, b) => {
+    const matchesTarget = (r, g, b, a) => {
+      if (isBoundaryPixel(r, g, b, a)) return false;
+
       const dr = Math.abs(r - targetR);
       const dg = Math.abs(g - targetG);
       const db = Math.abs(b - targetB);
       return dr <= tolerance && dg <= tolerance && db <= tolerance;
     };
-    
+
     while (stack.length > 0) {
       const point = stack.pop();
       if (!point) continue;
-      
-      const [x, y] = point;
+
+      let [x, y] = point;
       const key = `${x},${y}`;
-      
+
       if (visited.has(key)) continue;
       if (x < 0 || x >= width || y < 0 || y >= height) continue;
-      
-      visited.add(key);
-      
+
       const index = (y * width + x) * 4;
       const r = data[index];
       const g = data[index + 1];
       const b = data[index + 2];
-      
-      // Stop at boundaries
-      if (isBoundary(r, g, b)) {
-        continue;
+      const a = data[index + 3];
+
+      if (!matchesTarget(r, g, b, a)) continue;
+
+      // Scanline fill - find left and right boundaries
+      let leftX = x;
+      let rightX = x;
+
+      // Scan left
+      while (leftX > 0) {
+        const leftIndex = (y * width + (leftX - 1)) * 4;
+        if (!matchesTarget(data[leftIndex], data[leftIndex + 1], data[leftIndex + 2], data[leftIndex + 3])) break;
+        leftX--;
       }
-      
-      // Stop if color doesn't match target
-      if (!matchesTarget(r, g, b)) {
-        continue;
+
+      // Scan right
+      while (rightX < width - 1) {
+        const rightIndex = (y * width + (rightX + 1)) * 4;
+        if (!matchesTarget(data[rightIndex], data[rightIndex + 1], data[rightIndex + 2], data[rightIndex + 3])) break;
+        rightX++;
       }
-      
-      // This pixel should be filled
-      fillPixels.push([x, y, index]);
-      
-      // Add neighbors to stack
-      stack.push([x + 1, y]);
-      stack.push([x - 1, y]);
-      stack.push([x, y + 1]);
-      stack.push([x, y - 1]);
+
+      // Fill the scanline and mark as visited
+      for (let fillX = leftX; fillX <= rightX; fillX++) {
+        const fillKey = `${fillX},${y}`;
+        if (!visited.has(fillKey)) {
+          visited.add(fillKey);
+          const fillIndex = (y * width + fillX) * 4;
+          fillPixels.push([fillX, y, fillIndex]);
+
+          // Check pixels above and below
+          if (y > 0) {
+            const aboveIndex = ((y - 1) * width + fillX) * 4;
+            if (matchesTarget(data[aboveIndex], data[aboveIndex + 1], data[aboveIndex + 2], data[aboveIndex + 3])) {
+              stack.push([fillX, y - 1]);
+            }
+          }
+          if (y < height - 1) {
+            const belowIndex = ((y + 1) * width + fillX) * 4;
+            if (matchesTarget(data[belowIndex], data[belowIndex + 1], data[belowIndex + 2], data[belowIndex + 3])) {
+              stack.push([fillX, y + 1]);
+            }
+          }
+        }
+      }
     }
-    
+
+    if (fillPixels.length === 0) return null;
+
+    // If preview, return the pixel list
+    if (preview) {
+      return fillPixels;
+    }
+
     // Apply fill to all collected pixels
     fillPixels.forEach(([x, y, index]) => {
       data[index] = fillRGB.r;
@@ -329,13 +396,41 @@ export default function ColoringCanvas({
       data[index + 2] = fillRGB.b;
       data[index + 3] = 255;
     });
-    
+
     ctx.putImageData(imageData, 0, 0);
+    return fillPixels;
   };
 
-  const floodFill = (ctx, startX, startY, fillColor, addToHistory = true) => {
-    smartFill(ctx, startX, startY, fillColor);
-  };
+  // Draw fill preview overlay
+  useEffect(() => {
+    if (!fillPreview || paintMode !== 'fill') return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    const fillRGB = hexToRgb(currentColor);
+
+    if (!fillRGB) return;
+
+    // Apply semi-transparent preview
+    fillPreview.pixels.forEach(([x, y, index]) => {
+      data[index] = Math.floor((data[index] + fillRGB.r) / 2);
+      data[index + 1] = Math.floor((data[index + 1] + fillRGB.g) / 2);
+      data[index + 2] = Math.floor((data[index + 2] + fillRGB.b) / 2);
+    });
+
+    ctx.putImageData(imageData, 0, 0);
+
+    // Redraw on next hover or click
+    const timeoutId = setTimeout(() => {
+      redrawCanvas();
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
+  }, [fillPreview]);
 
   const hexToRgb = (hex) => {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -617,6 +712,8 @@ export default function ColoringCanvas({
                     doPan(e);
                   } else if (paintMode === 'freeform') {
                     draw(e);
+                  } else if (paintMode === 'fill') {
+                    handleCanvasHover(e);
                   }
                 }}
                 onMouseUp={(e) => {
@@ -664,24 +761,46 @@ export default function ColoringCanvas({
                 </Button>
               </div>
               {paintMode === 'fill' && (
-                <div className="mt-3">
-                  <p className="text-xs text-gray-500 mb-2">
-                    Click on areas to fill them with your selected color
-                  </p>
+                <div className="mt-3 space-y-3">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-2">
+                    <p className="text-xs text-blue-700 font-medium mb-1">
+                      💡 Fill Mode Active
+                    </p>
+                    <p className="text-xs text-blue-600">
+                      Click on enclosed areas to fill. Hover to preview fill zones.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="showPreview"
+                      checked={showFillPreview}
+                      onChange={(e) => setShowFillPreview(e.target.checked)}
+                      className="rounded"
+                    />
+                    <label htmlFor="showPreview" className="text-xs text-gray-700">
+                      Show fill preview on hover
+                    </label>
+                  </div>
+
                   <div>
                     <label className="text-xs text-gray-600 font-medium">Fill Tolerance: {fillTolerance}</label>
                     <input
                       type="range"
-                      min="10"
-                      max="100"
+                      min="5"
+                      max="80"
                       value={fillTolerance}
                       onChange={(e) => setFillTolerance(Number(e.target.value))}
                       className="w-full accent-blue-500 mt-1"
                     />
                     <div className="flex justify-between text-xs text-gray-500 mt-1">
-                      <span>Precise</span>
-                      <span>Loose</span>
+                      <span>Precise (5)</span>
+                      <span>Loose (80)</span>
                     </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Lower values = stricter boundaries. Recommended: 15-30 for line art.
+                    </p>
                   </div>
                 </div>
               )}
