@@ -23,6 +23,8 @@ export default function ManifestBookReader() {
   const [audioUrl, setAudioUrl] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [pageText, setPageText] = useState(null);
+  const [coloringPageId, setColoringPageId] = useState(null);
+  const [originalPageBeforeColoring, setOriginalPageBeforeColoring] = useState(null);
 
   // Load profile
   useEffect(() => {
@@ -97,6 +99,19 @@ export default function ManifestBookReader() {
     };
     
     fetchPageData();
+
+    // Check if there is an associated coloring page for this story page
+    if (manifest && currentPage) {
+      const pages = [...manifest.pages].sort((a, b) => a.order - b.order);
+      const associatedColoringPage = pages.find(
+        (p) => p.kind === 'coloring' && p.pairedWith === currentPage.id
+      );
+      if (associatedColoringPage) {
+        setColoringPageId(associatedColoringPage.id);
+      } else {
+        setColoringPageId(null);
+      }
+    }
   }, [currentPage, bookId, manifest]);
 
   const pages = manifest ? [...manifest.pages].sort((a, b) => a.order - b.order) : [];
@@ -131,6 +146,16 @@ export default function ManifestBookReader() {
   const handleOpenColoring = () => {
     if (currentPage?.type === 'color') {
       setShowColoring(true);
+    } else if (coloringPageId) {
+      // If it's a story page with an associated coloring page
+      const pageToColor = pages.find(p => p.id === coloringPageId);
+      if (pageToColor) {
+        // Save the original page before switching
+        setOriginalPageBeforeColoring(currentPage);
+        // Temporarily set current page to the coloring page for the canvas
+        setCurrentPage(pageToColor);
+        setShowColoring(true);
+      }
     }
   };
 
@@ -225,13 +250,13 @@ export default function ManifestBookReader() {
               </Button>
 
               <div className="flex gap-2">
-                {currentPage.type === 'color' && (
+                {(currentPage.type === 'color' || coloringPageId) && (
                   <Button
                     onClick={handleOpenColoring}
                     className="bg-gradient-to-r from-purple-500 to-pink-500"
                   >
                     <Palette className="w-4 h-4 mr-2" />
-                    Start Coloring
+                    Color This Page
                   </Button>
                 )}
               </div>
@@ -264,14 +289,21 @@ export default function ManifestBookReader() {
       </div>
 
       {/* Coloring Canvas Modal */}
-      {showColoring && currentPage.type === 'color' && (
+      {showColoring && (
         <ColoringCanvas
           pageId={currentPage.id}
           bookId={bookId}
           profileId={profileId}
           illustrationUrl={imageUrl}
           onSave={handleSaveColoring}
-          onClose={() => setShowColoring(false)}
+          onClose={() => {
+            setShowColoring(false);
+            // If we were on a coloring page that was opened from a story page, revert to story page
+            if (originalPageBeforeColoring) {
+              setCurrentPage(originalPageBeforeColoring);
+              setOriginalPageBeforeColoring(null);
+            }
+          }}
           lineArtUrl={imageUrl}
         />
       )}
