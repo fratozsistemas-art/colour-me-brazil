@@ -443,6 +443,16 @@ export default function Library() {
     );
   }
 
+  // Handle database errors gracefully
+  if (booksError || profilesError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+        <p className="text-gray-600">Unable to load library from database.</p>
+        <p className="text-sm text-gray-500">Try the <a href="/ManifestLibrary" className="text-blue-600 underline">Manifest Library</a> instead.</p>
+      </div>
+    );
+  }
+
   // If no profile selected, show profile selector
   if (!currentProfile) {
     return <ProfileSelector onProfileCreated={handleProfileCreated} existingProfiles={profiles} />;
