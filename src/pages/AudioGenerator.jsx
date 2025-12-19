@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Volume2, CheckCircle2, AlertCircle, Loader2, Play } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import VoiceSelector from '../components/tts/VoiceSelector';
 
 export default function AudioGenerator() {
   const [selectedBook, setSelectedBook] = useState(null);
@@ -12,6 +13,10 @@ export default function AudioGenerator() {
   const [progress, setProgress] = useState([]);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+  const [selectedVoiceEn, setSelectedVoiceEn] = useState('21m00Tcm4TlvDq8ikWAM');
+  const [selectedVoicePt, setSelectedVoicePt] = useState('XrExE9yKIg1WjnnlVkGX');
+  const [voiceSettingsEn, setVoiceSettingsEn] = useState({});
+  const [voiceSettingsPt, setVoiceSettingsPt] = useState({});
   
   const queryClient = useQueryClient();
 
@@ -69,13 +74,15 @@ export default function AudioGenerator() {
             message: 'Generating English audio...'
           }]);
 
-          const enResult = await base44.functions.invoke('generateSpeechGemini', {
+          const enResult = await base44.functions.invoke('generateSpeechElevenLabs', {
             text: page.story_text_en,
-            language: 'en'
+            language: 'en',
+            voice_id: selectedVoiceEn,
+            ...voiceSettingsEn
           });
 
-          if (enResult.data?.success) {
-            audioEnUrl = enResult.data.audioUrl;
+          if (enResult.data?.audio_url) {
+            audioEnUrl = enResult.data.audio_url;
             setProgress(prev => prev.map(p => 
               p.pageNumber === page.page_number && p.language === 'en'
                 ? { ...p, status: 'success', message: 'English audio generated' }
@@ -96,13 +103,15 @@ export default function AudioGenerator() {
             message: 'Generating Portuguese audio...'
           }]);
 
-          const ptResult = await base44.functions.invoke('generateSpeechGemini', {
+          const ptResult = await base44.functions.invoke('generateSpeechElevenLabs', {
             text: page.story_text_pt,
-            language: 'pt'
+            language: 'pt',
+            voice_id: selectedVoicePt,
+            ...voiceSettingsPt
           });
 
-          if (ptResult.data?.success) {
-            audioPtUrl = ptResult.data.audioUrl;
+          if (ptResult.data?.audio_url) {
+            audioPtUrl = ptResult.data.audio_url;
             setProgress(prev => prev.map(p => 
               p.pageNumber === page.page_number && p.language === 'pt'
                 ? { ...p, status: 'success', message: 'Portuguese audio generated' }
@@ -216,10 +225,55 @@ export default function AudioGenerator() {
         )}
       </Card>
 
-      {/* Pages Preview and Generate Button */}
+      {/* Voice Configuration */}
       {selectedBook && (
-        <Card className="p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <VoiceSelector
+              language="en"
+              selectedVoiceId={selectedVoiceEn}
+              onVoiceChange={setSelectedVoiceEn}
+              voiceSettings={voiceSettingsEn}
+              onSettingsChange={setVoiceSettingsEn}
+              onPreview={async (voiceId, settings) => {
+                const result = await base44.functions.invoke('generateSpeechElevenLabs', {
+                  text: "Hello! This is a preview of the English voice for your story narration.",
+                  language: 'en',
+                  voice_id: voiceId,
+                  ...settings
+                });
+                if (result.data?.audio_url) {
+                  const audio = new Audio(result.data.audio_url);
+                  audio.playbackRate = settings.speaking_rate || 1.0;
+                  audio.play();
+                }
+              }}
+            />
+            <VoiceSelector
+              language="pt"
+              selectedVoiceId={selectedVoicePt}
+              onVoiceChange={setSelectedVoicePt}
+              voiceSettings={voiceSettingsPt}
+              onSettingsChange={setVoiceSettingsPt}
+              onPreview={async (voiceId, settings) => {
+                const result = await base44.functions.invoke('generateSpeechElevenLabs', {
+                  text: "Olá! Esta é uma prévia da voz em português para a narração da sua história.",
+                  language: 'pt',
+                  voice_id: voiceId,
+                  ...settings
+                });
+                if (result.data?.audio_url) {
+                  const audio = new Audio(result.data.audio_url);
+                  audio.playbackRate = settings.speaking_rate || 1.0;
+                  audio.play();
+                }
+              }}
+            />
+          </div>
+
+          {/* Pages Preview and Generate Button */}
+          <Card className="p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-xl font-semibold">Pages</h2>
               <p className="text-sm text-gray-600">
@@ -285,6 +339,7 @@ export default function AudioGenerator() {
             ))}
           </div>
         </Card>
+        </>
       )}
 
       {/* Progress Log */}
