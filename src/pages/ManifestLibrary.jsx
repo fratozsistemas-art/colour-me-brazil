@@ -6,17 +6,7 @@ import { BookOpen, Play, Info } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPageUrl } from '../utils';
 import { loadBookManifest } from '@/components/books/loadManifest';
-
-const AVAILABLE_BOOKS = [
-  {
-    id: 'tales-of-amazon',
-    title: 'Tales of the Amazon',
-    author: 'Grace Nogueira',
-    description: 'Discover the magical legends of the Amazon rainforest',
-    coverImage: '/assets/books/tales-of-amazon/pages/01-cover.jpeg',
-    collection: 'amazon'
-  }
-];
+import { base44 } from '@/api/base44Client';
 
 export default function ManifestLibrary() {
   const [books, setBooks] = useState([]);
@@ -24,23 +14,41 @@ export default function ManifestLibrary() {
 
   useEffect(() => {
     const loadBooks = async () => {
-      const loadedBooks = [];
-      
-      for (const book of AVAILABLE_BOOKS) {
-        try {
-          const manifest = await loadBookManifest(book.id);
-          loadedBooks.push({
-            ...book,
-            manifest,
-            pageCount: manifest.pages.length
-          });
-        } catch (error) {
-          console.error(`Failed to load manifest for ${book.id}:`, error);
+      try {
+        // Fetch all books from database
+        const dbBooks = await base44.entities.Book.list();
+        
+        const loadedBooks = [];
+        
+        for (const dbBook of dbBooks) {
+          try {
+            // Load manifest for each book
+            const manifest = await loadBookManifest(dbBook.id);
+            
+            // Determine cover image: use database field or fallback to manifest
+            const coverImage = dbBook.cover_image_url || `${manifest.basePath}/${manifest.pages[0].image}`;
+            
+            loadedBooks.push({
+              id: dbBook.id,
+              title: manifest.language === 'pt' ? dbBook.title_pt : dbBook.title_en,
+              author: dbBook.author || manifest.author,
+              description: manifest.language === 'pt' ? dbBook.subtitle_pt : dbBook.subtitle_en,
+              coverImage: coverImage,
+              collection: dbBook.collection,
+              manifest,
+              pageCount: manifest.pages.length
+            });
+          } catch (error) {
+            console.error(`Failed to load manifest for ${dbBook.id}:`, error);
+          }
         }
+        
+        setBooks(loadedBooks);
+      } catch (error) {
+        console.error('Failed to fetch books:', error);
+      } finally {
+        setLoading(false);
       }
-      
-      setBooks(loadedBooks);
-      setLoading(false);
     };
     
     loadBooks();
