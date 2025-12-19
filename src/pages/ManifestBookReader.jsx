@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { createPageUrl } from '../utils';
 import { loadBookManifest, getPageImageUrl } from '@/components/books/loadManifest';
 import ColoringCanvas from '../components/coloring/ColoringCanvas';
+import TextReader from '../components/books/TextReader';
 import { base44 } from '@/api/base44Client';
 
 export default function ManifestBookReader() {
@@ -21,6 +22,7 @@ export default function ManifestBookReader() {
   const [profileId, setProfileId] = useState(null);
   const [audioUrl, setAudioUrl] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [pageText, setPageText] = useState(null);
 
   // Load profile
   useEffect(() => {
@@ -59,11 +61,11 @@ export default function ManifestBookReader() {
       });
   }, [bookId, pageId]);
 
-  // Fetch audio for current page from Base44 Page entity
+  // Fetch audio and text for current page from Base44 Page entity
   useEffect(() => {
     if (!currentPage || !bookId) return;
     
-    const fetchAudio = async () => {
+    const fetchPageData = async () => {
       try {
         const pages = await base44.entities.Page.filter({ 
           book_id: bookId,
@@ -74,14 +76,20 @@ export default function ManifestBookReader() {
           const dbPage = pages[0];
           const lang = manifest?.language === 'pt' ? 'pt' : 'en';
           const audioField = lang === 'pt' ? 'audio_narration_pt_url' : 'audio_narration_en_url';
+          const textField = lang === 'pt' ? 'story_text_pt' : 'story_text_en';
+          
           setAudioUrl(dbPage[audioField] || null);
+          setPageText(dbPage[textField] || null);
+        } else {
+          setAudioUrl(null);
+          setPageText(null);
         }
       } catch (error) {
-        console.error('Error fetching audio:', error);
+        console.error('Error fetching page data:', error);
       }
     };
     
-    fetchAudio();
+    fetchPageData();
   }, [currentPage, bookId, manifest]);
 
   const pages = manifest ? [...manifest.pages].sort((a, b) => a.order - b.order) : [];
@@ -180,11 +188,19 @@ export default function ManifestBookReader() {
         {/* Main Content */}
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
           <div className="relative aspect-[3/4] bg-gray-100">
-            <img
-              src={imageUrl}
-              alt={currentPage.label}
-              className="w-full h-full object-contain"
-            />
+            {currentPage.type === 'text' && pageText ? (
+              <TextReader
+                text={pageText}
+                audioUrl={audioUrl}
+                language={manifest.language || 'en'}
+              />
+            ) : (
+              <img
+                src={imageUrl}
+                alt={currentPage.label}
+                className="w-full h-full object-contain"
+              />
+            )}
           </div>
 
           {/* Controls */}
@@ -200,17 +216,6 @@ export default function ManifestBookReader() {
               </Button>
 
               <div className="flex gap-2">
-                {currentPage.type === 'text' && audioUrl && (
-                  <Button
-                    onClick={handlePlayAudio}
-                    disabled={isPlaying}
-                    variant="outline"
-                  >
-                    <Volume2 className="w-4 h-4 mr-2" />
-                    {isPlaying ? 'Playing...' : 'Listen'}
-                  </Button>
-                )}
-                
                 {currentPage.type === 'color' && (
                   <Button
                     onClick={handleOpenColoring}
