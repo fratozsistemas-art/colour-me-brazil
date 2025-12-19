@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, X, Volume2, BookOpen, Palette } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPageUrl } from '../utils';
-import { loadBookManifest, getPageImageUrl } from '../components/books/loadManifest';
+import { loadBookManifest, getPageImageUrl } from '@/components/books/loadManifest';
 import ColoringCanvas from '../components/coloring/ColoringCanvas';
 import { base44 } from '@/api/base44Client';
 

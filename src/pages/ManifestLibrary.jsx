@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { BookOpen, Play, Info } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPageUrl } from '../utils';
-import { loadBookManifest } from '../components/books/loadManifest';
+import { loadBookManifest } from '@/components/books/loadManifest';
 
 const AVAILABLE_BOOKS = [
   {
