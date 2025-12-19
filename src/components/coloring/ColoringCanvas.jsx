@@ -47,6 +47,7 @@ export default function ColoringCanvas({
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [brushType, setBrushType] = useState('solid');
+  const [brushParams, setBrushParams] = useState({});
   const [fillTolerance, setFillTolerance] = useState(30);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -107,26 +108,35 @@ export default function ColoringCanvas({
     if (stroke.points.length < 2) return;
 
     const brush = BRUSH_TYPES.find(b => b.id === (stroke.brushType || 'solid')) || BRUSH_TYPES[0];
+    const params = stroke.params || {};
+
+    const opacity = params.opacity ?? brush.opacity;
+    const blur = params.blur ?? brush.blur;
+    const flow = params.flow ?? brush.flow ?? 1.0;
+    const spacing = params.spacing ?? brush.spacing ?? 0.1;
+    const jitter = params.jitter ?? brush.jitter ?? 0;
+    const textureIntensity = params.textureIntensity ?? brush.textureIntensity ?? 0;
 
     ctx.strokeStyle = stroke.color;
     ctx.lineWidth = stroke.size;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.globalAlpha = brush.opacity;
-    
-    // Apply blur for airbrush/watercolor
-    if (brush.blur > 0) {
-      ctx.shadowBlur = brush.blur;
+    ctx.globalAlpha = stroke.isEraser ? 1.0 : opacity * flow;
+
+    // Apply blur
+    if (blur > 0) {
+      ctx.shadowBlur = blur;
       ctx.shadowColor = stroke.color;
     }
-    
-    // Add texture for crayon/marker
-    if (brush.texture === 'crayon') {
+
+    // Add texture effects
+    if (brush.texture === 'crayon' && textureIntensity > 0) {
       ctx.globalCompositeOperation = 'multiply';
+      ctx.globalAlpha *= (1 - textureIntensity * 0.3);
     } else if (brush.texture === 'marker') {
       ctx.lineCap = 'square';
     }
-    
+
     if (stroke.isEraser) {
       ctx.globalCompositeOperation = 'destination-out';
       ctx.globalAlpha = 1.0;
@@ -134,20 +144,37 @@ export default function ColoringCanvas({
       ctx.globalCompositeOperation = 'source-over';
     }
 
-    // Draw multiple passes for airbrush effect
-    const passes = brush.id === 'airbrush' ? 3 : 1;
-    
+    // Calculate passes based on flow and brush type
+    const passes = Math.max(1, Math.ceil((1 - flow) * 3));
+
     for (let pass = 0; pass < passes; pass++) {
       ctx.beginPath();
-      ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
 
-      for (let i = 1; i < stroke.points.length; i++) {
-        ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+      // Apply spacing and jitter
+      const step = Math.max(1, Math.floor(spacing * 20));
+
+      for (let i = 0; i < stroke.points.length; i += step) {
+        const point = stroke.points[i];
+        let x = point.x;
+        let y = point.y;
+
+        // Apply jitter
+        if (jitter > 0) {
+          const jitterAmount = stroke.size * jitter;
+          x += (Math.random() - 0.5) * jitterAmount;
+          y += (Math.random() - 0.5) * jitterAmount;
+        }
+
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
       }
 
       ctx.stroke();
     }
-    
+
     // Reset
     ctx.globalAlpha = 1.0;
     ctx.shadowBlur = 0;
@@ -330,7 +357,7 @@ export default function ColoringCanvas({
   const draw = (e) => {
     if (!isDrawing) return;
     e.preventDefault();
-    
+
     const point = getCanvasPoint(e);
     const newStroke = [...currentStroke, point];
     setCurrentStroke(newStroke);
@@ -343,14 +370,18 @@ export default function ColoringCanvas({
       const lastPoint = newStroke[newStroke.length - 2];
       const brush = BRUSH_TYPES.find(b => b.id === brushType) || BRUSH_TYPES[0];
 
+      const opacity = brushParams.opacity ?? brush.opacity;
+      const blur = brushParams.blur ?? brush.blur;
+      const flow = brushParams.flow ?? brush.flow ?? 1.0;
+
       ctx.strokeStyle = isErasing ? '#FFFFFF' : currentColor;
       ctx.lineWidth = brushSize;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
-      ctx.globalAlpha = isErasing ? 1.0 : brush.opacity;
+      ctx.globalAlpha = isErasing ? 1.0 : opacity * flow;
 
-      if (brush.blur > 0 && !isErasing) {
-        ctx.shadowBlur = brush.blur;
+      if (blur > 0 && !isErasing) {
+        ctx.shadowBlur = blur;
         ctx.shadowColor = currentColor;
       }
 
@@ -376,9 +407,10 @@ export default function ColoringCanvas({
         color: currentColor,
         size: brushSize,
         isEraser: isErasing,
-        brushType: brushType
+        brushType: brushType,
+        params: brushParams
       };
-      
+
       const newStrokes = [...strokes, newStroke];
       setStrokes(newStrokes);
       saveToHistory(newStrokes, fillHistory);
@@ -737,6 +769,8 @@ export default function ColoringCanvas({
                 <BrushSelector
                   selectedBrush={brushType}
                   onBrushChange={setBrushType}
+                  brushParams={brushParams}
+                  onBrushParamsChange={setBrushParams}
                 />
               </div>
             )}
