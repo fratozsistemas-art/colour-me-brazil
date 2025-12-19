@@ -52,6 +52,9 @@ export default function ColoringCanvas({
   const [isLoading, setIsLoading] = useState(true);
   const [fillPreview, setFillPreview] = useState(null);
   const [showFillPreview, setShowFillPreview] = useState(true);
+  const [gradientMode, setGradientMode] = useState(false);
+  const [selectedAreas, setSelectedAreas] = useState([]);
+  const [gradientColors, setGradientColors] = useState([currentPalette.colors[0], currentPalette.colors[1]]);
 
   // Use lineArtUrl if provided, otherwise fall back to illustrationUrl
   const effectiveImageUrl = lineArtUrl || illustrationUrl;
@@ -230,16 +233,32 @@ export default function ColoringCanvas({
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
 
-      const result = smartFill(ctx, Math.floor(point.x), Math.floor(point.y), currentColor, false);
+      if (gradientMode) {
+        // In gradient mode, add area to selection
+        const result = smartFill(ctx, Math.floor(point.x), Math.floor(point.y), currentColor, true);
+        if (result && result.length > 0) {
+          const newArea = { 
+            x: Math.floor(point.x), 
+            y: Math.floor(point.y), 
+            pixels: result,
+            bounds: calculateBounds(result)
+          };
+          setSelectedAreas([...selectedAreas, newArea]);
+          setFillPreview(null);
+        }
+      } else {
+        // Normal fill mode
+        const result = smartFill(ctx, Math.floor(point.x), Math.floor(point.y), currentColor, false);
 
-      if (result && result.length > 0) {
-        const newFill = { x: Math.floor(point.x), y: Math.floor(point.y), color: currentColor };
-        const newFillHistory = [...fillHistory, newFill];
-        setFillHistory(newFillHistory);
+        if (result && result.length > 0) {
+          const newFill = { x: Math.floor(point.x), y: Math.floor(point.y), color: currentColor };
+          const newFillHistory = [...fillHistory, newFill];
+          setFillHistory(newFillHistory);
 
-        saveToHistory(strokes, newFillHistory);
-        addToRecentColors(currentColor);
-        setFillPreview(null);
+          saveToHistory(strokes, newFillHistory);
+          addToRecentColors(currentColor);
+          setFillPreview(null);
+        }
       }
     }
   };
@@ -439,6 +458,97 @@ export default function ColoringCanvas({
       g: parseInt(result[2], 16),
       b: parseInt(result[3], 16)
     } : null;
+  };
+
+  const calculateBounds = (pixels) => {
+    if (!pixels || pixels.length === 0) return null;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    pixels.forEach(([x, y]) => {
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x);
+      maxY = Math.max(maxY, y);
+    });
+    return { minX, minY, maxX, maxY, centerX: (minX + maxX) / 2, centerY: (minY + maxY) / 2 };
+  };
+
+  const interpolateColor = (color1, color2, factor) => {
+    const c1 = hexToRgb(color1);
+    const c2 = hexToRgb(color2);
+    if (!c1 || !c2) return color1;
+    
+    const r = Math.round(c1.r + (c2.r - c1.r) * factor);
+    const g = Math.round(c1.g + (c2.g - c1.g) * factor);
+    const b = Math.round(c1.b + (c2.b - c1.b) * factor);
+    
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+  };
+
+  const applyGradientToAreas = () => {
+    if (selectedAreas.length === 0) return;
+    
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+
+    // Calculate global bounds
+    let globalMinX = Infinity, globalMinY = Infinity, globalMaxX = -Infinity, globalMaxY = -Infinity;
+    selectedAreas.forEach(area => {
+      globalMinX = Math.min(globalMinX, area.bounds.minX);
+      globalMinY = Math.min(globalMinY, area.bounds.minY);
+      globalMaxX = Math.max(globalMaxX, area.bounds.maxX);
+      globalMaxY = Math.max(globalMaxY, area.bounds.maxY);
+    });
+
+    const globalWidth = globalMaxX - globalMinX;
+    const globalHeight = globalMaxY - globalMinY;
+
+    // Apply gradient to each area based on global position
+    selectedAreas.forEach(area => {
+      area.pixels.forEach(([x, y, index]) => {
+        const relativeX = (x - globalMinX) / globalWidth;
+        const relativeY = (y - globalMinY) / globalHeight;
+        
+        // Use diagonal gradient
+        const gradientFactor = (relativeX + relativeY) / 2;
+        
+        // Interpolate between gradient colors
+        let color;
+        if (gradientColors.length === 2) {
+          color = interpolateColor(gradientColors[0], gradientColors[1], gradientFactor);
+        } else {
+          const segment = gradientFactor * (gradientColors.length - 1);
+          const idx = Math.floor(segment);
+          const localFactor = segment - idx;
+          const c1 = gradientColors[Math.min(idx, gradientColors.length - 1)];
+          const c2 = gradientColors[Math.min(idx + 1, gradientColors.length - 1)];
+          color = interpolateColor(c1, c2, localFactor);
+        }
+
+        const rgb = hexToRgb(color);
+        if (rgb) {
+          data[index] = rgb.r;
+          data[index + 1] = rgb.g;
+          data[index + 2] = rgb.b;
+          data[index + 3] = 255;
+        }
+      });
+    });
+
+    ctx.putImageData(imageData, 0, 0);
+
+    // Save to fill history
+    selectedAreas.forEach(area => {
+      const centerColor = interpolateColor(gradientColors[0], gradientColors[1], 0.5);
+      const newFill = { x: area.x, y: area.y, color: centerColor };
+      fillHistory.push(newFill);
+    });
+
+    setFillHistory([...fillHistory]);
+    saveToHistory(strokes, fillHistory);
+    setSelectedAreas([]);
+    setGradientMode(false);
   };
 
   const startDrawing = (e) => {
@@ -753,7 +863,11 @@ export default function ColoringCanvas({
                 </Button>
                 <Button
                   variant={paintMode === 'fill' ? 'default' : 'outline'}
-                  onClick={() => setPaintMode('fill')}
+                  onClick={() => {
+                    setPaintMode('fill');
+                    setGradientMode(false);
+                    setSelectedAreas([]);
+                  }}
                   className="w-full"
                 >
                   <Grid3x3 className="w-4 h-4 mr-2" />
@@ -1016,8 +1130,16 @@ export default function ColoringCanvas({
               <div className="space-y-1 text-sm text-gray-600">
                 <div className="flex justify-between">
                   <span>Mode:</span>
-                  <span className="font-medium capitalize">{paintMode}</span>
+                  <span className="font-medium capitalize">
+                    {gradientMode ? 'Gradient' : paintMode}
+                  </span>
                 </div>
+                {gradientMode && (
+                  <div className="flex justify-between">
+                    <span>Selected:</span>
+                    <span className="font-medium">{selectedAreas.length} areas</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span>Brush:</span>
                   <span className="font-medium capitalize">{brushType}</span>
