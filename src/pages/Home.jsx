@@ -11,30 +11,8 @@ import {
 import { motion } from 'framer-motion';
 
 export default function Home() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  const checkAuth = async () => {
-    try {
-      const authenticated = await base44.auth.isAuthenticated();
-      setIsAuthenticated(authenticated);
-    } catch (error) {
-      setIsAuthenticated(false);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleGetStarted = () => {
-    if (isAuthenticated) {
-      window.location.href = createPageUrl('Library');
-    } else {
-      base44.auth.redirectToLogin(createPageUrl('Library'));
-    }
+    base44.auth.redirectToLogin(createPageUrl('Library'));
   };
 
   // Generate QR code URLs for app download
@@ -43,14 +21,6 @@ export default function Home() {
   
   const iosQRCode = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(iosAppUrl)}`;
   const androidQRCode = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(androidAppUrl)}`;
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500" />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen">
@@ -86,7 +56,7 @@ export default function Home() {
               size="lg"
               className="text-xl px-8 py-6 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 shadow-xl"
             >
-              {isAuthenticated ? 'Go to Library' : 'Get Started'}
+              Get Started
               <ArrowRight className="w-6 h-6 ml-2" />
             </Button>
           </motion.div>
@@ -390,7 +360,7 @@ export default function Home() {
             size="lg"
             className="text-xl px-8 py-6 bg-white text-orange-600 hover:bg-gray-100 shadow-xl"
           >
-            {isAuthenticated ? 'Go to Library' : 'Start Learning Today'}
+            Start Learning Today
             <ArrowRight className="w-6 h-6 ml-2" />
           </Button>
         </div>
