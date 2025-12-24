@@ -125,12 +125,19 @@ export default function TextReader({
     if (!profile || !bookId || !pageId) return;
     
     try {
-      const existingAnnotations = await base44.entities.TextAnnotation.filter({
-        profile_id: profile.id,
-        book_id: bookId,
-        page_id: pageId
-      });
-      setAnnotations(existingAnnotations);
+      if (navigator.onLine) {
+        const existingAnnotations = await base44.entities.TextAnnotation.filter({
+          profile_id: profile.id,
+          book_id: bookId,
+          page_id: pageId
+        });
+        setAnnotations(existingAnnotations);
+      } else {
+        // Load from offline storage
+        const { getOfflineAnnotations } = await import('../offline/offlineManager');
+        const offlineAnnotations = await getOfflineAnnotations(profile.id, bookId, pageId);
+        setAnnotations(offlineAnnotations);
+      }
     } catch (error) {
       console.error('Failed to load annotations:', error);
     }
@@ -255,14 +262,30 @@ export default function TextReader({
     if (!selectedText || !profile) return;
 
     try {
-      const annotation = await base44.entities.TextAnnotation.create({
-        profile_id: profile.id,
-        book_id: bookId,
-        page_id: pageId,
-        text_content: selectedText,
-        annotation_type: annotationType,
-        color: annotationType === 'note' ? null : annotationColor
-      });
+      let annotation;
+      
+      if (navigator.onLine) {
+        annotation = await base44.entities.TextAnnotation.create({
+          profile_id: profile.id,
+          book_id: bookId,
+          page_id: pageId,
+          text_content: selectedText,
+          annotation_type: annotationType,
+          color: annotationType === 'note' ? null : annotationColor
+        });
+      } else {
+        // Save offline
+        const { saveAnnotationOffline } = await import('../offline/offlineManager');
+        annotation = await saveAnnotationOffline({
+          profile_id: profile.id,
+          book_id: bookId,
+          page_id: pageId,
+          text_content: selectedText,
+          annotation_type: annotationType,
+          color: annotationType === 'note' ? null : annotationColor
+        });
+        toast.info('Saved offline - will sync when online');
+      }
 
       setAnnotations([...annotations, annotation]);
       toast.success(`${annotationType} added!`);
@@ -278,8 +301,16 @@ export default function TextReader({
     if (!profile) return;
 
     try {
-      for (const annotation of annotations) {
-        await base44.entities.TextAnnotation.delete(annotation.id);
+      if (navigator.onLine) {
+        for (const annotation of annotations) {
+          await base44.entities.TextAnnotation.delete(annotation.id);
+        }
+      } else {
+        // Delete offline
+        const { deleteAnnotationOffline } = await import('../offline/offlineManager');
+        for (const annotation of annotations) {
+          await deleteAnnotationOffline(annotation.id);
+        }
       }
       setAnnotations([]);
       toast.success('Annotations cleared');

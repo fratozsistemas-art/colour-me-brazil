@@ -33,6 +33,17 @@ function openDB() {
         progressStore.createIndex('profile_id', 'profile_id', { unique: false });
         progressStore.createIndex('synced', 'synced', { unique: false });
       }
+      if (!db.objectStoreNames.contains('annotations')) {
+        const annotationsStore = db.createObjectStore('annotations', { keyPath: 'id', autoIncrement: true });
+        annotationsStore.createIndex('profile_id', 'profile_id', { unique: false });
+        annotationsStore.createIndex('synced', 'synced', { unique: false });
+        annotationsStore.createIndex('page_id', 'page_id', { unique: false });
+      }
+      if (!db.objectStoreNames.contains('bookmarks')) {
+        const bookmarksStore = db.createObjectStore('bookmarks', { keyPath: 'id', autoIncrement: true });
+        bookmarksStore.createIndex('profile_id', 'profile_id', { unique: false });
+        bookmarksStore.createIndex('synced', 'synced', { unique: false });
+      }
     };
   });
 }
@@ -286,12 +297,108 @@ export async function saveReadingProgressOffline(profileId, bookId, pageIndex) {
   });
 }
 
+// Save annotation offline
+export async function saveAnnotationOffline(annotationData) {
+  const db = await openDB();
+  const transaction = db.transaction(['annotations'], 'readwrite');
+  const store = transaction.objectStore('annotations');
+  
+  const annotation = {
+    ...annotationData,
+    synced: false,
+    created_at: new Date().toISOString()
+  };
+  
+  return new Promise((resolve, reject) => {
+    const request = store.add(annotation);
+    request.onsuccess = () => resolve({ ...annotation, id: request.result });
+    request.onerror = () => reject(request.error);
+  });
+}
+
+// Get offline annotations for a page
+export async function getOfflineAnnotations(profileId, bookId, pageId) {
+  const db = await openDB();
+  const transaction = db.transaction(['annotations'], 'readonly');
+  const store = transaction.objectStore('annotations');
+  
+  return new Promise((resolve, reject) => {
+    const request = store.getAll();
+    request.onsuccess = () => {
+      const filtered = request.result.filter(a => 
+        a.profile_id === profileId && 
+        a.book_id === bookId && 
+        a.page_id === pageId
+      );
+      resolve(filtered);
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
+
+// Delete annotation offline
+export async function deleteAnnotationOffline(annotationId) {
+  const db = await openDB();
+  const transaction = db.transaction(['annotations'], 'readwrite');
+  const store = transaction.objectStore('annotations');
+  
+  return new Promise((resolve, reject) => {
+    const request = store.delete(annotationId);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+// Save bookmark offline
+export async function saveBookmarkOffline(profileId, bookId, pageId, text) {
+  const db = await openDB();
+  const transaction = db.transaction(['bookmarks'], 'readwrite');
+  const store = transaction.objectStore('bookmarks');
+  
+  const bookmark = {
+    profile_id: profileId,
+    book_id: bookId,
+    page_id: pageId,
+    text,
+    synced: false,
+    timestamp: new Date().toISOString()
+  };
+  
+  return new Promise((resolve, reject) => {
+    const request = store.add(bookmark);
+    request.onsuccess = () => resolve({ ...bookmark, id: request.result });
+    request.onerror = () => reject(request.error);
+  });
+}
+
+// Get offline bookmarks
+export async function getOfflineBookmarks(profileId, bookId, pageId) {
+  const db = await openDB();
+  const transaction = db.transaction(['bookmarks'], 'readonly');
+  const store = transaction.objectStore('bookmarks');
+  
+  return new Promise((resolve, reject) => {
+    const request = store.getAll();
+    request.onsuccess = () => {
+      const filtered = request.result.filter(b => 
+        b.profile_id === profileId && 
+        b.book_id === bookId && 
+        b.page_id === pageId
+      );
+      resolve(filtered);
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
+
 // Get unsynced data
 async function getUnsyncedData() {
   const db = await openDB();
   const unsyncedData = {
     coloringSessions: [],
-    readingProgress: []
+    readingProgress: [],
+    annotations: [],
+    bookmarks: []
   };
   
   // Get unsynced coloring sessions
@@ -314,6 +421,26 @@ async function getUnsyncedData() {
   });
   unsyncedData.readingProgress = allProgress.filter(p => !p.synced);
   
+  // Get unsynced annotations
+  const annotationsTx = db.transaction(['annotations'], 'readonly');
+  const annotationsStore = annotationsTx.objectStore('annotations');
+  const allAnnotations = await new Promise((resolve, reject) => {
+    const request = annotationsStore.getAll();
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  unsyncedData.annotations = allAnnotations.filter(a => !a.synced);
+  
+  // Get unsynced bookmarks
+  const bookmarksTx = db.transaction(['bookmarks'], 'readonly');
+  const bookmarksStore = bookmarksTx.objectStore('bookmarks');
+  const allBookmarks = await new Promise((resolve, reject) => {
+    const request = bookmarksStore.getAll();
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  unsyncedData.bookmarks = allBookmarks.filter(b => !b.synced);
+  
   return unsyncedData;
 }
 
@@ -325,6 +452,8 @@ export async function syncOfflineData() {
     const results = {
       coloringSessions: 0,
       readingProgress: 0,
+      annotations: 0,
+      bookmarks: 0,
       bookUpdates: 0,
       errors: []
     };
@@ -410,6 +539,78 @@ export async function syncOfflineData() {
       }
     }
 
+    // Sync annotations
+    for (const annotation of unsyncedData.annotations) {
+      try {
+        await base44.entities.TextAnnotation.create({
+          profile_id: annotation.profile_id,
+          book_id: annotation.book_id,
+          page_id: annotation.page_id,
+          text_content: annotation.text_content,
+          annotation_type: annotation.annotation_type,
+          color: annotation.color,
+          note_text: annotation.note_text,
+          start_offset: annotation.start_offset,
+          end_offset: annotation.end_offset
+        });
+
+        // Mark as synced
+        const db = await openDB();
+        const tx = db.transaction(['annotations'], 'readwrite');
+        const store = tx.objectStore('annotations');
+        annotation.synced = true;
+        await new Promise((resolve, reject) => {
+          const request = store.put(annotation);
+          request.onsuccess = () => resolve();
+          request.onerror = () => reject(request.error);
+        });
+        
+        results.annotations++;
+      } catch (error) {
+        console.error('Error syncing annotation:', error);
+        results.errors.push({ type: 'annotation', error: error.message });
+      }
+    }
+
+    // Sync bookmarks
+    for (const bookmark of unsyncedData.bookmarks) {
+      try {
+        const profiles = await base44.entities.UserProfile.filter({ id: bookmark.profile_id });
+        if (profiles.length > 0) {
+          const profile = profiles[0];
+          const key = `${bookmark.book_id}_${bookmark.page_id}`;
+          const updatedBookmarks = { ...profile.bookmarks };
+          const pageBookmarks = updatedBookmarks[key] || [];
+          
+          pageBookmarks.push({
+            text: bookmark.text,
+            timestamp: bookmark.timestamp
+          });
+          updatedBookmarks[key] = pageBookmarks;
+
+          await base44.entities.UserProfile.update(bookmark.profile_id, {
+            bookmarks: updatedBookmarks
+          });
+
+          // Mark as synced
+          const db = await openDB();
+          const tx = db.transaction(['bookmarks'], 'readwrite');
+          const store = tx.objectStore('bookmarks');
+          bookmark.synced = true;
+          await new Promise((resolve, reject) => {
+            const request = store.put(bookmark);
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+          });
+          
+          results.bookmarks++;
+        }
+      } catch (error) {
+        console.error('Error syncing bookmark:', error);
+        results.errors.push({ type: 'bookmark', error: error.message });
+      }
+    }
+
     // Check downloaded books for updates
     const db = await openDB();
     const transaction = db.transaction(['books'], 'readonly');
@@ -438,7 +639,7 @@ export async function syncOfflineData() {
     return { 
       success: true, 
       results,
-      message: `Synced ${results.coloringSessions} coloring sessions, ${results.readingProgress} reading progress, ${results.bookUpdates} book updates`
+      message: `Synced ${results.coloringSessions} coloring sessions, ${results.readingProgress} reading progress, ${results.annotations} annotations, ${results.bookmarks} bookmarks, ${results.bookUpdates} book updates`
     };
   } catch (error) {
     console.error('Error syncing offline data:', error);
@@ -446,15 +647,65 @@ export async function syncOfflineData() {
   }
 }
 
+// Background sync with retry logic
+let syncInProgress = false;
+let syncRetryTimeout = null;
+
+async function backgroundSync() {
+  if (syncInProgress || !navigator.onLine) return;
+  
+  syncInProgress = true;
+  try {
+    const result = await syncOfflineData();
+    if (result.success && result.results) {
+      const totalSynced = result.results.coloringSessions + 
+                         result.results.readingProgress + 
+                         result.results.annotations +
+                         result.results.bookmarks;
+      
+      if (totalSynced > 0) {
+        console.log('Background sync completed:', result.message);
+        // Trigger custom event for UI updates
+        window.dispatchEvent(new CustomEvent('offline-sync-complete', { detail: result }));
+      }
+    }
+    
+    // Schedule next sync in 5 minutes
+    syncRetryTimeout = setTimeout(backgroundSync, 5 * 60 * 1000);
+  } catch (error) {
+    console.error('Background sync failed:', error);
+    // Retry in 1 minute on failure
+    syncRetryTimeout = setTimeout(backgroundSync, 60 * 1000);
+  } finally {
+    syncInProgress = false;
+  }
+}
+
 // Listen for online/offline events
 export function setupOfflineSync() {
   window.addEventListener('online', () => {
     console.log('Back online, syncing data...');
-    syncOfflineData();
+    backgroundSync();
   });
 
   window.addEventListener('offline', () => {
     console.log('Gone offline, offline mode active');
+    if (syncRetryTimeout) {
+      clearTimeout(syncRetryTimeout);
+      syncRetryTimeout = null;
+    }
+  });
+
+  // Start background sync if online
+  if (navigator.onLine) {
+    backgroundSync();
+  }
+
+  // Sync on page visibility change
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && navigator.onLine) {
+      backgroundSync();
+    }
   });
 }
 

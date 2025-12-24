@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import OfflineSyncIndicator from '@/components/offline/OfflineSyncIndicator';
 
 export default function Layout({ children, currentPageName }) {
   const menuItems = [
@@ -141,6 +142,9 @@ export default function Layout({ children, currentPageName }) {
       <main className="container mx-auto px-4 py-8">
         {children}
       </main>
+
+      {/* Offline Sync Indicator */}
+      <OfflineSyncIndicator />
 
       {/* Mobile Navigation */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white shadow-lg" style={{ borderTop: '2px solid #FF6B35' }}>
