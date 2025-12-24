@@ -46,11 +46,13 @@ export default function Library() {
       try {
         const isAuth = await base44.auth.isAuthenticated();
         if (!isAuth) {
-          base44.auth.redirectToLogin(window.location.pathname);
+          // Redirect to home or show login prompt
+          window.location.href = '/';
           return;
         }
       } catch (error) {
-        base44.auth.redirectToLogin(window.location.pathname);
+        console.error('Auth error:', error);
+        window.location.href = '/';
         return;
       }
       setIsCheckingAuth(false);
