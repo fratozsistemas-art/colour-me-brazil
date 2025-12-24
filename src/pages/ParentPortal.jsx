@@ -14,6 +14,7 @@ import ReadingGoalManager from '../components/parent/ReadingGoalManager';
 import ContentApprovalQueue from '../components/parent/ContentApprovalQueue';
 import ChildSettingsManager from '../components/parent/ChildSettingsManager';
 import DetailedProgressReport from '../components/parent/DetailedProgressReport';
+import InterestTopicsManager from '../components/parent/InterestTopicsManager';
 
 export default function ParentPortal() {
   const [parentAccount, setParentAccount] = useState(null);
@@ -276,10 +277,13 @@ export default function ParentPortal() {
         </TabsContent>
 
         <TabsContent value="settings" className="mt-6">
-          <ChildSettingsManager
-            childProfile={selectedChild}
-            parentAccount={parentAccount}
-          />
+          <div className="space-y-6">
+            <InterestTopicsManager profile={selectedChild} />
+            <ChildSettingsManager
+              childProfile={selectedChild}
+              parentAccount={parentAccount}
+            />
+          </div>
         </TabsContent>
       </Tabs>
     </div>
