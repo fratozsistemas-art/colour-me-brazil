@@ -25,6 +25,7 @@ export default function Library() {
   const [currentProfile, setCurrentProfile] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCollection, setSelectedCollection] = useState('all');
+  const isOnline = useOfflineStatus();
   const [showLockedBooks, setShowLockedBooks] = useState(true);
   const [selectedBook, setSelectedBook] = useState(null);
   const [storyPages, setStoryPages] = useState([]);

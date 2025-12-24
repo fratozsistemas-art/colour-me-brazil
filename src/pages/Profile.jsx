@@ -15,6 +15,8 @@ import { getMasteryBadgeProgress, checkAndAwardMasteryBadges } from '../componen
 import AvatarDisplay from '../components/profile/AvatarDisplay';
 import { BRAZILIAN_FAUNA_AVATARS } from '../components/profile/BrazilianFaunaAvatars';
 import PersonalizationSettings from '../components/profile/PersonalizationSettings';
+import AccessibilitySettings from '../components/accessibility/AccessibilitySettings';
+import OfflineManager from '../components/offline/OfflineManager';
 import ColoringHistory from '../components/profile/ColoringHistory';
 
 export default function Profile() {

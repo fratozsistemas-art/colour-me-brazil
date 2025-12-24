@@ -14,16 +14,14 @@ export default function TextReader({
   pageId,
   onClose 
 }) {
-  // Adaptive font size based on viewport
-  const getInitialFontSize = () => {
-    const width = window.innerWidth;
-    if (width < 640) return 16; // mobile
-    if (width < 1024) return 18; // tablet
-    return 20; // desktop
-  };
-
-  const [fontSize, setFontSize] = useState(getInitialFontSize());
+  const [profile, setProfile] = useState(null);
+  const [fontSize, setFontSize] = useState(20);
+  const [lineSpacing, setLineSpacing] = useState('normal');
   const [darkMode, setDarkMode] = useState(false);
+  const [highContrast, setHighContrast] = useState(false);
+  const [bgColor, setBgColor] = useState('white');
+  const [generatingTTS, setGeneratingTTS] = useState(false);
+  const [customAudioUrl, setCustomAudioUrl] = useState(audioUrl);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -33,38 +31,61 @@ export default function TextReader({
   const audioRef = useRef(null);
   const textRef = useRef(null);
 
-  // Load bookmarks
+  // Load profile and preferences
   useEffect(() => {
-    const loadBookmarks = async () => {
+    const loadProfile = async () => {
       const profileId = localStorage.getItem('currentProfileId');
-      if (!profileId || !bookId || !pageId) return;
+      if (!profileId) return;
 
       try {
         const profiles = await base44.entities.UserProfile.list();
-        const profile = profiles.find(p => p.id === profileId);
-        if (profile?.bookmarks) {
-          const key = `${bookId}_${pageId}`;
-          setBookmarks(profile.bookmarks[key] || []);
+        const userProfile = profiles.find(p => p.id === profileId);
+        if (userProfile) {
+          setProfile(userProfile);
+          
+          // Apply accessibility preferences
+          const fontSizes = { small: 16, medium: 20, large: 24, 'extra-large': 28 };
+          setFontSize(fontSizes[userProfile.font_size_preference] || 20);
+          setLineSpacing(userProfile.line_spacing_preference || 'normal');
+          setBgColor(userProfile.background_color_preference || 'white');
+          setHighContrast(userProfile.high_contrast_mode || false);
+          setDarkMode(userProfile.background_color_preference === 'night');
+          
+          if (bookId && pageId && userProfile.bookmarks) {
+            const key = `${bookId}_${pageId}`;
+            setBookmarks(userProfile.bookmarks[key] || []);
+          }
         }
       } catch (error) {
-        console.error('Error loading bookmarks:', error);
+        console.error('Error loading profile:', error);
       }
     };
-    loadBookmarks();
+    loadProfile();
   }, [bookId, pageId]);
 
-  // Adaptive font size on resize
-  useEffect(() => {
-    const handleResize = () => {
-      const width = window.innerWidth;
-      if (width < 640) setFontSize(16);
-      else if (width < 1024) setFontSize(18);
-      else setFontSize(20);
-    };
+  // Generate TTS audio if not available
+  const handleGenerateTTS = async () => {
+    if (!profile) return;
     
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+    setGeneratingTTS(true);
+    try {
+      const response = await base44.functions.invoke('generateTTSAudio', {
+        text,
+        language,
+        voice_preference: profile.tts_voice_preference || 'default',
+        speed: profile.tts_speed || 1.0
+      });
+
+      if (response.data.success) {
+        setCustomAudioUrl(response.data.audio_url);
+        toast.success('Áudio gerado com sucesso!');
+      }
+    } catch (error) {
+      toast.error('Erro ao gerar áudio');
+    } finally {
+      setGeneratingTTS(false);
+    }
+  };
 
   // Audio player
   useEffect(() => {
@@ -216,13 +237,39 @@ export default function TextReader({
     }
   };
 
-  const bgClass = darkMode 
-    ? 'bg-gradient-to-br from-gray-900 to-gray-800' 
-    : 'bg-gradient-to-br from-amber-50 to-orange-50';
-  
-  const cardBg = darkMode ? 'bg-gray-800/95' : 'bg-white/90';
-  const textColor = darkMode ? 'text-gray-100' : 'text-gray-800';
-  const headerBg = darkMode ? 'bg-gray-800/80' : 'bg-white/80';
+  // Accessibility styles
+  const lineHeights = {
+    compact: '1.4',
+    normal: '1.8',
+    relaxed: '2.0',
+    spacious: '2.4'
+  };
+
+  const bgStyles = {
+    white: highContrast ? 'bg-white' : 'bg-gradient-to-br from-amber-50 to-orange-50',
+    cream: highContrast ? 'bg-yellow-50' : 'bg-gradient-to-br from-yellow-50 to-amber-50',
+    sepia: highContrast ? 'bg-amber-100' : 'bg-gradient-to-br from-amber-100 to-orange-100',
+    night: 'bg-gradient-to-br from-gray-900 to-gray-800'
+  };
+
+  const textStyles = {
+    white: highContrast ? 'text-black font-bold' : 'text-gray-800',
+    cream: highContrast ? 'text-black font-bold' : 'text-gray-800',
+    sepia: highContrast ? 'text-black font-bold' : 'text-gray-900',
+    night: 'text-gray-100'
+  };
+
+  const cardStyles = {
+    white: highContrast ? 'bg-white border-4 border-black' : 'bg-white/90',
+    cream: highContrast ? 'bg-yellow-50 border-4 border-black' : 'bg-yellow-50/90',
+    sepia: highContrast ? 'bg-amber-100 border-4 border-black' : 'bg-amber-100/90',
+    night: 'bg-gray-800/95'
+  };
+
+  const bgClass = bgStyles[bgColor] || bgStyles.white;
+  const cardBg = cardStyles[bgColor] || cardStyles.white;
+  const textColor = textStyles[bgColor] || textStyles.white;
+  const headerBg = bgColor === 'night' ? 'bg-gray-800/80' : 'bg-white/80';
 
   return (
     <div className={`h-full flex flex-col ${bgClass} transition-colors duration-300`}>
@@ -291,10 +338,11 @@ export default function TextReader({
           <Card className={`p-8 ${cardBg} backdrop-blur-sm shadow-lg relative`}>
             <p 
               ref={textRef}
-              className={`leading-relaxed ${textColor} whitespace-pre-wrap select-text`}
+              className={`${textColor} whitespace-pre-wrap select-text`}
               style={{ 
                 fontSize: `${fontSize}px`,
-                lineHeight: '1.8'
+                lineHeight: lineHeights[lineSpacing] || '1.8',
+                letterSpacing: highContrast ? '0.05em' : 'normal'
               }}
             >
               {text}
@@ -382,7 +430,7 @@ export default function TextReader({
       </div>
 
       {/* Audio Player */}
-      {audioUrl && (
+      {(customAudioUrl || audioUrl) && (
         <div className="p-4 bg-white/90 backdrop-blur-sm border-t shadow-lg">
           <div className="max-w-3xl mx-auto space-y-3">
             {/* Play/Pause Button */}
@@ -397,7 +445,7 @@ export default function TextReader({
                 ) : (
                   <Play className="w-5 h-5 mr-2" />
                 )}
-                {isPlaying ? 'Pause' : 'Play'} Audio
+                {isPlaying ? 'Pausar' : 'Ouvir'} Áudio
               </Button>
 
               <div className="flex-1 flex items-center gap-2 text-sm text-gray-600">
@@ -420,9 +468,29 @@ export default function TextReader({
             {/* Hidden Audio Element */}
             <audio
               ref={audioRef}
-              src={audioUrl}
+              src={customAudioUrl || audioUrl}
               preload="metadata"
             />
+          </div>
+        </div>
+      )}
+
+      {/* Generate TTS button if no audio */}
+      {!audioUrl && !customAudioUrl && profile && (
+        <div className="p-4 bg-blue-50 border-t">
+          <div className="max-w-3xl mx-auto text-center">
+            <Button
+              onClick={handleGenerateTTS}
+              disabled={generatingTTS}
+              size="lg"
+              className="bg-gradient-to-r from-blue-500 to-purple-500"
+            >
+              <Volume2 className="w-5 h-5 mr-2" />
+              {generatingTTS ? 'Gerando Áudio...' : 'Gerar Leitura em Voz Alta'}
+            </Button>
+            <p className="text-xs text-gray-600 mt-2">
+              Ouvir este texto com sua voz preferida
+            </p>
           </div>
         </div>
       )}
