@@ -39,19 +39,19 @@ Deno.serve(async (req) => {
     const parentAccount = parentAccounts[0];
 
     // Build moderation prompt
-    const moderationPrompt = `You are a content moderation AI for a children's educational app (ages 6-12) that must comply with LGPD (Brazilian data protection law).
+    const moderationPrompt = `You are an advanced content moderation AI for a children's educational app (ages 6-12) that must comply with LGPD (Brazilian data protection law).
 
 Analyze the following ${content_type} content for:
-1. **Profanity or inappropriate language**
-2. **Violence, threats, or aggressive behavior**
-3. **Personal identifying information (PII)** - names, addresses, phone numbers, emails, school names
-4. **Predatory behavior** - attempts to contact outside the app, requests for personal info, grooming patterns
-5. **Bullying or harassment**
-6. **Sexual content or innuendo**
-7. **Hate speech or discrimination**
-8. **Self-harm or dangerous activities**
-9. **Misinformation that could harm children**
-10. **Commercial solicitation or advertising**
+1. **Profanity or inappropriate language** - swear words, slurs, vulgar expressions
+2. **Violence, threats, or aggressive behavior** - explicit violence, weapons, intimidation
+3. **Personal identifying information (PII)** - names, addresses, phone numbers, emails, school names, parents' info
+4. **Predatory behavior** - grooming patterns, requests for private contact, manipulation tactics
+5. **Bullying or harassment** - targeted attacks, exclusion, mockery
+6. **Sexual content or innuendo** - adult themes, inappropriate suggestions
+7. **Hate speech or discrimination** - racism, sexism, homophobia, xenophobia
+8. **Self-harm or dangerous activities** - cutting, suicide references, dangerous challenges
+9. **Misinformation that could harm children** - medical misinformation, dangerous advice
+10. **Commercial solicitation or advertising** - product placement, phishing, scams
 
 Content to moderate:
 ${content || 'N/A'}
@@ -61,6 +61,13 @@ CRITICAL LGPD COMPLIANCE:
 - Flag any content that exposes personal data of minors
 - Be extra cautious with location data, school information, or family details
 - Consider cultural context (Brazilian Portuguese nuances)
+- Distinguish between age-appropriate expression and genuine risk
+
+CONTEXT ANALYSIS:
+- Evaluate intent behind the content
+- Consider if it's playful language vs harmful
+- Check for coded language or euphemisms
+- Assess severity based on child safety standards
 
 Respond with a JSON object with this exact structure:
 {
@@ -68,7 +75,9 @@ Respond with a JSON object with this exact structure:
   "moderation_result": "approved|flagged|blocked",
   "detected_issues": ["issue1", "issue2"],
   "reasoning": "Brief explanation in Portuguese suitable for parents",
-  "action_recommendation": "allow|warn_child|notify_parent|block_content|escalate_to_human"
+  "action_recommendation": "allow|warn_child|notify_parent|block_content|escalate_to_human",
+  "confidence_score": 0-100,
+  "requires_human_review": true/false
 }`;
 
     // Call AI for moderation
@@ -81,7 +90,9 @@ Respond with a JSON object with this exact structure:
           moderation_result: { type: "string" },
           detected_issues: { type: "array", items: { type: "string" } },
           reasoning: { type: "string" },
-          action_recommendation: { type: "string" }
+          action_recommendation: { type: "string" },
+          confidence_score: { type: "number" },
+          requires_human_review: { type: "boolean" }
         }
       },
       file_urls: image_url ? [image_url] : undefined
