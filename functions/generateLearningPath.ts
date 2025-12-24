@@ -57,11 +57,15 @@ AVAILABLE CONTENT:
 - Quizzes: ${quizzes.length}
 - Coloring Pages: Available for most books
 
+INTEREST TOPICS (Parent-Configured):
+${profile.interest_topics?.join(', ') || 'Not specified'}
+
 REQUEST:
 Theme: ${theme || 'mixed'}
 Focus Area: ${focus_area || 'balanced learning'}
 
 DESIGN a personalized 6-8 activity learning path that:
+0. **CRITICAL: If interest topics exist, the entire path must revolve around those topics** (${profile.interest_topics?.slice(0, 2).join(', ')})
 1. Starts with appropriate difficulty based on reading level
 2. Sequences activities logically (book → quiz → coloring → reflection)
 3. Includes branching options based on performance:

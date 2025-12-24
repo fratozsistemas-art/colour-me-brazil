@@ -10,7 +10,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { profile_id, force_refresh } = await req.json();
+    const { profile_id, force_refresh, interest_topics } = await req.json();
 
     if (!profile_id) {
       return Response.json({ 
@@ -98,17 +98,22 @@ Coloring Pages: Available for most books
 COMPLETED BOOKS:
 ${completedBooks.slice(-5).map(id => books.find(b => b.id === id)?.title_en || id).join(', ')}
 
+INTEREST TOPICS (Parent-Configured):
+${(interest_topics || profile.interest_topics || []).join(', ') || 'Not specified'}
+
 CROSS-LEARNING INSIGHTS:
 ${crossInsights.slice(0, 3).map(ci => `- ${ci.title || 'Insight'}: ${ci.summary || ''}`).join('\n')}
 
 TASK: Generate 8 personalized content recommendations that:
 1. Match the child's reading level and interests
-2. Provide appropriate challenge (not too easy, not too hard)
-3. Build on completed content
-4. Introduce new themes/skills
-5. Balance reading, coloring, and quizzes
-6. Connect different learning areas (use CrossInsights)
-7. Consider Brazilian cultural context
+2. **PRIORITIZE content related to their interest topics** (${(interest_topics || profile.interest_topics || []).slice(0, 3).join(', ')})
+3. Provide appropriate challenge (not too easy, not too hard)
+4. Build on completed content
+5. Introduce new themes/skills that connect to their interests
+6. Balance reading, coloring, and quizzes
+7. Connect different learning areas (use CrossInsights)
+8. Consider Brazilian cultural context
+9. If interest topics are specified, make sure at least 5 of 8 recommendations relate to those topics
 
 Respond with a JSON array of 8 recommendation objects:
 [
