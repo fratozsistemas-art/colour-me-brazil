@@ -134,7 +134,7 @@ export default function TextReader({
         setAnnotations(existingAnnotations);
       } else {
         // Load from offline storage
-        const { getOfflineAnnotations } = await import('../offline/offlineManager');
+        const { getOfflineAnnotations } = await import('../offlineManager');
         const offlineAnnotations = await getOfflineAnnotations(profile.id, bookId, pageId);
         setAnnotations(offlineAnnotations);
       }
@@ -275,7 +275,7 @@ export default function TextReader({
         });
       } else {
         // Save offline
-        const { saveAnnotationOffline } = await import('../offline/offlineManager');
+        const { saveAnnotationOffline } = await import('../offlineManager');
         annotation = await saveAnnotationOffline({
           profile_id: profile.id,
           book_id: bookId,
@@ -307,7 +307,7 @@ export default function TextReader({
         }
       } else {
         // Delete offline
-        const { deleteAnnotationOffline } = await import('../offline/offlineManager');
+        const { deleteAnnotationOffline } = await import('../offlineManager');
         for (const annotation of annotations) {
           await deleteAnnotationOffline(annotation.id);
         }
