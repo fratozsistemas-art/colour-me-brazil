@@ -9,10 +9,21 @@ export default function Leaderboard() {
   const [timeframe, setTimeframe] = useState('all_time');
   const [category, setCategory] = useState('points');
 
+  const [currentProfileId] = useState(() => localStorage.getItem('currentProfileId'));
+
   const { data: profiles = [], isLoading } = useQuery({
     queryKey: ['leaderboard'],
     queryFn: async () => {
-      const allProfiles = await base44.entities.UserProfile.list();
+      // Only show profiles from same parent account for safety
+      const user = await base44.auth.me();
+      const parentAccounts = await base44.entities.ParentAccount.filter({ parent_user_id: user.id });
+      
+      if (parentAccounts.length === 0) return [];
+      
+      const allProfiles = await base44.entities.UserProfile.filter({
+        parent_account_id: parentAccounts[0].id
+      });
+      
       return allProfiles;
     }
   });
@@ -111,9 +122,10 @@ export default function Leaderboard() {
       <div className="mb-8">
         <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
           <Trophy className="w-10 h-10 text-yellow-500" />
-          <span className="text-gradient-brand">Leaderboard</span>
+          <span className="text-gradient-brand">Ranking Familiar</span>
         </h1>
-        <p className="text-gray-600">See how you rank against other young explorers!</p>
+        <p className="text-gray-600">Veja seu progresso entre os perfis da sua família!</p>
+        <p className="text-sm text-blue-600 mt-2">🔒 Apenas perfis da sua conta familiar são exibidos por segurança LGPD</p>
       </div>
 
       {/* Timeframe Filters */}
@@ -235,7 +247,11 @@ export default function Leaderboard() {
           {restOfLeaderboard.map((profile, index) => (
             <div
               key={profile.id}
-              className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+              className={`flex items-center gap-4 p-4 rounded-lg transition-colors ${
+                profile.id === currentProfileId 
+                  ? 'bg-blue-50 border-2 border-blue-500' 
+                  : 'bg-gray-50 hover:bg-gray-100'
+              }`}
             >
               <div className="text-2xl font-bold text-gray-400 w-8 text-center">
                 #{index + 4}
