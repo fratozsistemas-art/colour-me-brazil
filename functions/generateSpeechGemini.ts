@@ -1,4 +1,12 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+
+// Voice mappings for ElevenLabs (child-friendly voices)
+const VOICE_MAPPINGS = {
+  'pt-BR-Standard-A': 'pNInz6obpgDQGcFmaJgB', // Adam
+  'pt-BR-Standard-B': 'EXAVITQu4vr4xnSDxMaL', // Sarah
+  'en-US-Neural2-C': 'jsCqWAovK2LkecY7zXl4', // Emily (child-female)
+  'en-US-Neural2-D': 'IKne3meq5aSn9XLyUdCD', // Charlie (child-male)
+};
 
 Deno.serve(async (req) => {
   try {
@@ -15,84 +23,71 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'text is required' }, { status: 400 });
     }
 
-    const apiKey = Deno.env.get('GOOGLE_CLOUD_API_KEY');
+    const apiKey = Deno.env.get('ELEVENLABS_API_KEY');
     if (!apiKey) {
       return Response.json({ 
         success: false,
-        error: 'GOOGLE_CLOUD_API_KEY not configured. Please set it in the dashboard.' 
+        error: 'ELEVENLABS_API_KEY not configured. Please set it in the dashboard.' 
       }, { status: 200 });
     }
 
-    // Use Google Cloud Text-to-Speech API
     const languageCode = language === 'pt' ? 'pt-BR' : 'en-US';
-    const voiceName = language === 'pt' 
+    const requestedVoice = language === 'pt' 
       ? (voiceSettings?.voiceName || 'pt-BR-Standard-A')
       : (voiceSettings?.voiceName || 'en-US-Neural2-C');
+    
+    const voiceId = VOICE_MAPPINGS[requestedVoice] || VOICE_MAPPINGS['en-US-Neural2-C'];
 
-    // Call Google Cloud TTS API
-    const ttsResponse = await fetch(
-      `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`,
+    // Call ElevenLabs API
+    const response = await fetch(
+      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Accept': 'audio/mpeg',
+          'Content-Type': 'application/json',
+          'xi-api-key': apiKey
+        },
         body: JSON.stringify({
-          input: { text },
-          voice: {
-            languageCode,
-            name: voiceName,
-            ssmlGender: voiceSettings?.gender || 'NEUTRAL'
-          },
-          audioConfig: {
-            audioEncoding: 'MP3',
-            speakingRate: voiceSettings?.speed || 1.0,
-            pitch: voiceSettings?.pitch || 0.0,
-            volumeGainDb: voiceSettings?.volume || 0.0
+          text,
+          model_id: 'eleven_multilingual_v2',
+          voice_settings: {
+            stability: voiceSettings?.stability || 0.5,
+            similarity_boost: voiceSettings?.similarity_boost || 0.75,
+            style: 0.5,
+            use_speaker_boost: voiceSettings?.use_speaker_boost || true
           }
         })
       }
     );
 
-    if (!ttsResponse.ok) {
-      const errorData = await ttsResponse.json();
-      console.error('Google Cloud TTS API error:', errorData);
-      console.error('TTS API status:', ttsResponse.status);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('ElevenLabs API error:', errorText);
       return Response.json({
         success: false,
-        error: `Google Cloud TTS error (${ttsResponse.status}): ${errorData.error?.message || 'TTS API request failed'}`,
-        details: errorData
+        error: `ElevenLabs error (${response.status}): Failed to generate speech`,
+        details: errorText
       }, { status: 200 });
     }
 
-    const ttsData = await ttsResponse.json();
-    const audioContent = ttsData.audioContent;
+    const audioBuffer = await response.arrayBuffer();
+    const audioBlob = new Blob([audioBuffer], { type: 'audio/mpeg' });
+    const file = new File([audioBlob], `speech-${Date.now()}.mp3`, { type: 'audio/mpeg' });
 
-    if (!audioContent) {
-      console.error('No audio content in TTS response:', ttsData);
-      return Response.json({
-        success: false,
-        error: 'No audio content returned from TTS API',
-        details: ttsData
-      }, { status: 200 });
-    }
-
-    // Convert base64 to blob
-    const audioBlob = Uint8Array.from(atob(audioContent), c => c.charCodeAt(0));
-
-    // Upload to Base44 storage
     const uploadResult = await base44.asServiceRole.integrations.Core.UploadFile({
-      file: new Blob([audioBlob], { type: 'audio/mpeg' })
+      file
     });
 
     return Response.json({
       success: true,
       audio_url: uploadResult.file_url,
       language: languageCode,
-      voiceName
+      voiceName: requestedVoice
     });
 
   } catch (error) {
     console.error('Error generating speech:', error);
-    console.error('Error stack:', error.stack);
     return Response.json({
       success: false,
       error: error.message || 'Failed to generate speech',
