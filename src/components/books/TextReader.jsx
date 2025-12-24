@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Play, Pause, Volume2, Type, Minus, Plus, Moon, Sun, Bookmark, BookmarkCheck } from 'lucide-react';
+import { Play, Pause, Volume2, Type, Minus, Plus, Moon, Sun, Bookmark, BookmarkCheck, Highlighter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
+import WordDictionary from '../reading/WordDictionary';
+import AnnotationTools from '../reading/AnnotationTools';
 
 export default function TextReader({ 
   text, 
@@ -28,6 +30,12 @@ export default function TextReader({
   const [selectedText, setSelectedText] = useState('');
   const [bookmarks, setBookmarks] = useState([]);
   const [showBookmarks, setShowBookmarks] = useState(false);
+  const [selectedWord, setSelectedWord] = useState(null);
+  const [wordPosition, setWordPosition] = useState(null);
+  const [annotations, setAnnotations] = useState([]);
+  const [annotationType, setAnnotationType] = useState('highlight');
+  const [annotationColor, setAnnotationColor] = useState('#FFF59D');
+  const [showAnnotationTools, setShowAnnotationTools] = useState(false);
   const audioRef = useRef(null);
   const textRef = useRef(null);
 
@@ -54,6 +62,11 @@ export default function TextReader({
           if (bookId && pageId && userProfile.bookmarks) {
             const key = `${bookId}_${pageId}`;
             setBookmarks(userProfile.bookmarks[key] || []);
+          }
+
+          // Load annotations
+          if (bookId && pageId) {
+            loadAnnotations();
           }
         }
       } catch (error) {
@@ -107,6 +120,22 @@ export default function TextReader({
     };
   }, []);
 
+  // Load annotations
+  const loadAnnotations = async () => {
+    if (!profile || !bookId || !pageId) return;
+    
+    try {
+      const existingAnnotations = await base44.entities.TextAnnotation.filter({
+        profile_id: profile.id,
+        book_id: bookId,
+        page_id: pageId
+      });
+      setAnnotations(existingAnnotations);
+    } catch (error) {
+      console.error('Failed to load annotations:', error);
+    }
+  };
+
   // Text selection handler
   useEffect(() => {
     const handleSelection = () => {
@@ -122,6 +151,20 @@ export default function TextReader({
     document.addEventListener('selectionchange', handleSelection);
     return () => document.removeEventListener('selectionchange', handleSelection);
   }, []);
+
+  // Word click handler for dictionary
+  const handleWordClick = (e) => {
+    if (e.target.tagName === 'SPAN' && e.target.classList.contains('word')) {
+      const word = e.target.textContent.trim();
+      const rect = e.target.getBoundingClientRect();
+      
+      setSelectedWord(word);
+      setWordPosition({
+        x: rect.left + rect.width / 2,
+        y: rect.bottom
+      });
+    }
+  };
 
   const togglePlayPause = () => {
     const audio = audioRef.current;
@@ -182,7 +225,6 @@ export default function TextReader({
         const updatedBookmarks = { ...profile.bookmarks };
         const pageBookmarks = updatedBookmarks[key] || [];
         
-        // Check if already bookmarked
         if (pageBookmarks.some(b => b.text === selectedText)) {
           toast.info('This passage is already bookmarked');
           return;
@@ -207,6 +249,72 @@ export default function TextReader({
       console.error('Error saving bookmark:', error);
       toast.error('Failed to save bookmark');
     }
+  };
+
+  const handleAnnotate = async () => {
+    if (!selectedText || !profile) return;
+
+    try {
+      const annotation = await base44.entities.TextAnnotation.create({
+        profile_id: profile.id,
+        book_id: bookId,
+        page_id: pageId,
+        text_content: selectedText,
+        annotation_type: annotationType,
+        color: annotationType === 'note' ? null : annotationColor
+      });
+
+      setAnnotations([...annotations, annotation]);
+      toast.success(`${annotationType} added!`);
+      setSelectedText('');
+      window.getSelection().removeAllRanges();
+    } catch (error) {
+      console.error('Error saving annotation:', error);
+      toast.error('Failed to save annotation');
+    }
+  };
+
+  const handleClearAnnotations = async () => {
+    if (!profile) return;
+
+    try {
+      for (const annotation of annotations) {
+        await base44.entities.TextAnnotation.delete(annotation.id);
+      }
+      setAnnotations([]);
+      toast.success('Annotations cleared');
+    } catch (error) {
+      console.error('Error clearing annotations:', error);
+      toast.error('Failed to clear annotations');
+    }
+  };
+
+  // Render text with annotations
+  const renderAnnotatedText = () => {
+    if (!text) return null;
+
+    const words = text.split(/(\s+)/);
+    
+    return words.map((word, idx) => {
+      if (!word.trim()) return word;
+      
+      const annotation = annotations.find(a => a.text_content.includes(word));
+      const style = annotation ? {
+        backgroundColor: annotation.annotation_type === 'highlight' ? annotation.color : 'transparent',
+        textDecoration: annotation.annotation_type === 'underline' ? `underline 2px ${annotation.color}` : 'none',
+        textDecorationThickness: '2px'
+      } : {};
+
+      return (
+        <span
+          key={idx}
+          className="word cursor-pointer hover:bg-blue-100/30 transition-colors rounded px-0.5"
+          style={style}
+        >
+          {word}
+        </span>
+      );
+    });
   };
 
   const handleRemoveBookmark = async (bookmarkText) => {
@@ -304,6 +412,17 @@ export default function TextReader({
             )}
           </Button>
 
+          {/* Annotation Tools Toggle */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowAnnotationTools(!showAnnotationTools)}
+            title="Annotation Tools"
+            className={showAnnotationTools ? 'bg-purple-100' : ''}
+          >
+            <Highlighter className="w-4 h-4" />
+          </Button>
+
           {/* Font Size Controls */}
           <Button
             variant="outline"
@@ -327,6 +446,21 @@ export default function TextReader({
         </div>
       </div>
 
+      {/* Annotation Tools */}
+      <AnimatePresence>
+        {showAnnotationTools && (
+          <div className="px-6 pt-4">
+            <AnnotationTools
+              selectedAnnotationType={annotationType}
+              onAnnotationTypeChange={setAnnotationType}
+              selectedColor={annotationColor}
+              onColorChange={setAnnotationColor}
+              onClearAnnotations={handleClearAnnotations}
+            />
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Text Content */}
       <div className="flex-1 overflow-y-auto px-6 py-8">
         <motion.div
@@ -336,8 +470,9 @@ export default function TextReader({
           className="max-w-3xl mx-auto"
         >
           <Card className={`p-8 ${cardBg} backdrop-blur-sm shadow-lg relative`}>
-            <p 
+            <div 
               ref={textRef}
+              onClick={handleWordClick}
               className={`${textColor} whitespace-pre-wrap select-text`}
               style={{ 
                 fontSize: `${fontSize}px`,
@@ -345,28 +480,49 @@ export default function TextReader({
                 letterSpacing: highContrast ? '0.05em' : 'normal'
               }}
             >
-              {text}
-            </p>
+              {renderAnnotatedText()}
+            </div>
 
-            {/* Bookmark Selection Tooltip */}
+            {/* Selection Actions */}
             <AnimatePresence>
               {selectedText && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9, y: 10 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                  className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-50"
+                  className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-50 flex gap-2"
                 >
-                  <Button
-                    onClick={handleBookmarkPassage}
-                    className="bg-gradient-to-r from-purple-500 to-pink-500 shadow-lg"
-                  >
-                    <Bookmark className="w-4 h-4 mr-2" />
-                    Bookmark Selected Text
-                  </Button>
+                  {showAnnotationTools ? (
+                    <Button
+                      onClick={handleAnnotate}
+                      className="bg-gradient-to-r from-purple-500 to-pink-500 shadow-lg"
+                    >
+                      <Highlighter className="w-4 h-4 mr-2" />
+                      {annotationType === 'highlight' ? 'Highlight' : annotationType === 'underline' ? 'Underline' : 'Add Note'}
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={handleBookmarkPassage}
+                      className="bg-gradient-to-r from-purple-500 to-pink-500 shadow-lg"
+                    >
+                      <Bookmark className="w-4 h-4 mr-2" />
+                      Bookmark
+                    </Button>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {/* Word Dictionary */}
+            {selectedWord && (
+              <WordDictionary
+                word={selectedWord}
+                language={language}
+                context={text}
+                onClose={() => setSelectedWord(null)}
+                position={wordPosition}
+              />
+            )}
           </Card>
 
           {/* Bookmarks Panel */}
