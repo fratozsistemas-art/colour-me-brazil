@@ -133,6 +133,15 @@ const ENTITY_SECURITY_RULES = {
     writeFilter: (user, data) => {
       return { ...data, parent_account_id: user.parent_account_id };
     }
+  },
+  UserReport: {
+    readFilter: (user, query) => {
+      // Users can see reports they created or reports about their content
+      return { ...query, reporter_profile_id: user.current_profile_id };
+    },
+    writeFilter: (user, data) => {
+      return { ...data, reporter_profile_id: user.current_profile_id };
+    }
   }
 };
 
