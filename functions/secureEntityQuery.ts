@@ -142,6 +142,22 @@ const ENTITY_SECURITY_RULES = {
     writeFilter: (user, data) => {
       return { ...data, reporter_profile_id: user.current_profile_id };
     }
+  },
+  LearningPath: {
+    readFilter: (user, query) => {
+      return { ...query, profile_id: user.current_profile_id };
+    },
+    writeFilter: (user, data) => {
+      return { ...data, profile_id: user.current_profile_id };
+    }
+  },
+  PathProgress: {
+    readFilter: (user, query) => {
+      return { ...query, profile_id: user.current_profile_id };
+    },
+    writeFilter: (user, data) => {
+      return { ...data, profile_id: user.current_profile_id };
+    }
   }
 };
 

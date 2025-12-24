@@ -22,6 +22,7 @@ import Settings from './pages/Settings';
 import Shop from './pages/Shop';
 import Showcase from './pages/Showcase';
 import SubmitContent from './pages/SubmitContent';
+import LearningPaths from './pages/LearningPaths';
 import __Layout from './Layout.jsx';
 
 
@@ -50,6 +51,7 @@ export const PAGES = {
     "Shop": Shop,
     "Showcase": Showcase,
     "SubmitContent": SubmitContent,
+    "LearningPaths": LearningPaths,
 }
 
 export const pagesConfig = {
