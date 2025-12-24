@@ -116,6 +116,23 @@ const ENTITY_SECURITY_RULES = {
     writeFilter: (user, data) => {
       return { ...data, profile_id: user.current_profile_id };
     }
+  },
+  ContentRecommendation: {
+    readFilter: (user, query) => {
+      return { ...query, profile_id: user.current_profile_id };
+    },
+    writeFilter: (user, data) => {
+      return { ...data, profile_id: user.current_profile_id };
+    }
+  },
+  ModerationEvent: {
+    readFilter: (user, query) => {
+      // Parents can see their children's moderation events
+      return { ...query, parent_account_id: user.parent_account_id };
+    },
+    writeFilter: (user, data) => {
+      return { ...data, parent_account_id: user.parent_account_id };
+    }
   }
 };
 

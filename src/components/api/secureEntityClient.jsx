@@ -115,7 +115,9 @@ export const secureEntities = {
   Like: new SecureEntityClient('Like'),
   Comment: new SecureEntityClient('Comment'),
   ForumTopic: new SecureEntityClient('ForumTopic'),
-  ForumReply: new SecureEntityClient('ForumReply')
+  ForumReply: new SecureEntityClient('ForumReply'),
+  ContentRecommendation: new SecureEntityClient('ContentRecommendation'),
+  ModerationEvent: new SecureEntityClient('ModerationEvent')
 };
 
 /**
