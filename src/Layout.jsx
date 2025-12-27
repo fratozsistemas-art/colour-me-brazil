@@ -23,6 +23,7 @@ import BugReportForm from '@/components/moderation/BugReportForm';
       category: 'Main',
       items: [
         { name: 'Home', path: 'Home', icon: Book },
+        { name: 'Dashboard', path: 'Dashboard', icon: Sparkles },
         { name: 'Library', path: 'Library', icon: Book },
         { name: 'Profile', path: 'Profile', icon: User }
       ]

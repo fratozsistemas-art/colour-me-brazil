@@ -24,6 +24,7 @@ import Shop from './pages/Shop';
 import Showcase from './pages/Showcase';
 import SubmitContent from './pages/SubmitContent';
 import ReadingSettings from './pages/ReadingSettings';
+import Dashboard from './pages/Dashboard';
 import __Layout from './Layout.jsx';
 
 
@@ -54,6 +55,7 @@ export const PAGES = {
     "Showcase": Showcase,
     "SubmitContent": SubmitContent,
     "ReadingSettings": ReadingSettings,
+    "Dashboard": Dashboard,
 }
 
 export const pagesConfig = {
