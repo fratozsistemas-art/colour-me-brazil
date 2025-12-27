@@ -41,10 +41,10 @@ const getAppParams = () => {
 	}
 	return {
 		appId: getAppParamValue("app_id", { defaultValue: import.meta.env.VITE_BASE44_APP_ID }),
-		serverUrl: getAppParamValue("server_url", { defaultValue: import.meta.env.VITE_BASE44_BACKEND_URL }),
-		token: getAppParamValue("access_token", { removeFromUrl: true }),
+		serverUrl: getAppParamValue("server_url", { defaultValue: import.meta.env.VITE_BASE44_SERVER_URL || import.meta.env.VITE_BASE44_BACKEND_URL }),
+		token: getAppParamValue("access_token", { removeFromUrl: true }) || import.meta.env.VITE_BASE44_TOKEN,
 		fromUrl: getAppParamValue("from_url", { defaultValue: window.location.href }),
-		functionsVersion: getAppParamValue("functions_version"),
+		functionsVersion: getAppParamValue("functions_version", { defaultValue: import.meta.env.VITE_BASE44_FUNCTIONS_VERSION || 'v1' }),
 	}
 }
 
