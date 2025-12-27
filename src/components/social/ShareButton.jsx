@@ -20,10 +20,11 @@ export default function ShareButton({
   const [copied, setCopied] = useState(false);
 
   const handleShare = async (platform) => {
+    const shareUrl = url || (typeof window !== 'undefined' ? window.location.href : '');
     const shareData = {
       title: title || 'Colour Me Brazil',
       text: text || 'Check out my progress on Colour Me Brazil!',
-      url: url || window.location.href
+      url: shareUrl
     };
 
     if (platform === 'native' && navigator.share) {
@@ -36,18 +37,18 @@ export default function ShareButton({
       }
     } else if (platform === 'copy') {
       try {
-        await navigator.clipboard.writeText(url || window.location.href);
+        await navigator.clipboard.writeText(shareUrl);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       } catch (err) {
         console.error('Error copying:', err);
       }
     } else if (platform === 'facebook') {
-      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url || window.location.href)}`, '_blank');
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank');
     } else if (platform === 'twitter') {
-      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text || '')}&url=${encodeURIComponent(url || window.location.href)}`, '_blank');
+      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text || '')}&url=${encodeURIComponent(shareUrl)}`, '_blank');
     } else if (platform === 'whatsapp') {
-      window.open(`https://wa.me/?text=${encodeURIComponent((text || '') + ' ' + (url || window.location.href))}`, '_blank');
+      window.open(`https://wa.me/?text=${encodeURIComponent((text || '') + ' ' + shareUrl)}`, '_blank');
     }
   };
 
