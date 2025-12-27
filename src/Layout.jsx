@@ -137,20 +137,51 @@ import BugReportForm from '@/components/moderation/BugReportForm';
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
-            </nav>
-          </div>
-        </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        {children}
-      </main>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowBugReportModal(true)}
+                className="gap-2 border-orange-500 text-orange-500 hover:bg-orange-50"
+                title="Reportar Bug"
+              >
+                <Bug className="w-4 h-4" />
+                <span className="hidden xl:inline">Bug</span>
+              </Button>
+              </nav>
+              </div>
+              </div>
+              </header>
 
-      {/* Offline Sync Indicator */}
-      <OfflineSyncIndicator />
+              {/* Main Content */}
+              <main className="container mx-auto px-4 py-8">
+              {children}
+              </main>
 
-      {/* Mobile Navigation */}
+              {/* Offline Sync Indicator */}
+              <OfflineSyncIndicator />
+
+              {/* Bug Report Modal */}
+              <Dialog open={showBugReportModal} onOpenChange={setShowBugReportModal}>
+              <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+              <Bug className="w-5 h-5 text-orange-500" />
+              Reportar Bug ou Problema
+              </DialogTitle>
+              <DialogDescription>
+              Ajude-nos a melhorar! Descreva o problema e anexe um screenshot se possível.
+              </DialogDescription>
+              </DialogHeader>
+              <BugReportForm 
+              onClose={() => setShowBugReportModal(false)} 
+              profileId={currentProfileId}
+              currentUrl={typeof window !== 'undefined' ? window.location.href : ''}
+              />
+              </DialogContent>
+              </Dialog>
+
+              {/* Mobile Navigation */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white shadow-lg" style={{ borderTop: '2px solid #FF6B35' }}>
         <div className="grid grid-cols-4 gap-1 py-2">
           {menuItems[0].items.map(({ name, path, icon: Icon }) => (
