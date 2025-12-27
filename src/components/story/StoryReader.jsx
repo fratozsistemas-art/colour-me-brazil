@@ -11,6 +11,9 @@ import InteractiveHotspot from './InteractiveHotspot';
 import QuizModal from './QuizModal';
 import InteractiveWord from './InteractiveWord';
 import StoryAdaptationControls from './StoryAdaptationControls';
+import StoryChoiceDialog from './StoryChoiceDialog';
+import CharacterDialog from './CharacterDialog';
+import MiniGameModal from './minigames/MiniGameModal';
 import { toast } from 'sonner';
 import { useTTS, HighlightedText } from './TTSController';
 
@@ -38,6 +41,13 @@ export default function StoryReader({
   const [currentQuiz, setCurrentQuiz] = useState(null);
   const [showQuiz, setShowQuiz] = useState(false);
   const [quizAnswered, setQuizAnswered] = useState(false);
+  const [storyChoices, setStoryChoices] = useState([]);
+  const [showChoices, setShowChoices] = useState(false);
+  const [characterInteractions, setCharacterInteractions] = useState([]);
+  const [currentInteraction, setCurrentInteraction] = useState(null);
+  const [miniGames, setMiniGames] = useState([]);
+  const [currentMiniGame, setCurrentMiniGame] = useState(null);
+  const [storyProgress, setStoryProgress] = useState(null);
 
   const currentPage = pages[pageIndex];
 
@@ -56,6 +66,9 @@ export default function StoryReader({
     // Load interactive elements and quizzes for current page
     loadInteractiveElements();
     loadQuizzes();
+    loadStoryChoices();
+    loadCharacterInteractions();
+    loadMiniGames();
     setQuizAnswered(false);
   }, [pageIndex]);
   
@@ -86,6 +99,85 @@ export default function StoryReader({
       console.log('No quiz for this page');
       setQuizzes([]);
       setCurrentQuiz(null);
+    }
+  };
+
+  const loadStoryChoices = async () => {
+    try {
+      const choices = await base44.entities.StoryChoice.filter({
+        page_id: currentPage.id
+      });
+      const sortedChoices = (choices || []).sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+      setStoryChoices(sortedChoices);
+      setShowChoices(sortedChoices.length > 0);
+    } catch (error) {
+      console.log('No story choices for this page');
+      setStoryChoices([]);
+      setShowChoices(false);
+    }
+  };
+
+  const loadCharacterInteractions = async () => {
+    try {
+      const interactions = await base44.entities.CharacterInteraction.filter({
+        page_id: currentPage.id
+      });
+      setCharacterInteractions(interactions || []);
+    } catch (error) {
+      console.log('No character interactions for this page');
+      setCharacterInteractions([]);
+    }
+  };
+
+  const loadMiniGames = async () => {
+    try {
+      const games = await base44.entities.MiniGame.filter({
+        page_id: currentPage.id
+      });
+      setMiniGames(games || []);
+      
+      // Auto-show required games
+      if (games && games.length > 0) {
+        const requiredGame = games.find(g => g.required_to_continue);
+        if (requiredGame && storyProgress?.completed_minigames && 
+            !storyProgress.completed_minigames.includes(requiredGame.id)) {
+          setCurrentMiniGame(requiredGame);
+        }
+      }
+    } catch (error) {
+      console.log('No mini-games for this page');
+      setMiniGames([]);
+    }
+  };
+
+  const loadStoryProgress = async () => {
+    if (!book.profileId) return;
+
+    try {
+      const progress = await base44.entities.StoryProgress.filter({
+        profile_id: book.profileId,
+        book_id: book.id
+      });
+
+      if (progress.length > 0) {
+        setStoryProgress(progress[0]);
+      } else {
+        // Create new progress
+        const newProgress = await base44.entities.StoryProgress.create({
+          profile_id: book.profileId,
+          book_id: book.id,
+          current_page_id: currentPage.id,
+          visited_pages: [currentPage.id],
+          choices_made: [],
+          character_relationships: {},
+          collected_items: [],
+          completed_minigames: [],
+          story_variables: {}
+        });
+        setStoryProgress(newProgress);
+      }
+    } catch (error) {
+      console.error('Error loading story progress:', error);
     }
   };
 
@@ -232,6 +324,108 @@ export default function StoryReader({
     setQuizAnswered(true);
   };
 
+  const handleChoiceSelect = async (choice) => {
+    if (!storyProgress) return;
+
+    try {
+      // Record choice
+      const updatedChoices = [
+        ...storyProgress.choices_made,
+        {
+          choice_id: choice.id,
+          page_id: currentPage.id,
+          timestamp: new Date().toISOString()
+        }
+      ];
+
+      // Apply consequences
+      let updatedVariables = { ...storyProgress.story_variables };
+      if (choice.consequence) {
+        updatedVariables = { ...updatedVariables, ...choice.consequence };
+      }
+
+      await base44.entities.StoryProgress.update(storyProgress.id, {
+        choices_made: updatedChoices,
+        story_variables: updatedVariables
+      });
+
+      setShowChoices(false);
+
+      // Navigate to next page if specified
+      if (choice.next_page_id) {
+        const nextPageIndex = pages.findIndex(p => p.id === choice.next_page_id);
+        if (nextPageIndex !== -1) {
+          setPageIndex(nextPageIndex);
+          if (onPageChange) onPageChange(nextPageIndex);
+        }
+      }
+
+      toast.success(language === 'en' ? 'Choice recorded!' : 'Escolha registrada!');
+    } catch (error) {
+      console.error('Error recording choice:', error);
+      toast.error(language === 'en' ? 'Failed to record choice' : 'Falha ao registrar escolha');
+    }
+  };
+
+  const handleCharacterResponse = async (response) => {
+    if (!storyProgress || !currentInteraction) return;
+
+    try {
+      // Update character relationship if applicable
+      const characterName = currentInteraction.character_name_en;
+      const relationships = { ...storyProgress.character_relationships };
+      
+      if (response.outcome?.relationship_change) {
+        relationships[characterName] = (relationships[characterName] || 0) + response.outcome.relationship_change;
+      }
+
+      await base44.entities.StoryProgress.update(storyProgress.id, {
+        character_relationships: relationships
+      });
+
+      setCurrentInteraction(null);
+      toast.success(language === 'en' ? 'Response recorded!' : 'Resposta registrada!');
+    } catch (error) {
+      console.error('Error recording response:', error);
+    }
+  };
+
+  const handleMiniGameComplete = async (result) => {
+    if (!storyProgress || !currentMiniGame) return;
+
+    try {
+      if (result.completed) {
+        // Record completion
+        const updatedGames = [...storyProgress.completed_minigames, currentMiniGame.id];
+        
+        // Apply rewards
+        let updatedItems = [...storyProgress.collected_items];
+        if (currentMiniGame.completion_reward?.items) {
+          updatedItems = [...updatedItems, ...currentMiniGame.completion_reward.items];
+        }
+
+        await base44.entities.StoryProgress.update(storyProgress.id, {
+          completed_minigames: updatedGames,
+          collected_items: updatedItems
+        });
+
+        // Award points
+        if (currentMiniGame.completion_reward?.points && book.profileId) {
+          const profiles = await base44.entities.UserProfile.filter({ id: book.profileId });
+          if (profiles.length > 0) {
+            await base44.entities.UserProfile.update(book.profileId, {
+              total_points: (profiles[0].total_points || 0) + currentMiniGame.completion_reward.points
+            });
+          }
+        }
+      }
+
+      setCurrentMiniGame(null);
+    } catch (error) {
+      console.error('Error recording mini-game completion:', error);
+    }
+  };
+
   const [wordDefinitions, setWordDefinitions] = useState([]);
   const [readingStartTime, setReadingStartTime] = useState(null);
   const [fontSize, setFontSize] = useState('medium');
@@ -277,10 +471,11 @@ export default function StoryReader({
     loadWordDefinitions();
     setReadingStartTime(Date.now());
 
-    // Load user preferences
+    // Load user preferences and story progress
     if (book.profileId) {
       loadUserPreferences(book.profileId);
       loadBookmarks(book.profileId);
+      loadStoryProgress();
     }
 
     return () => {
@@ -555,6 +750,17 @@ export default function StoryReader({
                 Quiz
               </Button>
             )}
+            {miniGames.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentMiniGame(miniGames[0])}
+                className="text-white border-white/20"
+              >
+                <Star className="w-4 h-4 mr-2" />
+                {language === 'en' ? 'Game' : 'Jogo'}
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -702,6 +908,22 @@ export default function StoryReader({
                     onInteract={() => console.log('Interacted with:', element)}
                   />
                 ))}
+
+                {/* Character Interaction Hotspots */}
+                {characterInteractions.map((interaction, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentInteraction(interaction)}
+                    className="absolute w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform animate-pulse border-4 border-white"
+                    style={{
+                      left: `${interaction.position_x}%`,
+                      top: `${interaction.position_y}%`,
+                      transform: 'translate(-50%, -50%)'
+                    }}
+                  >
+                    <span className="text-2xl">💬</span>
+                  </button>
+                ))}
               </div>
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-gray-700 to-gray-800 rounded-xl flex items-center justify-center">
@@ -732,6 +954,35 @@ export default function StoryReader({
                 />
               )}
             </AnimatePresence>
+
+            {/* Story Choices Dialog */}
+            {showChoices && (
+              <StoryChoiceDialog
+                choices={storyChoices}
+                onChoiceSelect={handleChoiceSelect}
+                language={language}
+              />
+            )}
+
+            {/* Character Interaction Dialog */}
+            {currentInteraction && (
+              <CharacterDialog
+                interaction={currentInteraction}
+                onResponse={handleCharacterResponse}
+                onClose={() => setCurrentInteraction(null)}
+                language={language}
+              />
+            )}
+
+            {/* Mini-Game Modal */}
+            {currentMiniGame && (
+              <MiniGameModal
+                game={currentMiniGame}
+                onComplete={handleMiniGameComplete}
+                onSkip={() => setCurrentMiniGame(null)}
+                language={language}
+              />
+            )}
           </motion.div>
         </div>
 
