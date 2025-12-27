@@ -6,11 +6,24 @@ import { Card } from '@/components/ui/card';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Eye, Heart, Share2, Download, X, Clock, Palette, 
-  Filter, Grid3x3, LayoutGrid, ChevronLeft, ChevronRight 
+  Filter, Grid3x3, LayoutGrid, ChevronLeft, ChevronRight,
+  Trash2, Edit2
 } from 'lucide-react';
 import ShareButton from '../components/social/ShareButton';
 import { createPageUrl } from '../utils';
 import { useNavigate } from 'react-router-dom';
+import ColoringCanvas from '../components/coloring/ColoringCanvas';
+import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function ArtGallery() {
   const navigate = useNavigate();
@@ -19,6 +32,9 @@ export default function ArtGallery() {
   const [filterShowcased, setFilterShowcased] = useState('all');
   const [viewMode, setViewMode] = useState('grid');
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [editingArtwork, setEditingArtwork] = useState(null);
+  const [deletingArtwork, setDeletingArtwork] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Check authentication and load profile
   useEffect(() => {
@@ -46,7 +62,7 @@ export default function ArtGallery() {
   }, []);
 
   // Fetch artwork
-  const { data: allArtwork = [], isLoading } = useQuery({
+  const { data: allArtwork = [], isLoading, refetch } = useQuery({
     queryKey: ['artwork', currentProfile?.id],
     queryFn: () => currentProfile 
       ? base44.entities.ColoredArtwork.filter({ profile_id: currentProfile.id })
@@ -78,6 +94,58 @@ export default function ArtGallery() {
     link.href = artwork.artwork_url;
     link.download = `artwork-${artwork.id}.png`;
     link.click();
+  };
+
+  const handleDelete = async () => {
+    if (!deletingArtwork) return;
+    
+    setIsDeleting(true);
+    try {
+      await base44.entities.ColoredArtwork.delete(deletingArtwork.id);
+      toast.success('Artwork deleted successfully');
+      setDeletingArtwork(null);
+      refetch();
+      if (selectedArtwork?.id === deletingArtwork.id) {
+        setSelectedArtwork(null);
+      }
+    } catch (error) {
+      console.error('Error deleting artwork:', error);
+      toast.error('Failed to delete artwork');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleEdit = (artwork) => {
+    setEditingArtwork(artwork);
+  };
+
+  const handleSaveEdit = async (data) => {
+    if (!editingArtwork) return;
+
+    try {
+      // Convert canvas to blob and upload
+      const blob = await new Promise(resolve => 
+        data.canvas.toBlob(resolve, 'image/png', 1.0)
+      );
+      
+      const uploadResult = await base44.integrations.Core.UploadFile({
+        file: blob
+      });
+
+      // Update the artwork
+      await base44.entities.ColoredArtwork.update(editingArtwork.id, {
+        artwork_url: uploadResult.file_url,
+        coloring_time_seconds: (editingArtwork.coloring_time_seconds || 0) + data.coloring_time
+      });
+
+      toast.success('Artwork updated successfully!');
+      setEditingArtwork(null);
+      refetch();
+    } catch (error) {
+      console.error('Error updating artwork:', error);
+      toast.error('Failed to update artwork');
+    }
   };
 
   const handlePrevious = () => {
@@ -284,9 +352,27 @@ export default function ArtGallery() {
                       <Button
                         size="sm"
                         variant="outline"
+                        onClick={() => handleEdit(artwork)}
+                        title="Edit"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
                         onClick={() => handleDownload(artwork)}
+                        title="Download"
                       >
                         <Download className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setDeletingArtwork(artwork)}
+                        className="text-red-500 hover:text-red-600"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
@@ -377,7 +463,7 @@ export default function ArtGallery() {
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <Button
                       onClick={() => handleToggleShowcase(selectedArtwork)}
                       className="flex-1"
@@ -385,6 +471,16 @@ export default function ArtGallery() {
                     >
                       <Eye className="w-4 h-4 mr-2" />
                       {selectedArtwork.is_showcased ? 'Hide from Showcase' : 'Add to Showcase'}
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        handleEdit(selectedArtwork);
+                        setSelectedArtwork(null);
+                      }}
+                      variant="outline"
+                    >
+                      <Edit2 className="w-4 h-4 mr-2" />
+                      Edit
                     </Button>
                     <Button
                       onClick={() => handleDownload(selectedArtwork)}
@@ -399,6 +495,17 @@ export default function ArtGallery() {
                       url={selectedArtwork.artwork_url}
                       variant="outline"
                     />
+                    <Button
+                      onClick={() => {
+                        setDeletingArtwork(selectedArtwork);
+                        setSelectedArtwork(null);
+                      }}
+                      variant="outline"
+                      className="text-red-500 hover:text-red-600"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete
+                    </Button>
                   </div>
                 </div>
               </motion.div>
@@ -412,6 +519,41 @@ export default function ArtGallery() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
-  );
-}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deletingArtwork} onOpenChange={(open) => !open && setDeletingArtwork(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Artwork?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this artwork? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Edit Artwork Modal */}
+      {editingArtwork && (
+        <ColoringCanvas
+          pageId={editingArtwork.page_id}
+          bookId={editingArtwork.book_id}
+          profileId={currentProfile.id}
+          illustrationUrl={editingArtwork.artwork_url}
+          onSave={handleSaveEdit}
+          onClose={() => setEditingArtwork(null)}
+          initialStrokes={[]}
+        />
+      )}
+      </div>
+      );
+      }
