@@ -37,8 +37,14 @@ export const AuthProvider = ({ children }) => {
         const publicSettings = await appClient.get(`/prod/public-settings/by-id/${appParams.appId}`);
         setAppPublicSettings(publicSettings);
         
-        // If we got the app public settings successfully, check if user is authenticated
-        if (appParams.token) {
+        // Check if user has a token from URL or localStorage
+        // The appParams.token is a CONFIG token, not a USER token
+        // We need to check for user token separately
+        const userToken = localStorage.getItem('base44_access_token');
+        
+        if (userToken) {
+          // Set the user token in the base44 client
+          base44.auth.setToken(userToken);
           await checkUserAuth();
         } else {
           setIsLoadingAuth(false);
@@ -100,12 +106,12 @@ export const AuthProvider = ({ children }) => {
       setIsLoadingAuth(false);
       setIsAuthenticated(false);
       
-      // If user auth fails, it might be an expired token
+      // If user auth fails, clear the invalid token
       if (error.status === 401 || error.status === 403) {
-        setAuthError({
-          type: 'auth_required',
-          message: 'Authentication required'
-        });
+        localStorage.removeItem('base44_access_token');
+        localStorage.removeItem('token');
+        // Don't set authError - just let the user continue without auth
+        // They can click "Get Started" to login
       }
     }
   };
