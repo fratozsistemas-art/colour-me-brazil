@@ -10,9 +10,10 @@ import {
 } from 'lucide-react';
 import ShareButton from '../components/social/ShareButton';
 import { createPageUrl } from '../utils';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 export default function ArtGallery() {
+  const navigate = useNavigate();
   const [currentProfile, setCurrentProfile] = useState(null);
   const [selectedArtwork, setSelectedArtwork] = useState(null);
   const [filterShowcased, setFilterShowcased] = useState('all');
@@ -98,9 +99,7 @@ export default function ArtGallery() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <p className="text-gray-600 mb-4">Please select a profile first</p>
-          <Link to={createPageUrl('Library')}>
-            <Button>Go to Library</Button>
-          </Link>
+          <Button onClick={() => navigate(createPageUrl('Library'))}>Go to Library</Button>
         </div>
       </div>
     );
@@ -127,9 +126,9 @@ export default function ArtGallery() {
               Your collection of beautiful colored artwork
             </p>
           </div>
-          <Link to={createPageUrl('Library')}>
-            <Button variant="outline">Back to Library</Button>
-          </Link>
+          <Button variant="outline" onClick={() => navigate(createPageUrl('Library'))}>
+            Back to Library
+          </Button>
         </div>
 
         {/* Stats */}
@@ -212,11 +211,12 @@ export default function ArtGallery() {
           <p className="text-gray-500 mb-6">
             Start coloring some pages to build your gallery!
           </p>
-          <Link to={createPageUrl('Library')}>
-            <Button className="bg-gradient-to-r from-orange-500 to-pink-500">
-              Start Coloring
-            </Button>
-          </Link>
+          <Button 
+            className="bg-gradient-to-r from-orange-500 to-pink-500"
+            onClick={() => navigate(createPageUrl('Library'))}
+          >
+            Start Coloring
+          </Button>
         </Card>
       ) : (
         <div className={
