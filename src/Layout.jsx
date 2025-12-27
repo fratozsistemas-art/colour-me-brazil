@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from './utils';
-import { Book, Settings, User, Palette, ShoppingBag, Trophy, Upload, Shield, MessageSquare, Sparkles, Users, Menu, Image, BookOpen, Route, FileText } from 'lucide-react';
+import { Book, Settings, User, Palette, ShoppingBag, Trophy, Upload, Shield, MessageSquare, Sparkles, Users, Menu, Image, BookOpen, Route, FileText, Bug } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,8 +12,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import OfflineSyncIndicator from '@/components/offline/OfflineSyncIndicator';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import BugReportForm from '@/components/moderation/BugReportForm';
 
-export default function Layout({ children, currentPageName }) {
+      export default function Layout({ children, currentPageName }) {
+        const [showBugReportModal, setShowBugReportModal] = React.useState(false);
+        const currentProfileId = localStorage.getItem('currentProfileId');
   const menuItems = [
     { 
       category: 'Main',
@@ -148,7 +152,7 @@ export default function Layout({ children, currentPageName }) {
 
       {/* Mobile Navigation */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white shadow-lg" style={{ borderTop: '2px solid #FF6B35' }}>
-        <div className="grid grid-cols-3 gap-1 py-2">
+        <div className="grid grid-cols-4 gap-1 py-2">
           {menuItems[0].items.map(({ name, path, icon: Icon }) => (
             <Link
               key={path}
@@ -160,6 +164,14 @@ export default function Layout({ children, currentPageName }) {
               <span className="text-xs font-medium">{name}</span>
             </Link>
           ))}
+          <button 
+            onClick={() => setShowBugReportModal(true)}
+            className="flex flex-col items-center gap-1 px-2 py-2 rounded-lg transition-all"
+            style={{ color: '#6C757D' }}
+          >
+            <Bug className="w-6 h-6" />
+            <span className="text-xs font-medium">Bug</span>
+          </button>
         </div>
       </nav>
     </div>
