@@ -24,12 +24,6 @@ import Shop from './pages/Shop';
 import Showcase from './pages/Showcase';
 import SubmitContent from './pages/SubmitContent';
 import ReadingSettings from './pages/ReadingSettings';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import TermsOfService from './pages/TermsOfService';
-import CookiePolicy from './pages/CookiePolicy';
-import COPPACompliance from './pages/COPPACompliance';
-import FAQ from './pages/FAQ';
-import Contact from './pages/Contact';
 import Dashboard from './pages/Dashboard';
 import __Layout from './Layout.jsx';
 
@@ -61,17 +55,11 @@ export const PAGES = {
     "Showcase": Showcase,
     "SubmitContent": SubmitContent,
     "ReadingSettings": ReadingSettings,
-    "PrivacyPolicy": PrivacyPolicy,
-    "TermsOfService": TermsOfService,
-    "CookiePolicy": CookiePolicy,
-    "COPPACompliance": COPPACompliance,
-    "FAQ": FAQ,
-    "Contact": Contact,
     "Dashboard": Dashboard,
 }
 
 export const pagesConfig = {
-    mainPage: "Library",
+    mainPage: "Home",
     Pages: PAGES,
     Layout: __Layout,
 };
