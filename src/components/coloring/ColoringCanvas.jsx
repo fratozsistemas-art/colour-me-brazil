@@ -1320,7 +1320,6 @@ export default function ColoringCanvas({
                       </div>
                     )}
                   </div>
-                  </div>
 
                   {/* Texture Fill Mode */}
                   <div className="mt-3">
