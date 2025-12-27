@@ -4,6 +4,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Cloud, User, Bell, Shield, Palette } from 'lucide-react';
 import OfflineSettings from '../components/settings/OfflineSettings';
 import AccessibilitySettings from '../components/accessibility/AccessibilitySettings';
+import PrivacySettings from '../components/settings/PrivacySettings';
+import NotificationSettings from '../components/settings/NotificationSettings';
 
 export default function Settings() {
   return (
@@ -27,11 +29,11 @@ export default function Settings() {
             <User className="w-4 h-4" />
             <span className="hidden sm:inline">Profile</span>
           </TabsTrigger>
-          <TabsTrigger value="notifications" className="flex items-center gap-2" disabled>
+          <TabsTrigger value="notifications" className="flex items-center gap-2">
             <Bell className="w-4 h-4" />
             <span className="hidden sm:inline">Notifications</span>
           </TabsTrigger>
-          <TabsTrigger value="privacy" className="flex items-center gap-2" disabled>
+          <TabsTrigger value="privacy" className="flex items-center gap-2">
             <Shield className="w-4 h-4" />
             <span className="hidden sm:inline">Privacy</span>
           </TabsTrigger>
@@ -61,7 +63,7 @@ export default function Settings() {
 
         <TabsContent value="privacy">
           <Card className="p-6">
-            <p className="text-gray-600">Privacy settings coming soon...</p>
+            <PrivacySettings />
           </Card>
         </TabsContent>
       </Tabs>

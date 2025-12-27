@@ -1,7 +1,31 @@
 {
-  "name": "base44-app",
+  "name": "colour-me-brazil",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "An interactive bilingual coloring and storytelling app for children aged 6-12 to explore Brazilian culture, folklore, and the Amazon rainforest.",
+  "author": "Colour Me Brazil Team <support@colourmebrazil.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/colourmebrazil/webapp.git"
+  },
+  "homepage": "https://colourmebrazil.com",
+  "bugs": {
+    "url": "https://github.com/colourmebrazil/webapp/issues",
+    "email": "bugs@colourmebrazil.com"
+  },
+  "keywords": [
+    "education",
+    "children",
+    "bilingual",
+    "learning",
+    "brazilian-culture",
+    "coloring",
+    "stories",
+    "coppa-compliant",
+    "pwa",
+    "react"
+  ],
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,7 +33,10 @@
     "lint": "eslint . --quiet",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc -p ./jsconfig.json",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage"
   },
   "dependencies": {
     "@base44/sdk": "^0.8.3",
@@ -80,6 +107,9 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.1",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^22.13.5",
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
@@ -92,9 +122,11 @@
     "eslint-plugin-react-refresh": "^0.4.18",
     "eslint-plugin-unused-imports": "^4.3.0",
     "globals": "^15.14.0",
+    "jsdom": "^27.4.0",
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.2",
-    "vite": "^6.1.0"
+    "vite": "^6.1.0",
+    "vitest": "^4.0.16"
   }
 }

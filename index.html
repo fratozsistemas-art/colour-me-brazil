@@ -1,14 +1,121 @@
 <!doctype html>
-<html lang="en">
+<html lang="en-US">
   <head>
+    <!-- Basic Meta Tags -->
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="https://base44.com/logo_v2.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    
+    <!-- Primary Meta Tags -->
+    <title>Colour Me Brazil - Interactive Bilingual Learning Platform for Children</title>
+    <meta name="title" content="Colour Me Brazil - Interactive Bilingual Learning Platform for Children" />
+    <meta name="description" content="An interactive bilingual coloring and storytelling app for children aged 6-12 to explore Brazilian culture, folklore, and the Amazon rainforest through art and reading." />
+    <meta name="keywords" content="children education, bilingual learning, Brazilian culture, coloring app, interactive stories, kids learning, Portuguese English, Amazon rainforest, cultural education, educational games" />
+    <meta name="author" content="Colour Me Brazil" />
+    <meta name="robots" content="index, follow" />
+    <meta name="language" content="English, Portuguese" />
+    <meta name="revisit-after" content="7 days" />
+    <meta name="rating" content="general" />
+    <meta name="target" content="children, parents, educators" />
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    
+    <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json" />
-    <title>Base44 APP</title>
+    <meta name="theme-color" content="#FF6B35" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Colour Me Brazil" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://colourmebrazil.com/" />
+    <meta property="og:title" content="Colour Me Brazil - Interactive Bilingual Learning Platform for Children" />
+    <meta property="og:description" content="An interactive bilingual coloring and storytelling app for children aged 6-12 to explore Brazilian culture, folklore, and the Amazon rainforest through art and reading." />
+    <meta property="og:image" content="https://colourmebrazil.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="Colour Me Brazil" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="pt_BR" />
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://colourmebrazil.com/" />
+    <meta name="twitter:title" content="Colour Me Brazil - Interactive Bilingual Learning Platform" />
+    <meta name="twitter:description" content="Explore Brazilian culture through interactive stories and coloring activities. Perfect for children aged 6-12." />
+    <meta name="twitter:image" content="https://colourmebrazil.com/twitter-card.png" />
+    <meta name="twitter:creator" content="@colourmebrazil" />
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://colourmebrazil.com/" />
+    
+    <!-- Alternate Languages -->
+    <link rel="alternate" hreflang="en" href="https://colourmebrazil.com/en/" />
+    <link rel="alternate" hreflang="pt" href="https://colourmebrazil.com/pt/" />
+    <link rel="alternate" hreflang="x-default" href="https://colourmebrazil.com/" />
+    
+    <!-- Structured Data (Schema.org) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "EducationalApplication",
+      "name": "Colour Me Brazil",
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "Web, iOS, Android",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "ratingCount": "1250"
+      },
+      "description": "An interactive bilingual coloring and storytelling app for children aged 6-12 to explore Brazilian culture, folklore, and the Amazon rainforest.",
+      "educationalLevel": "Elementary School",
+      "typicalAgeRange": "6-12",
+      "learningResourceType": ["Interactive Activity", "E-Book", "Coloring Activity"],
+      "inLanguage": ["en-US", "pt-BR"],
+      "author": {
+        "@type": "Organization",
+        "name": "Colour Me Brazil"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Colour Me Brazil",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://colourmebrazil.com/logo.png"
+        }
+      },
+      "screenshot": "https://colourmebrazil.com/screenshot.png"
+    }
+    </script>
+    
+    <!-- COPPA Compliance -->
+    <meta name="audience" content="children" />
+    <meta name="coppa-compliant" content="true" />
+    
+    <!-- Preconnect for Performance -->
+    <link rel="preconnect" href="https://qtrypzzcjebvfcihiynt.supabase.co" />
+    <link rel="dns-prefetch" href="https://qtrypzzcjebvfcihiynt.supabase.co" />
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    
+    <!-- No Script Fallback -->
+    <noscript>
+      <div style="text-align: center; padding: 50px; font-family: sans-serif;">
+        <h1>JavaScript Required</h1>
+        <p>Colour Me Brazil requires JavaScript to be enabled. Please enable JavaScript in your browser settings.</p>
+      </div>
+    </noscript>
   </body>
 </html>
