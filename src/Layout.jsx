@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import BugReportForm from '@/components/moderation/BugReportForm';
 
       export default function Layout({ children, currentPageName }) {
+        const navigate = useNavigate();
         const [showBugReportModal, setShowBugReportModal] = React.useState(false);
         const currentProfileId = localStorage.getItem('currentProfileId');
   const menuItems = [
