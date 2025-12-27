@@ -15,6 +15,8 @@ import { Button } from '@/components/ui/button';
 import OfflineSyncIndicator from '@/components/offline/OfflineSyncIndicator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import BugReportForm from '@/components/moderation/BugReportForm';
+import ThemeToggle from '@/components/ThemeToggle';
+import LanguageToggle from '@/components/LanguageToggle';
 
       export default function Layout({ children, currentPageName }) {
         const [showBugReportModal, setShowBugReportModal] = React.useState(false);
@@ -62,7 +64,7 @@ import BugReportForm from '@/components/moderation/BugReportForm';
   return (
     <div className="min-h-screen" style={{ background: 'linear-gradient(to bottom right, #FFF8F0, #A8DADC)' }}>
       {/* Header */}
-      <header className="bg-white shadow-md sticky top-0 z-50 border-b-2" style={{ borderColor: '#FF6B35' }}>
+      <header className="bg-white dark:bg-gray-900 shadow-md sticky top-0 z-50 border-b-2 transition-colors" style={{ borderColor: '#FF6B35' }}>
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             {/* Logo */}
@@ -139,6 +141,9 @@ import BugReportForm from '@/components/moderation/BugReportForm';
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
+
+              <LanguageToggle className="ml-2" />
+              <ThemeToggle className="ml-1" />
 
               <Button
                 variant="outline"
