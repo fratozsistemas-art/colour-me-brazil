@@ -1272,9 +1272,9 @@ export default function ColoringCanvas({
                       </Button>
                     </div>
                   </div>
-                  </div>
-                  )}
-                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Recent Colors */}
             {recentColors.length > 0 && (
