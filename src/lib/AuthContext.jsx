@@ -21,15 +21,27 @@ export const AuthProvider = ({ children }) => {
     try {
       setIsLoadingPublicSettings(true);
       setAuthError(null);
+
+      // Validate appParams before proceeding
+      if (!appParams.appId || !appParams.serverUrl) {
+        console.error('❌ Invalid app configuration:', appParams);
+        setAuthError({
+          type: 'config_error',
+          message: 'Application configuration is incomplete'
+        });
+        setIsLoadingPublicSettings(false);
+        setIsLoadingAuth(false);
+        return;
+      }
       
-      // First, check app public settings (with token if available)
-      // This will tell us if auth is required, user not registered, etc.
+      // First, check app public settings
+      // This endpoint should not require authentication
       const appClient = createAxiosClient({
         baseURL: `${appParams.serverUrl}/api/apps/public`,
         headers: {
           'X-App-Id': appParams.appId
         },
-        token: appParams.token, // Include token if available
+        // Don't include any token for public endpoint
         interceptResponses: true
       });
       
@@ -43,9 +55,18 @@ export const AuthProvider = ({ children }) => {
         const userToken = localStorage.getItem('base44_access_token');
         
         if (userToken) {
-          // Set the user token in the base44 client
-          base44.auth.setToken(userToken);
-          await checkUserAuth();
+          try {
+            // Set the user token in the base44 client
+            base44.auth.setToken(userToken);
+            await checkUserAuth();
+          } catch (tokenError) {
+            console.error('Failed to set user token:', tokenError);
+            // Clear invalid token
+            localStorage.removeItem('base44_access_token');
+            localStorage.removeItem('token');
+            setIsLoadingAuth(false);
+            setIsAuthenticated(false);
+          }
         } else {
           setIsLoadingAuth(false);
           setIsAuthenticated(false);
