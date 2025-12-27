@@ -85,9 +85,9 @@ function App() {
             <ErrorBoundary>
               <AuthenticatedApp />
             </ErrorBoundary>
+            <CookieConsentBanner />
           </Router>
           <Toaster />
-          <CookieConsentBanner />
           <VisualEditAgent />
         </QueryClientProvider>
       </AuthProvider>
