@@ -461,32 +461,58 @@ export async function syncOfflineData() {
     // Get unsynced data
     const unsyncedData = await getUnsyncedData();
 
-    // Sync coloring sessions
+    // Sync coloring sessions and mini-game progress
     for (const session of unsyncedData.coloringSessions) {
       try {
+        const { profile_id, page_id, book_id, game_id, type, result, synced, timestamp, id, ...sessionData } = session;
+
+        // Handle mini-game progress
+        if (type === 'minigame' && game_id) {
+          const progressRecords = await base44.entities.StoryProgress.filter({
+            profile_id,
+            book_id
+          });
+
+          if (progressRecords.length > 0) {
+            const progress = progressRecords[0];
+            const completedGames = progress.completed_minigames || [];
+            
+            if (!completedGames.includes(game_id)) {
+              await base44.entities.StoryProgress.update(progress.id, {
+                completed_minigames: [...completedGames, game_id]
+              });
+            }
+          }
+
+          // Mark as synced
+          const db = await openDB();
+          const tx = db.transaction(['coloring_sessions'], 'readwrite');
+          const store = tx.objectStore('coloring_sessions');
+          session.synced = true;
+          await new Promise((resolve, reject) => {
+            const request = store.put(session);
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+          });
+          
+          results.coloringSessions++;
+          continue;
+        }
+
+        // Handle regular coloring sessions
         const existing = await base44.entities.ColoringSession.filter({
-          profile_id: session.profile_id,
-          page_id: session.page_id
+          profile_id,
+          page_id
         });
 
         if (existing.length > 0) {
-          await base44.entities.ColoringSession.update(existing[0].id, {
-            strokes: session.strokes,
-            coloring_time: session.coloring_time,
-            is_completed: session.is_completed,
-            thumbnail_data: session.thumbnail_data,
-            last_modified: session.last_modified
-          });
+          await base44.entities.ColoringSession.update(existing[0].id, sessionData);
         } else {
           await base44.entities.ColoringSession.create({
-            profile_id: session.profile_id,
-            page_id: session.page_id,
-            book_id: session.book_id,
-            strokes: session.strokes,
-            coloring_time: session.coloring_time,
-            is_completed: session.is_completed,
-            thumbnail_data: session.thumbnail_data,
-            last_modified: session.last_modified
+            profile_id,
+            page_id,
+            book_id,
+            ...sessionData
           });
         }
 
@@ -503,7 +529,7 @@ export async function syncOfflineData() {
         
         results.coloringSessions++;
       } catch (error) {
-        console.error('Error syncing coloring session:', error);
+        console.error('Error syncing session:', error);
         results.errors.push({ type: 'coloring_session', error: error.message });
       }
     }
@@ -713,16 +739,120 @@ export function setupOfflineSync() {
 export async function getAllDownloadedBooks() {
   try {
     const db = await openDB();
-    const transaction = db.transaction(['books'], 'readonly');
-    const store = transaction.objectStore('books');
+    const booksTransaction = db.transaction(['books'], 'readonly');
+    const booksStore = booksTransaction.objectStore('books');
     
-    return new Promise((resolve, reject) => {
-      const request = store.getAll();
+    const books = await new Promise((resolve, reject) => {
+      const request = booksStore.getAll();
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
+
+    // Get page counts and sizes for each book
+    const pagesTransaction = db.transaction(['pages'], 'readonly');
+    const pagesStore = pagesTransaction.objectStore('pages');
+    
+    const allPages = await new Promise((resolve, reject) => {
+      const request = pagesStore.getAll();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+
+    // Calculate size and page count for each book
+    const cache = await caches.open(CACHE_NAME);
+    const booksWithInfo = await Promise.all(books.map(async (book) => {
+      const bookPages = allPages.filter(p => p.book_id === book.book_id);
+      let totalSize = 0;
+
+      // Estimate size from cached files
+      for (const page of bookPages) {
+        const urls = [page.illustration_url, page.audio_narration_en_url, page.audio_narration_pt_url].filter(Boolean);
+        for (const url of urls) {
+          try {
+            const response = await cache.match(url);
+            if (response) {
+              const blob = await response.blob();
+              totalSize += blob.size;
+            }
+          } catch (error) {
+            // Ignore errors for individual files
+          }
+        }
+      }
+
+      return {
+        bookId: book.book_id,
+        pageCount: bookPages.length,
+        size: totalSize,
+        ...book
+      };
+    }));
+
+    return booksWithInfo;
   } catch (error) {
     console.error('Error getting downloaded books:', error);
     return [];
   }
+}
+
+// Batch download books
+export async function batchDownloadBooks(bookIds, onProgress) {
+  const results = [];
+  
+  for (let i = 0; i < bookIds.length; i++) {
+    const bookId = bookIds[i];
+    try {
+      await downloadBook(bookId, (progress) => {
+        if (onProgress) {
+          onProgress(bookId, progress);
+        }
+      });
+      results.push({ bookId, success: true });
+    } catch (error) {
+      console.error(`Failed to download book ${bookId}:`, error);
+      results.push({ bookId, success: false, error });
+    }
+  }
+  
+  return results;
+}
+
+// Get storage usage info
+export async function getStorageUsage() {
+  if (!navigator.storage || !navigator.storage.estimate) {
+    return { used: 0, total: 0, percentage: 0 };
+  }
+  
+  try {
+    const estimate = await navigator.storage.estimate();
+    const used = estimate.usage || 0;
+    const total = estimate.quota || 0;
+    const percentage = total > 0 ? (used / total) * 100 : 0;
+    
+    return { used, total, percentage };
+  } catch (error) {
+    console.error('Error getting storage estimate:', error);
+    return { used: 0, total: 0, percentage: 0 };
+  }
+}
+
+// Save mini-game completion offline
+export async function saveMiniGameProgressOffline(profileId, gameId, result) {
+  const db = await openDB();
+  const tx = db.transaction('coloring_sessions', 'readwrite');
+  const store = tx.objectStore('coloring_sessions');
+  
+  await new Promise((resolve, reject) => {
+    const request = store.put({
+      id: `minigame_${profileId}_${gameId}`,
+      profile_id: profileId,
+      game_id: gameId,
+      type: 'minigame',
+      result,
+      synced: false,
+      timestamp: Date.now()
+    });
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
 }
