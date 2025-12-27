@@ -395,7 +395,17 @@ export default function StoryReader({
 
     try {
       if (result.completed) {
-        // Record completion
+        // Check if online
+        if (!navigator.onLine) {
+          // Save offline
+          const { saveMiniGameProgressOffline } = await import('../offlineManager');
+          await saveMiniGameProgressOffline(book.profileId, currentMiniGame.id, result);
+          toast.info('Progress saved offline - will sync when online');
+          setCurrentMiniGame(null);
+          return;
+        }
+
+        // Record completion online
         const updatedGames = [...storyProgress.completed_minigames, currentMiniGame.id];
         
         // Apply rewards
@@ -418,11 +428,14 @@ export default function StoryReader({
             });
           }
         }
+
+        toast.success('Mini-game completed!');
       }
 
       setCurrentMiniGame(null);
     } catch (error) {
       console.error('Error recording mini-game completion:', error);
+      toast.error('Failed to save progress');
     }
   };
 

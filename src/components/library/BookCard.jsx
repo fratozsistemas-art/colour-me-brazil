@@ -135,9 +135,14 @@ export default function BookCard({ book, userProfile, onClick, onDownloadChange,
               </div>
             )}
             {downloadStatus.status === 'completed' && (
-              <div className="bg-green-500 text-white p-2 rounded-full shadow-lg">
+              <motion.div 
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="bg-gradient-to-br from-green-500 to-emerald-600 text-white p-2 rounded-full shadow-lg border-2 border-white"
+                title="Available offline"
+              >
                 <CheckCircle2 className="w-4 h-4" />
-              </div>
+              </motion.div>
             )}
             {isDownloading && (
               <div className="bg-blue-500 text-white p-2 rounded-full shadow-lg">
@@ -145,6 +150,18 @@ export default function BookCard({ book, userProfile, onClick, onDownloadChange,
               </div>
             )}
           </div>
+
+          {/* Offline Badge - Prominent indicator */}
+          {downloadStatus.status === 'completed' && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="absolute top-3 left-3 px-2 py-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-xs font-bold rounded-full shadow-lg flex items-center gap-1"
+            >
+              <Cloud className="w-3 h-3" />
+              OFFLINE
+            </motion.div>
+          )}
 
           {/* Continue Reading Badge */}
           {hasProgress && !isCompleted && (

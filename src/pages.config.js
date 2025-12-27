@@ -9,6 +9,7 @@ import Forum from './pages/Forum';
 import GenerateCovers from './pages/GenerateCovers';
 import Home from './pages/Home';
 import Leaderboard from './pages/Leaderboard';
+import LearningPaths from './pages/LearningPaths';
 import Library from './pages/Library';
 import ManageBooks from './pages/ManageBooks';
 import ManageUsers from './pages/ManageUsers';
@@ -22,7 +23,6 @@ import Settings from './pages/Settings';
 import Shop from './pages/Shop';
 import Showcase from './pages/Showcase';
 import SubmitContent from './pages/SubmitContent';
-import LearningPaths from './pages/LearningPaths';
 import __Layout from './Layout.jsx';
 
 
@@ -38,6 +38,7 @@ export const PAGES = {
     "GenerateCovers": GenerateCovers,
     "Home": Home,
     "Leaderboard": Leaderboard,
+    "LearningPaths": LearningPaths,
     "Library": Library,
     "ManageBooks": ManageBooks,
     "ManageUsers": ManageUsers,
@@ -51,7 +52,6 @@ export const PAGES = {
     "Shop": Shop,
     "Showcase": Showcase,
     "SubmitContent": SubmitContent,
-    "LearningPaths": LearningPaths,
 }
 
 export const pagesConfig = {
