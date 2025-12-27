@@ -49,6 +49,13 @@ const getAppParams = () => {
 }
 
 
+const params = getAppParams();
+
+// Debug logging in development
+if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+	console.log('🔍 App Params Debug:', params);
+}
+
 export const appParams = {
-	...getAppParams()
+	...params
 }
