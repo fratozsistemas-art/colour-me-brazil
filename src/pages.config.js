@@ -23,6 +23,7 @@ import Settings from './pages/Settings';
 import Shop from './pages/Shop';
 import Showcase from './pages/Showcase';
 import SubmitContent from './pages/SubmitContent';
+import ReadingSettings from './pages/ReadingSettings';
 import __Layout from './Layout.jsx';
 
 
@@ -52,6 +53,7 @@ export const PAGES = {
     "Shop": Shop,
     "Showcase": Showcase,
     "SubmitContent": SubmitContent,
+    "ReadingSettings": ReadingSettings,
 }
 
 export const pagesConfig = {
