@@ -1,8 +1,7 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from './utils';
 import { Book, Settings, User, Palette, ShoppingBag, Trophy, Upload, Shield, MessageSquare, Sparkles, Users, Menu, Image, BookOpen, Route, FileText, Bug } from 'lucide-react';
-import { SkipToContent } from '@/components/ui/skip-to-content';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,8 +14,6 @@ import { Button } from '@/components/ui/button';
 import OfflineSyncIndicator from '@/components/offline/OfflineSyncIndicator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import BugReportForm from '@/components/moderation/BugReportForm';
-import ThemeToggle from '@/components/ThemeToggle';
-import LanguageToggle from '@/components/LanguageToggle';
 
       export default function Layout({ children, currentPageName }) {
         const [showBugReportModal, setShowBugReportModal] = React.useState(false);
@@ -64,7 +61,7 @@ import LanguageToggle from '@/components/LanguageToggle';
   return (
     <div className="min-h-screen" style={{ background: 'linear-gradient(to bottom right, #FFF8F0, #A8DADC)' }}>
       {/* Header */}
-      <header className="bg-white dark:bg-gray-900 shadow-md sticky top-0 z-50 border-b-2 transition-colors" style={{ borderColor: '#FF6B35' }}>
+      <header className="bg-white shadow-md sticky top-0 z-50 border-b-2" style={{ borderColor: '#FF6B35' }}>
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             {/* Logo */}
@@ -142,9 +139,6 @@ import LanguageToggle from '@/components/LanguageToggle';
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              <LanguageToggle className="ml-2" />
-              <ThemeToggle className="ml-1" />
-
               <Button
                 variant="outline"
                 size="sm"
@@ -188,38 +182,8 @@ import LanguageToggle from '@/components/LanguageToggle';
               </DialogContent>
               </Dialog>
 
-              {/* Footer with Legal Links */}
-      <footer className="hidden lg:block mt-16 py-8 border-t border-gray-200 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-wrap justify-center items-center gap-6 text-sm text-gray-600">
-            <Link to={createPageUrl('PrivacyPolicy')} className="hover:text-orange-600 transition-colors">
-              Privacy Policy
-            </Link>
-            <Link to={createPageUrl('TermsOfService')} className="hover:text-orange-600 transition-colors">
-              Terms of Service
-            </Link>
-            <Link to={createPageUrl('CookiePolicy')} className="hover:text-orange-600 transition-colors">
-              Cookie Policy
-            </Link>
-            <Link to={createPageUrl('COPPACompliance')} className="hover:text-orange-600 transition-colors">
-              COPPA Compliance
-            </Link>
-            <span className="text-gray-300">|</span>
-            <Link to={createPageUrl('FAQ')} className="hover:text-orange-600 transition-colors">
-              FAQ
-            </Link>
-            <Link to={createPageUrl('Contact')} className="hover:text-orange-600 transition-colors">
-              Contact
-            </Link>
-          </div>
-          <div className="text-center mt-4 text-xs text-gray-500">
-            © 2025 Colour Me Brazil. All rights reserved. | Designed for children ages 6-12 with parental supervision.
-          </div>
-        </div>
-      </footer>
-
-      {/* Mobile Navigation */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white shadow-lg" style={{ borderTop: '2px solid #FF6B35' }} role="navigation" aria-label="Mobile navigation">
+              {/* Mobile Navigation */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white shadow-lg" style={{ borderTop: '2px solid #FF6B35' }}>
         <div className="grid grid-cols-4 gap-1 py-2">
           {menuItems[0].items.map(({ name, path, icon: Icon }) => (
             <Link
