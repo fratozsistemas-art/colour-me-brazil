@@ -55,6 +55,11 @@ export default function ColoringCanvas({
   const [gradientMode, setGradientMode] = useState(false);
   const [selectedAreas, setSelectedAreas] = useState([]);
   const [gradientColors, setGradientColors] = useState([currentPalette.colors[0], currentPalette.colors[1]]);
+  const [hue, setHue] = useState(0);
+  const [saturation, setSaturation] = useState(100);
+  const [brightness, setBrightness] = useState(100);
+  const [showColorAdjust, setShowColorAdjust] = useState(false);
+  const [texturePattern, setTexturePattern] = useState(null);
 
   // Use lineArtUrl if provided, otherwise fall back to illustrationUrl
   const effectiveImageUrl = lineArtUrl || illustrationUrl;
@@ -246,6 +251,10 @@ export default function ColoringCanvas({
           setSelectedAreas([...selectedAreas, newArea]);
           setFillPreview(null);
         }
+      } else if (texturePattern) {
+        // Texture fill mode
+        applyTextureFill(point.x, point.y);
+        setFillPreview(null);
       } else {
         // Normal fill mode
         const result = smartFill(ctx, Math.floor(point.x), Math.floor(point.y), currentColor, false);
@@ -482,6 +491,202 @@ export default function ColoringCanvas({
     const b = Math.round(c1.b + (c2.b - c1.b) * factor);
     
     return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+  };
+
+  const adjustColor = (color, hueShift, satShift, brightShift) => {
+    const rgb = hexToRgb(color);
+    if (!rgb) return color;
+
+    // Convert RGB to HSL
+    const r = rgb.r / 255;
+    const g = rgb.g / 255;
+    const b = rgb.b / 255;
+
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let h, s, l = (max + min) / 2;
+
+    if (max === min) {
+      h = s = 0;
+    } else {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      
+      switch (max) {
+        case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+        case g: h = ((b - r) / d + 2) / 6; break;
+        case b: h = ((r - g) / d + 4) / 6; break;
+      }
+    }
+
+    // Apply adjustments
+    h = (h + hueShift / 360) % 1;
+    s = Math.max(0, Math.min(1, s * (satShift / 100)));
+    l = Math.max(0, Math.min(1, l * (brightShift / 100)));
+
+    // Convert back to RGB
+    let r2, g2, b2;
+    if (s === 0) {
+      r2 = g2 = b2 = l;
+    } else {
+      const hue2rgb = (p, q, t) => {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1/6) return p + (q - p) * 6 * t;
+        if (t < 1/2) return q;
+        if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+        return p;
+      };
+
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      const p = 2 * l - q;
+      
+      r2 = hue2rgb(p, q, h + 1/3);
+      g2 = hue2rgb(p, q, h);
+      b2 = hue2rgb(p, q, h - 1/3);
+    }
+
+    const red = Math.round(r2 * 255);
+    const green = Math.round(g2 * 255);
+    const blue = Math.round(b2 * 255);
+
+    return `#${red.toString(16).padStart(2, '0')}${green.toString(16).padStart(2, '0')}${blue.toString(16).padStart(2, '0')}`;
+  };
+
+  const applyColorAdjustment = () => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      
+      // Skip black lines (boundaries)
+      const brightness = (r + g + b) / 3;
+      if (brightness < 50) continue;
+
+      const hexColor = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+      const adjusted = adjustColor(hexColor, hue, saturation, brightness);
+      const rgb = hexToRgb(adjusted);
+      
+      if (rgb) {
+        data[i] = rgb.r;
+        data[i + 1] = rgb.g;
+        data[i + 2] = rgb.b;
+      }
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+    saveToHistory(strokes, fillHistory);
+  };
+
+  const createTexturePattern = (type) => {
+    const patternCanvas = document.createElement('canvas');
+    patternCanvas.width = 100;
+    patternCanvas.height = 100;
+    const ctx = patternCanvas.getContext('2d');
+
+    switch (type) {
+      case 'dots':
+        for (let i = 0; i < 10; i++) {
+          for (let j = 0; j < 10; j++) {
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.beginPath();
+            ctx.arc(i * 10 + 5, j * 10 + 5, 2, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+        break;
+      case 'stripes':
+        for (let i = 0; i < 10; i++) {
+          ctx.fillStyle = i % 2 === 0 ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0)';
+          ctx.fillRect(i * 10, 0, 10, 100);
+        }
+        break;
+      case 'crosshatch':
+        ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 10; i++) {
+          ctx.beginPath();
+          ctx.moveTo(i * 10, 0);
+          ctx.lineTo(i * 10, 100);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(0, i * 10);
+          ctx.lineTo(100, i * 10);
+          ctx.stroke();
+        }
+        break;
+      case 'noise':
+        const imgData = ctx.createImageData(100, 100);
+        for (let i = 0; i < imgData.data.length; i += 4) {
+          const noise = Math.random() * 50;
+          imgData.data[i] = noise;
+          imgData.data[i + 1] = noise;
+          imgData.data[i + 2] = noise;
+          imgData.data[i + 3] = 100;
+        }
+        ctx.putImageData(imgData, 0, 0);
+        break;
+    }
+
+    return patternCanvas;
+  };
+
+  const applyTextureFill = (x, y) => {
+    if (!texturePattern) return;
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+
+    // Get the fill area
+    const pixels = smartFill(ctx, Math.floor(x), Math.floor(y), currentColor, true);
+    if (!pixels || pixels.length === 0) return;
+
+    // Create pattern
+    const pattern = ctx.createPattern(texturePattern, 'repeat');
+    
+    // Save current state
+    ctx.save();
+    
+    // Create path from pixels
+    ctx.beginPath();
+    pixels.forEach(([px, py]) => {
+      ctx.fillRect(px, py, 1, 1);
+    });
+
+    // Fill with base color first
+    const rgb = hexToRgb(currentColor);
+    if (rgb) {
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      pixels.forEach(([px, py, index]) => {
+        data[index] = rgb.r;
+        data[index + 1] = rgb.g;
+        data[index + 2] = rgb.b;
+        data[index + 3] = 255;
+      });
+      ctx.putImageData(imageData, 0, 0);
+    }
+
+    // Apply texture overlay
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.globalAlpha = 0.3;
+    ctx.fillStyle = pattern;
+    pixels.forEach(([px, py]) => {
+      ctx.fillRect(px, py, 1, 1);
+    });
+
+    ctx.restore();
+
+    const newFill = { x: Math.floor(x), y: Math.floor(y), color: currentColor, texture: true };
+    const newFillHistory = [...fillHistory, newFill];
+    setFillHistory(newFillHistory);
+    saveToHistory(strokes, newFillHistory);
+    addToRecentColors(currentColor);
   };
 
   const applyGradientToAreas = () => {
@@ -1006,6 +1211,68 @@ export default function ColoringCanvas({
                     )}
                   </div>
                   </div>
+
+                  {/* Texture Fill Mode */}
+                  <div className="mt-3">
+                    <label className="text-xs font-medium text-gray-700 mb-2 block">
+                      🎨 Texture Fill
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        size="sm"
+                        variant={texturePattern === null ? 'default' : 'outline'}
+                        onClick={() => setTexturePattern(null)}
+                      >
+                        None
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={texturePattern?.id === 'dots' ? 'default' : 'outline'}
+                        onClick={() => {
+                          const pattern = createTexturePattern('dots');
+                          pattern.id = 'dots';
+                          setTexturePattern(pattern);
+                        }}
+                      >
+                        Dots
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={texturePattern?.id === 'stripes' ? 'default' : 'outline'}
+                        onClick={() => {
+                          const pattern = createTexturePattern('stripes');
+                          pattern.id = 'stripes';
+                          setTexturePattern(pattern);
+                        }}
+                      >
+                        Stripes
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={texturePattern?.id === 'crosshatch' ? 'default' : 'outline'}
+                        onClick={() => {
+                          const pattern = createTexturePattern('crosshatch');
+                          pattern.id = 'crosshatch';
+                          setTexturePattern(pattern);
+                        }}
+                      >
+                        Cross
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={texturePattern?.id === 'noise' ? 'default' : 'outline'}
+                        onClick={() => {
+                          const pattern = createTexturePattern('noise');
+                          pattern.id = 'noise';
+                          setTexturePattern(pattern);
+                        }}
+                        className="col-span-2"
+                      >
+                        Noise
+                      </Button>
+                    </div>
+                  </div>
+                  </div>
                   )}
                   </div>
 
@@ -1142,6 +1409,84 @@ export default function ColoringCanvas({
                 </div>
               </div>
             )}
+
+            {/* Color Adjustment Tools */}
+            <div className="mb-6">
+              <Button
+                variant="outline"
+                onClick={() => setShowColorAdjust(!showColorAdjust)}
+                className="w-full justify-start"
+              >
+                🎨 Color Adjustment
+              </Button>
+              
+              {showColorAdjust && (
+                <div className="mt-3 space-y-3 bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-3">
+                  <div>
+                    <label className="text-xs font-medium text-gray-700">
+                      Hue: {hue}°
+                    </label>
+                    <input
+                      type="range"
+                      min="-180"
+                      max="180"
+                      value={hue}
+                      onChange={(e) => setHue(Number(e.target.value))}
+                      className="w-full accent-purple-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-gray-700">
+                      Saturation: {saturation}%
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="200"
+                      value={saturation}
+                      onChange={(e) => setSaturation(Number(e.target.value))}
+                      className="w-full accent-pink-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-gray-700">
+                      Brightness: {brightness}%
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="200"
+                      value={brightness}
+                      onChange={(e) => setBrightness(Number(e.target.value))}
+                      className="w-full accent-orange-500"
+                    />
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={applyColorAdjustment}
+                      className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500"
+                    >
+                      Apply
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setHue(0);
+                        setSaturation(100);
+                        setBrightness(100);
+                      }}
+                    >
+                      Reset
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Tools */}
             <div className="space-y-2 mb-6">
