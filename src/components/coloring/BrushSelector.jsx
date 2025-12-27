@@ -83,6 +83,58 @@ const BRUSH_TYPES = [
     spacing: 0.1,
     jitter: 0.1,
     textureIntensity: 0.4
+  },
+  {
+    id: 'pencil',
+    name: 'Pencil',
+    icon: Pen,
+    description: 'Sketchy pencil',
+    opacity: 0.6,
+    blur: 0,
+    texture: 'pencil',
+    flow: 0.7,
+    spacing: 0.08,
+    jitter: 0.4,
+    textureIntensity: 0.9
+  },
+  {
+    id: 'ink',
+    name: 'Ink',
+    icon: Feather,
+    description: 'Smooth ink flow',
+    opacity: 0.95,
+    blur: 1,
+    texture: 'ink',
+    flow: 0.85,
+    spacing: 0.05,
+    jitter: 0.05,
+    textureIntensity: 0.2
+  },
+  {
+    id: 'chalk',
+    name: 'Chalk',
+    icon: Sparkles,
+    description: 'Dusty chalk texture',
+    opacity: 0.5,
+    blur: 2,
+    texture: 'chalk',
+    flow: 0.5,
+    spacing: 0.12,
+    jitter: 0.6,
+    textureIntensity: 0.85
+  },
+  {
+    id: 'oil',
+    name: 'Oil Paint',
+    icon: Paintbrush,
+    description: 'Thick oil paint',
+    opacity: 0.9,
+    blur: 1,
+    texture: 'oil',
+    flow: 0.75,
+    spacing: 0.15,
+    jitter: 0.15,
+    textureIntensity: 0.6
   }
 ];
 
