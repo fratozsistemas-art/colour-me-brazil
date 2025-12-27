@@ -1,12 +1,15 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Undo, Redo, Eraser, Save, Download, X, Paintbrush, Grid3x3, ZoomIn, ZoomOut, Maximize2, Share2, Palette, Loader2, Upload } from 'lucide-react';
+import { Undo, Redo, Eraser, Save, Download, X, Paintbrush, Grid3x3, ZoomIn, ZoomOut, Maximize2, Share2, Palette, Loader2, Upload, HelpCircle, GraduationCap } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import ShareButton from '../social/ShareButton';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getBookPalette, THEME_PALETTES, getAllPaletteNames } from './colorPalettes';
 import BrushSelector, { BRUSH_TYPES } from './BrushSelector';
+import TutorialOverlay from './TutorialOverlay';
+import HelpCenter from './HelpCenter';
+import ContextualTip from './ContextualTip';
 
 export default function ColoringCanvas({ 
   pageId, 
@@ -60,9 +63,53 @@ export default function ColoringCanvas({
   const [brightness, setBrightness] = useState(100);
   const [showColorAdjust, setShowColorAdjust] = useState(false);
   const [texturePattern, setTexturePattern] = useState(null);
+  const [showTutorial, setShowTutorial] = useState(null);
+  const [showHelp, setShowHelp] = useState(false);
+  const [activeTip, setActiveTip] = useState(null);
+  const [hasSeenIntro, setHasSeenIntro] = useState(false);
 
   // Use lineArtUrl if provided, otherwise fall back to illustrationUrl
   const effectiveImageUrl = lineArtUrl || illustrationUrl;
+
+  // Check if user has seen intro tutorial
+  useEffect(() => {
+    const seen = localStorage.getItem('coloringIntroSeen');
+    if (!seen) {
+      setHasSeenIntro(false);
+      setShowTutorial('basics');
+    } else {
+      setHasSeenIntro(true);
+    }
+  }, []);
+
+  // Show contextual tips based on actions
+  useEffect(() => {
+    if (!hasSeenIntro) return;
+
+    if (paintMode === 'freeform' && !activeTip) {
+      setActiveTip('first-freeform');
+    } else if (paintMode === 'fill' && !gradientMode && !activeTip) {
+      setActiveTip('first-fill');
+    }
+  }, [paintMode, hasSeenIntro]);
+
+  useEffect(() => {
+    if (gradientMode && hasSeenIntro) {
+      setActiveTip('first-gradient');
+    }
+  }, [gradientMode, hasSeenIntro]);
+
+  useEffect(() => {
+    if (texturePattern && hasSeenIntro) {
+      setActiveTip('first-texture');
+    }
+  }, [texturePattern, hasSeenIntro]);
+
+  useEffect(() => {
+    if (showColorAdjust && hasSeenIntro) {
+      setActiveTip('first-color-adjust');
+    }
+  }, [showColorAdjust, hasSeenIntro]);
 
   // Load background image
   useEffect(() => {
@@ -945,6 +992,38 @@ export default function ColoringCanvas({
 
   return (
     <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+      {/* Tutorial Overlay */}
+      {showTutorial && (
+        <TutorialOverlay
+          tutorialId={showTutorial}
+          onComplete={() => {
+            setShowTutorial(null);
+            if (showTutorial === 'basics') {
+              localStorage.setItem('coloringIntroSeen', 'true');
+              setHasSeenIntro(true);
+            }
+          }}
+          onSkip={() => {
+            setShowTutorial(null);
+            if (showTutorial === 'basics') {
+              localStorage.setItem('coloringIntroSeen', 'true');
+              setHasSeenIntro(true);
+            }
+          }}
+        />
+      )}
+
+      {/* Help Center */}
+      <HelpCenter isOpen={showHelp} onClose={() => setShowHelp(false)} />
+
+      {/* Contextual Tips */}
+      {activeTip && (
+        <ContextualTip
+          tipId={activeTip}
+          onDismiss={() => setActiveTip(null)}
+        />
+      )}
+
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -952,7 +1031,27 @@ export default function ColoringCanvas({
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-2xl font-bold text-gray-800">Color Your Page 🎨</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl font-bold text-gray-800">Color Your Page 🎨</h2>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowHelp(true)}
+              className="gap-2"
+            >
+              <HelpCircle className="w-4 h-4" />
+              Help
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowTutorial('basics')}
+              className="gap-2"
+            >
+              <GraduationCap className="w-4 h-4" />
+              Tutorial
+            </Button>
+          </div>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="w-6 h-6" />
           </Button>
@@ -1055,7 +1154,7 @@ export default function ColoringCanvas({
           {/* Tools Panel */}
           <div className="w-full md:w-80 p-4 border-l bg-gray-50 overflow-y-auto">
             {/* Paint Mode Toggle */}
-            <div className="mb-6">
+            <div className="mb-6" id="paint-mode">
               <h3 className="font-semibold text-gray-700 mb-3">Paint Mode</h3>
               <div className="grid grid-cols-2 gap-2">
                 <Button
@@ -1124,16 +1223,27 @@ export default function ColoringCanvas({
 
                   {/* Gradient Fill Mode */}
                   <div className="mt-3">
-                    <Button
-                      variant={gradientMode ? 'default' : 'outline'}
-                      onClick={() => {
-                        setGradientMode(!gradientMode);
-                        if (!gradientMode) setSelectedAreas([]);
-                      }}
-                      className="w-full"
-                    >
-                      🌈 Gradient Fill Mode
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant={gradientMode ? 'default' : 'outline'}
+                        onClick={() => {
+                          setGradientMode(!gradientMode);
+                          if (!gradientMode) setSelectedAreas([]);
+                        }}
+                        className="flex-1"
+                        id="gradient-button"
+                      >
+                        🌈 Gradient Fill Mode
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setShowTutorial('gradient')}
+                        title="Learn about gradients"
+                      >
+                        <HelpCircle className="w-4 h-4" />
+                      </Button>
+                    </div>
 
                     {gradientMode && (
                       <div className="mt-3 space-y-3 bg-purple-50 border border-purple-200 rounded-lg p-3">
@@ -1142,7 +1252,7 @@ export default function ColoringCanvas({
                         </p>
 
                         {/* Gradient Color Stops */}
-                        <div>
+                        <div id="gradient-colors">
                           <label className="text-xs font-medium text-gray-700 mb-2 block">
                             Gradient Colors ({gradientColors.length} stops)
                           </label>
@@ -1189,7 +1299,7 @@ export default function ColoringCanvas({
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="flex gap-2">
+                        <div className="flex gap-2" id="apply-gradient">
                           <Button
                             size="sm"
                             onClick={applyGradientToAreas}
@@ -1214,10 +1324,21 @@ export default function ColoringCanvas({
 
                   {/* Texture Fill Mode */}
                   <div className="mt-3">
-                    <label className="text-xs font-medium text-gray-700 mb-2 block">
-                      🎨 Texture Fill
-                    </label>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-xs font-medium text-gray-700">
+                        🎨 Texture Fill
+                      </label>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setShowTutorial('texture')}
+                        title="Learn about textures"
+                        className="h-6 w-6"
+                      >
+                        <HelpCircle className="w-3 h-3" />
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2" id="texture-selector">
                       <Button
                         size="sm"
                         variant={texturePattern === null ? 'default' : 'outline'}
@@ -1328,7 +1449,7 @@ export default function ColoringCanvas({
             </div>
 
             {/* Color Palette */}
-            <div className="mb-6">
+            <div className="mb-6" id="color-palette">
               <h3 className="font-semibold text-gray-700 mb-3">Watercolor Palette</h3>
               <div className="grid grid-cols-6 gap-2">
                 {THEME_PALETTES[selectedPaletteKey].colors.map((color) => (
@@ -1366,7 +1487,7 @@ export default function ColoringCanvas({
 
             {/* Brush Size - Only show in freeform mode */}
             {paintMode === 'freeform' && (
-              <div className="mb-6">
+              <div className="mb-6" id="brush-size">
                 <h3 className="font-semibold text-gray-700 mb-3">Brush Size</h3>
                 <input
                   type="range"
@@ -1411,18 +1532,28 @@ export default function ColoringCanvas({
             )}
 
             {/* Color Adjustment Tools */}
-            <div className="mb-6">
-              <Button
-                variant="outline"
-                onClick={() => setShowColorAdjust(!showColorAdjust)}
-                className="w-full justify-start"
-              >
-                🎨 Color Adjustment
-              </Button>
+            <div className="mb-6" id="color-adjust-button">
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowColorAdjust(!showColorAdjust)}
+                  className="flex-1 justify-start"
+                >
+                  🎨 Color Adjustment
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowTutorial('colorAdjust')}
+                  title="Learn about color adjustment"
+                >
+                  <HelpCircle className="w-4 h-4" />
+                </Button>
+              </div>
               
               {showColorAdjust && (
                 <div className="mt-3 space-y-3 bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-3">
-                  <div>
+                  <div id="hue-slider">
                     <label className="text-xs font-medium text-gray-700">
                       Hue: {hue}°
                     </label>
@@ -1436,7 +1567,7 @@ export default function ColoringCanvas({
                     />
                   </div>
 
-                  <div>
+                  <div id="saturation-slider">
                     <label className="text-xs font-medium text-gray-700">
                       Saturation: {saturation}%
                     </label>
@@ -1450,7 +1581,7 @@ export default function ColoringCanvas({
                     />
                   </div>
 
-                  <div>
+                  <div id="brightness-slider">
                     <label className="text-xs font-medium text-gray-700">
                       Brightness: {brightness}%
                     </label>
@@ -1464,7 +1595,7 @@ export default function ColoringCanvas({
                     />
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex gap-2" id="apply-adjust">
                     <Button
                       size="sm"
                       onClick={applyColorAdjustment}
@@ -1489,7 +1620,7 @@ export default function ColoringCanvas({
             </div>
 
             {/* Tools */}
-            <div className="space-y-2 mb-6">
+            <div className="space-y-2 mb-6" id="undo-redo">
               {paintMode === 'freeform' && (
                 <Button
                   variant={isErasing ? 'default' : 'outline'}
