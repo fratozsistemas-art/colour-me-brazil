@@ -289,6 +289,7 @@ function createOfflineResponse() {
       statusText: 'Service Unavailable',
       headers: new Headers({
         'Content-Type': 'text/html',
+        'Content-Security-Policy': "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'",
       }),
     }
   );

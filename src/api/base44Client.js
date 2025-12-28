@@ -9,8 +9,8 @@ function getBase44Client() {
   }
 
   // Get config from environment variables
-  const appId = import.meta.env.VITE_BASE44_APP_ID || '69383fc9e0a81f2fec355d14';
-  const serverUrl = import.meta.env.VITE_BASE44_SERVER_URL || 'https://colour-me-brazil.base44.app';
+  const appId = import.meta.env.VITE_BASE44_APP_ID;
+  const serverUrl = import.meta.env.VITE_BASE44_SERVER_URL;
   const functionsVersion = import.meta.env.VITE_BASE44_FUNCTIONS_VERSION || 'v1';
 
   console.log('🔧 Initializing Base44 client with:', {
@@ -21,9 +21,9 @@ function getBase44Client() {
 
   // Validate required config
   if (!appId || !serverUrl) {
-    const error = new Error('Base44 configuration is incomplete. Check environment variables.');
-    console.error('❌ Base44 Config Error:', { appId, serverUrl });
-    throw error;
+    throw new Error(
+      'Base44 configuration is incomplete. Set VITE_BASE44_APP_ID and VITE_BASE44_SERVER_URL.'
+    );
   }
 
   try {
