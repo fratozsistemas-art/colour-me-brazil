@@ -206,6 +206,6 @@ export default function Layout({ children, currentPageName }) {
           </button>
         </div>
       </nav>
-      </div>
-      );
-      }
+    </div>
+  );
+}
