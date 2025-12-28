@@ -343,6 +343,7 @@ export default function Library() {
       // ✅ Destructure with defaults
       const {
         canvas = null,
+        basename = null,
         is_completed = false,
         coloring_time = 0,
         ...restData
