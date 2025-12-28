@@ -13,7 +13,6 @@ import { Button } from '@/components/ui/button';
 import OfflineSyncIndicator from '@/components/offline/OfflineSyncIndicator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import BugReportForm from '@/components/moderation/BugReportForm';
-import { BrowserRouter } from 'react-router-dom';
 
 export default function Layout({ children, currentPageName }) {
   const [showBugReportModal, setShowBugReportModal] = React.useState(false);
