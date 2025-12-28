@@ -51,30 +51,37 @@ export default function ParentPortal() {
 
   // Fetch child profiles
   const { data: allProfiles = [] } = useQuery({
-    queryKey: ['profiles'],
-    queryFn: () => base44.entities.UserProfile.list(),
-    enabled: !!parentAccount,
+    queryKey: ['userProfiles', parentAccount?.id],
+    queryFn: async () => {
+      if (!parentAccount?.id) {
+        return [];
+      }
+      return base44.entities.UserProfile.filter({
+        parent_account_id: parentAccount.id,
+      });
+    },
+    enabled: !!parentAccount?.id,
   });
 
   // Fetch achievements
   const { data: allAchievements = [] } = useQuery({
-    queryKey: ['achievements'],
+    queryKey: ['achievements', parentAccount?.id],
     queryFn: () => base44.entities.Achievement.list(),
-    enabled: !!parentAccount,
+    enabled: !!parentAccount?.id,
   });
 
   // Fetch reading goals
   const { data: allGoals = [] } = useQuery({
-    queryKey: ['readingGoals'],
+    queryKey: ['readingGoals', parentAccount?.id],
     queryFn: () => base44.entities.ReadingGoal.list(),
-    enabled: !!parentAccount,
+    enabled: !!parentAccount?.id,
   });
 
   // Fetch user submissions
   const { data: allSubmissions = [] } = useQuery({
-    queryKey: ['userSubmissions'],
+    queryKey: ['userSubmissions', parentAccount?.id],
     queryFn: () => base44.entities.UserSubmission.list('-created_date'),
-    enabled: !!parentAccount,
+    enabled: !!parentAccount?.id,
   });
 
   const childProfiles = allProfiles.filter(p => 
