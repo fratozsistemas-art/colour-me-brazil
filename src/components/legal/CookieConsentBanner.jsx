@@ -8,6 +8,7 @@ import { createPageUrl } from '@/utils';
 import { Link, useInRouterContext } from 'react-router-dom';
 
 const CONSENT_KEY = 'cookie_consent_v1';
+const SESSION_CONSENT_KEY = 'cookie_consent_session';
 
 export default function CookieConsentBanner() {
   const [showBanner, setShowBanner] = useState(false);
@@ -21,29 +22,45 @@ export default function CookieConsentBanner() {
   });
 
   useEffect(() => {
-    // Check if user has already made a choice
+    const hasShown = sessionStorage.getItem(SESSION_CONSENT_KEY);
+    if (!hasShown) {
+      setShowBanner(true);
+      sessionStorage.setItem(SESSION_CONSENT_KEY, 'shown');
+    }
+
     const savedConsent = localStorage.getItem(CONSENT_KEY);
-    if (!savedConsent) {
-      // Show banner after short delay for better UX
-      setTimeout(() => setShowBanner(true), 1000);
-    } else {
-      // Load saved preferences
+    if (savedConsent) {
       try {
         const parsed = JSON.parse(savedConsent);
-        setPreferences(parsed);
+        const storedPreferences = parsed.preferences ?? parsed;
+        setPreferences(storedPreferences);
+        setShowBanner(!parsed.parentVerified);
       } catch (e) {
         console.error('Failed to parse cookie consent:', e);
       }
+    } else if (!hasShown) {
+      setTimeout(() => setShowBanner(true), 1000);
     }
   }, []);
 
   const saveConsent = (acceptAll = false) => {
+    const parentAnswer = window.prompt('Parent verification: What is 7 + 5?');
+    if (parentAnswer !== '12') {
+      return;
+    }
+
     const consent = acceptAll
       ? { essential: true, functional: true, analytics: true }
       : preferences;
 
-    localStorage.setItem(CONSENT_KEY, JSON.stringify(consent));
-    localStorage.setItem('cookie_consent_timestamp', new Date().toISOString());
+    const payload = {
+      preferences: consent,
+      parentVerified: true,
+      timestamp: new Date().toISOString(),
+    };
+
+    localStorage.setItem(CONSENT_KEY, JSON.stringify(payload));
+    localStorage.setItem('cookie_consent_timestamp', payload.timestamp);
 
     // Apply cookie preferences
     applyCookiePreferences(consent);
@@ -288,7 +305,8 @@ export const hasConsentFor = (type) => {
   
   try {
     const parsed = JSON.parse(consent);
-    return parsed[type] === true;
+    const preferences = parsed.preferences ?? parsed;
+    return preferences[type] === true;
   } catch {
     return false;
   }
@@ -300,7 +318,8 @@ export const getCookieConsent = () => {
   if (!consent) return { essential: true, functional: false, analytics: false };
   
   try {
-    return JSON.parse(consent);
+    const parsed = JSON.parse(consent);
+    return parsed.preferences ?? parsed;
   } catch {
     return { essential: true, functional: false, analytics: false };
   }

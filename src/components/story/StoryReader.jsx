@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { 
@@ -182,38 +183,77 @@ export default function StoryReader({
   };
 
   useEffect(() => {
-    // Load and potentially auto-play audio
-    if (currentPage) {
-      const audioUrl = language === 'en' 
-        ? currentPage.audio_narration_en_url 
-        : currentPage.audio_narration_pt_url;
-      
-      if (audioUrl && audioRef.current) {
-        audioRef.current.src = audioUrl;
-        audioRef.current.playbackRate = playbackSpeed;
-      }
+    if (!currentPage || !audioRef.current) {
+      return undefined;
     }
+
+    const audioUrl = language === 'en'
+      ? currentPage.audio_narration_en_url
+      : currentPage.audio_narration_pt_url;
+
+    const audio = audioRef.current;
+    audio.pause();
+    audio.currentTime = 0;
+    audio.src = '';
+    audio.load();
+
+    if (audioUrl) {
+      audio.src = audioUrl;
+      audio.playbackRate = playbackSpeed;
+    }
+
+    return () => {
+      audio.pause();
+      audio.currentTime = 0;
+      audio.src = '';
+      audio.load();
+    };
   }, [currentPage, language, playbackSpeed]);
 
-  const togglePlayPause = () => {
+  const togglePlayPause = async () => {
     // Use TTS if enabled or no audio URL available
     const audioUrl = language === 'en' 
       ? currentPage?.audio_narration_en_url 
       : currentPage?.audio_narration_pt_url;
 
     if (useTTSMode || !audioUrl) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      }
       toggleTTS();
       return;
     }
 
-    if (!audioRef.current) return;
-
-    if (isPlaying) {
-      audioRef.current.pause();
-    } else {
-      audioRef.current.play();
+    if (!audioRef.current) {
+      logger.warn('Audio element not initialized');
+      return;
     }
-    setIsPlaying(!isPlaying);
+
+    if (isTTSPlaying) {
+      stopTTS();
+    }
+
+    try {
+      if (isPlaying) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+        return;
+      }
+
+      if (audioRef.current.readyState < 2) {
+        await new Promise((resolve) => {
+          audioRef.current.addEventListener('canplay', resolve, { once: true });
+        });
+      }
+
+      await audioRef.current.play();
+      setIsPlaying(true);
+    } catch (error) {
+      logger.error('Audio playback error', error);
+      toast.error(language === 'en' ? 'Failed to play audio' : 'Falha ao reproduzir áudio');
+      setIsPlaying(false);
+    }
   };
 
   const handleAudioTimeUpdate = () => {

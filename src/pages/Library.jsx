@@ -541,20 +541,22 @@ export default function Library() {
 
       {/* Coloring Canvas Modal */}
       {coloringPage && (
-        <ColoringCanvas
-          pageId={coloringPage.id}
-          bookId={coloringPage.book_id}
-          profileId={currentProfile?.id}
-          illustrationUrl={coloringPage.illustration_url}
-          bookData={selectedBook}
-          onSave={(data) => {
-            if (!data) {
-              return;
-            }
-            saveColoringSession.mutate(data);
-          }}
-          onClose={() => setColoringPage(null)}
-        />
+        <ErrorBoundary>
+          <ColoringCanvas
+            pageId={coloringPage.id}
+            bookId={coloringPage.book_id}
+            profileId={currentProfile?.id}
+            illustrationUrl={coloringPage.illustration_url}
+            bookData={selectedBook}
+            onSave={(data) => {
+              if (!data) {
+                return;
+              }
+              saveColoringSession.mutate(data);
+            }}
+            onClose={() => setColoringPage(null)}
+          />
+        </ErrorBoundary>
       )}
 
       <div className="max-w-7xl mx-auto">

@@ -22,6 +22,7 @@ export default function ColoringCanvas({
   bookData = null,
   lineArtUrl = null // PNG line art from manifest
 }) {
+  const MAX_HISTORY_SIZE = 50;
   const canvasRef = useRef(null);
   const fillCanvasRef = useRef(null);
   const containerRef = useRef(null);
@@ -113,21 +114,51 @@ export default function ColoringCanvas({
 
   // Load background image
   useEffect(() => {
-    if (effectiveImageUrl) {
-      setIsLoading(true);
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        setBackgroundImage(img);
-        setIsLoading(false);
-      };
-      img.onerror = () => {
-        console.error('Failed to load illustration from:', effectiveImageUrl);
-        setIsLoading(false);
-      };
-      img.src = effectiveImageUrl;
-    }
+    if (!effectiveImageUrl) return undefined;
+
+    setIsLoading(true);
+    let img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      setBackgroundImage(img);
+      setIsLoading(false);
+    };
+    img.onerror = () => {
+      console.error('Failed to load illustration from:', effectiveImageUrl);
+      setIsLoading(false);
+    };
+    img.src = effectiveImageUrl;
+
+    return () => {
+      if (img) {
+        img.onload = null;
+        img.onerror = null;
+        img.src = '';
+      }
+      img = null;
+    };
   }, [effectiveImageUrl]);
+
+  useEffect(() => {
+    return () => {
+      const canvas = canvasRef.current;
+      const fillCanvas = fillCanvasRef.current;
+
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        canvas.width = 0;
+        canvas.height = 0;
+      }
+
+      if (fillCanvas) {
+        const fillCtx = fillCanvas.getContext('2d');
+        fillCtx.clearRect(0, 0, fillCanvas.width, fillCanvas.height);
+        fillCanvas.width = 0;
+        fillCanvas.height = 0;
+      }
+    };
+  }, []);
 
   // Redraw canvas whenever strokes, fills, or background image changes
   useEffect(() => {
@@ -269,8 +300,13 @@ export default function ColoringCanvas({
   const saveToHistory = (newStrokes, newFills) => {
     const newHistory = history.slice(0, historyIndex + 1);
     newHistory.push({ strokes: newStrokes, fills: newFills });
+    if (newHistory.length > MAX_HISTORY_SIZE) {
+      newHistory.shift();
+      setHistoryIndex(MAX_HISTORY_SIZE - 1);
+    } else {
+      setHistoryIndex(newHistory.length - 1);
+    }
     setHistory(newHistory);
-    setHistoryIndex(newHistory.length - 1);
   };
 
   const handleCanvasClick = (e) => {
