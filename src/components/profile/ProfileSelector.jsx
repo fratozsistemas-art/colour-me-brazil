@@ -9,6 +9,8 @@ import AvatarInfoModal from './AvatarInfoModal';
 
 const AVATAR_OPTIONS = BRAZILIAN_FAUNA_AVATARS;
 
+export { AVATAR_OPTIONS };
+
 export default function ProfileSelector({ onProfileCreated, existingProfiles = [] }) {
   const [isCreating, setIsCreating] = useState(existingProfiles.length === 0);
   const [childName, setChildName] = useState('');
