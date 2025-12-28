@@ -444,6 +444,20 @@ async function getUnsyncedData() {
   return unsyncedData;
 }
 
+// Get count of unsynced items
+export async function getUnsyncedCount() {
+  try {
+    const data = await getUnsyncedData();
+    return data.coloringSessions.length + 
+           data.readingProgress.length + 
+           data.annotations.length + 
+           data.bookmarks.length;
+  } catch (error) {
+    console.error('Error getting unsynced count:', error);
+    return 0;
+  }
+}
+
 // Sync when online
 export async function syncOfflineData() {
   if (!navigator.onLine) return { success: false, message: 'No internet connection' };
@@ -464,7 +478,7 @@ export async function syncOfflineData() {
     // Sync coloring sessions and mini-game progress
     for (const session of unsyncedData.coloringSessions) {
       try {
-        const { profile_id, page_id, book_id, game_id, type, result, synced, timestamp, id, ...sessionData } = session;
+        const { profile_id, page_id, book_id, game_id, type, result, synced, timestamp, id, last_modified, ...sessionData } = session;
 
         // Handle mini-game progress
         if (type === 'minigame' && game_id) {
@@ -489,6 +503,7 @@ export async function syncOfflineData() {
           const tx = db.transaction(['coloring_sessions'], 'readwrite');
           const store = tx.objectStore('coloring_sessions');
           session.synced = true;
+          session.synced_at = new Date().toISOString();
           await new Promise((resolve, reject) => {
             const request = store.put(session);
             request.onsuccess = () => resolve();
@@ -499,14 +514,24 @@ export async function syncOfflineData() {
           continue;
         }
 
-        // Handle regular coloring sessions
+        // Handle regular coloring sessions with conflict resolution
         const existing = await base44.entities.ColoringSession.filter({
           profile_id,
           page_id
         });
 
         if (existing.length > 0) {
-          await base44.entities.ColoringSession.update(existing[0].id, sessionData);
+          // Conflict resolution: prefer newer data based on timestamp
+          const serverTimestamp = new Date(existing[0].updated_date || existing[0].created_date);
+          const localTimestamp = new Date(last_modified || timestamp || 0);
+          
+          if (localTimestamp > serverTimestamp) {
+            // Local data is newer, update server
+            await base44.entities.ColoringSession.update(existing[0].id, sessionData);
+          } else {
+            // Server data is newer, skip update but mark as synced
+            console.log('Skipping update - server data is newer');
+          }
         } else {
           await base44.entities.ColoringSession.create({
             profile_id,
@@ -521,6 +546,7 @@ export async function syncOfflineData() {
         const tx = db.transaction(['coloring_sessions'], 'readwrite');
         const store = tx.objectStore('coloring_sessions');
         session.synced = true;
+        session.synced_at = new Date().toISOString();
         await new Promise((resolve, reject) => {
           const request = store.put(session);
           request.onsuccess = () => resolve();
@@ -530,27 +556,34 @@ export async function syncOfflineData() {
         results.coloringSessions++;
       } catch (error) {
         console.error('Error syncing session:', error);
-        results.errors.push({ type: 'coloring_session', error: error.message });
+        results.errors.push({ type: 'coloring_session', error: error.message, id: session.id });
       }
     }
 
-    // Sync reading progress
+    // Sync reading progress with conflict resolution
     for (const progress of unsyncedData.readingProgress) {
       try {
         const profiles = await base44.entities.UserProfile.filter({ id: progress.profile_id });
         if (profiles.length > 0) {
-          const currentProgress = profiles[0].reading_progress || {};
-          currentProgress[progress.book_id] = progress.page_index;
+          const profile = profiles[0];
+          const currentProgress = profile.reading_progress || {};
+          const serverPageIndex = currentProgress[progress.book_id] || 0;
           
-          await base44.entities.UserProfile.update(progress.profile_id, {
-            reading_progress: currentProgress
-          });
+          // Conflict resolution: prefer furthest progress (higher page index)
+          if (progress.page_index >= serverPageIndex) {
+            currentProgress[progress.book_id] = progress.page_index;
+            
+            await base44.entities.UserProfile.update(progress.profile_id, {
+              reading_progress: currentProgress
+            });
+          }
 
-          // Mark as synced
+          // Mark as synced regardless
           const db = await openDB();
           const tx = db.transaction(['reading_progress'], 'readwrite');
           const store = tx.objectStore('reading_progress');
           progress.synced = true;
+          progress.synced_at = new Date().toISOString();
           await new Promise((resolve, reject) => {
             const request = store.put(progress);
             request.onsuccess = () => resolve();
@@ -561,7 +594,7 @@ export async function syncOfflineData() {
         }
       } catch (error) {
         console.error('Error syncing reading progress:', error);
-        results.errors.push({ type: 'reading_progress', error: error.message });
+        results.errors.push({ type: 'reading_progress', error: error.message, id: progress.id });
       }
     }
 
@@ -673,14 +706,20 @@ export async function syncOfflineData() {
   }
 }
 
-// Background sync with retry logic
+// Background sync with retry logic and progress events
 let syncInProgress = false;
 let syncRetryTimeout = null;
+let syncRetryCount = 0;
+const MAX_RETRY_COUNT = 3;
 
 async function backgroundSync() {
   if (syncInProgress || !navigator.onLine) return;
   
   syncInProgress = true;
+  
+  // Notify sync started
+  window.dispatchEvent(new CustomEvent('offline-sync-started'));
+  
   try {
     const result = await syncOfflineData();
     if (result.success && result.results) {
@@ -691,17 +730,50 @@ async function backgroundSync() {
       
       if (totalSynced > 0) {
         console.log('Background sync completed:', result.message);
+        syncRetryCount = 0; // Reset retry count on success
+        
         // Trigger custom event for UI updates
         window.dispatchEvent(new CustomEvent('offline-sync-complete', { detail: result }));
+      } else {
+        // No items to sync
+        window.dispatchEvent(new CustomEvent('offline-sync-idle'));
       }
+    } else if (result.results && result.results.errors.length > 0) {
+      // Partial sync with errors
+      window.dispatchEvent(new CustomEvent('offline-sync-error', { 
+        detail: { 
+          errors: result.results.errors,
+          partial: true 
+        } 
+      }));
     }
     
     // Schedule next sync in 5 minutes
     syncRetryTimeout = setTimeout(backgroundSync, 5 * 60 * 1000);
   } catch (error) {
     console.error('Background sync failed:', error);
-    // Retry in 1 minute on failure
-    syncRetryTimeout = setTimeout(backgroundSync, 60 * 1000);
+    syncRetryCount++;
+    
+    // Notify sync error
+    window.dispatchEvent(new CustomEvent('offline-sync-error', { 
+      detail: { 
+        error: error.message,
+        retryCount: syncRetryCount,
+        willRetry: syncRetryCount < MAX_RETRY_COUNT
+      } 
+    }));
+    
+    // Retry with exponential backoff (1min, 2min, 4min)
+    if (syncRetryCount < MAX_RETRY_COUNT) {
+      const retryDelay = Math.min(60 * 1000 * Math.pow(2, syncRetryCount - 1), 5 * 60 * 1000);
+      syncRetryTimeout = setTimeout(backgroundSync, retryDelay);
+    } else {
+      // Max retries reached, wait 10 minutes
+      syncRetryTimeout = setTimeout(() => {
+        syncRetryCount = 0;
+        backgroundSync();
+      }, 10 * 60 * 1000);
+    }
   } finally {
     syncInProgress = false;
   }
