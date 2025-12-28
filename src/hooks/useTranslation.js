@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import useLocalStorage from './useLocalStorage';
 import { translations } from '../i18n/translations';
+import { logger } from '@/lib/logger';
 
 /**
  * Custom hook for internationalization (i18n)
@@ -35,7 +36,7 @@ export default function useTranslation() {
     for (const k of keys) {
       value = value?.[k];
       if (value === undefined) {
-        console.warn(`Translation key not found: ${key} (language: ${language})`);
+        logger.warn(`Translation key not found: ${key} (language: ${language})`);
         return key; // Return key if translation not found
       }
     }

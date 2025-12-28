@@ -1,7 +1,25 @@
 import { createClient } from '@base44/sdk';
+import { logger } from '@/lib/logger';
+import { createRateLimiter } from '@/lib/rateLimit';
 
 // Simple, robust Base44 client initialization
 let clientInstance = null;
+const rateLimit = createRateLimiter({ limit: 10, intervalMs: 1000 });
+
+const rateLimitProxy = (target) => {
+  return new Proxy(target, {
+    get(obj, prop) {
+      const value = obj[prop];
+      if (typeof value === 'function') {
+        return (...args) => rateLimit(() => value.apply(obj, args));
+      }
+      if (value && typeof value === 'object') {
+        return rateLimitProxy(value);
+      }
+      return value;
+    },
+  });
+};
 
 function getBase44Client() {
   if (clientInstance) {
@@ -9,11 +27,11 @@ function getBase44Client() {
   }
 
   // Get config from environment variables
-  const appId = import.meta.env.VITE_BASE44_APP_ID || '69383fc9e0a81f2fec355d14';
-  const serverUrl = import.meta.env.VITE_BASE44_SERVER_URL || 'https://colour-me-brazil.base44.app';
+  const appId = import.meta.env.VITE_BASE44_APP_ID;
+  const serverUrl = import.meta.env.VITE_BASE44_SERVER_URL;
   const functionsVersion = import.meta.env.VITE_BASE44_FUNCTIONS_VERSION || 'v1';
 
-  console.log('🔧 Initializing Base44 client with:', {
+  logger.info('🔧 Initializing Base44 client with:', {
     appId: appId ? `${appId.substring(0, 8)}...` : 'MISSING',
     serverUrl,
     functionsVersion
@@ -21,9 +39,9 @@ function getBase44Client() {
 
   // Validate required config
   if (!appId || !serverUrl) {
-    const error = new Error('Base44 configuration is incomplete. Check environment variables.');
-    console.error('❌ Base44 Config Error:', { appId, serverUrl });
-    throw error;
+    throw new Error(
+      'Base44 configuration is incomplete. Set VITE_BASE44_APP_ID and VITE_BASE44_SERVER_URL.'
+    );
   }
 
   try {
@@ -32,13 +50,15 @@ function getBase44Client() {
       appId,
       serverUrl,
       functionsVersion,
-      requiresAuth: false
+      requiresAuth: false,
+      timeout: 10000,
+      retry: { attempts: 2, delay: 1000 }
     });
 
-    console.log('✅ Base44 client initialized successfully');
+    logger.info('✅ Base44 client initialized successfully');
     return clientInstance;
   } catch (error) {
-    console.error('❌ Failed to create Base44 client:', error);
+    logger.error('❌ Failed to create Base44 client', error);
     throw new Error(`Base44 initialization failed: ${error.message}`);
   }
 }
@@ -49,10 +69,10 @@ export const base44 = {
     return getBase44Client().auth;
   },
   get entities() {
-    return getBase44Client().entities;
+    return rateLimitProxy(getBase44Client().entities);
   },
   get functions() {
-    return getBase44Client().functions;
+    return rateLimitProxy(getBase44Client().functions);
   },
   get integrations() {
     return getBase44Client().integrations;

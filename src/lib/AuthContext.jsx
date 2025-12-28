@@ -1,4 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { clearStoredToken, getStoredToken } from '@/lib/tokenStorage';
+import { logger } from '@/lib/logger';
 
 const AuthContext = createContext();
 
@@ -11,7 +13,7 @@ export const AuthProvider = ({ children }) => {
   // Simplified: Don't check auth on mount
   // Let the user decide when to login
   useEffect(() => {
-    console.log('🔐 AuthContext initialized (no auto-check)');
+    logger.info('🔐 AuthContext initialized (no auto-check)');
     // App starts in unauthenticated state
     // User can click "Get Started" to login
   }, []);
@@ -28,7 +30,7 @@ export const AuthProvider = ({ children }) => {
       const returnUrl = window.location.href;
       base44.auth.redirectToLogin(returnUrl);
     } catch (error) {
-      console.error('Login redirect failed:', error);
+      logger.error('Login redirect failed', error);
       setAuthError({
         type: 'login_failed',
         message: error.message || 'Failed to redirect to login'
@@ -45,7 +47,7 @@ export const AuthProvider = ({ children }) => {
       const { base44 } = await import('@/api/base44Client');
       
       // Check for token in localStorage
-      const token = localStorage.getItem('base44_access_token');
+      const token = getStoredToken();
       
       if (!token) {
         setIsAuthenticated(false);
@@ -62,11 +64,10 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(true);
       setIsLoadingAuth(false);
     } catch (error) {
-      console.error('Auth check failed:', error);
+      logger.error('Auth check failed', error);
       
       // Clear invalid token
-      localStorage.removeItem('base44_access_token');
-      localStorage.removeItem('token');
+      clearStoredToken();
       
       setIsAuthenticated(false);
       setUser(null);
@@ -86,14 +87,12 @@ export const AuthProvider = ({ children }) => {
         base44.auth.logout(window.location.href);
       } else {
         // Just clear tokens
-        localStorage.removeItem('base44_access_token');
-        localStorage.removeItem('token');
+        clearStoredToken();
       }
     } catch (error) {
-      console.error('Logout failed:', error);
+      logger.error('Logout failed', error);
       // Force clear even if SDK fails
-      localStorage.removeItem('base44_access_token');
-      localStorage.removeItem('token');
+      clearStoredToken();
       setUser(null);
       setIsAuthenticated(false);
     }

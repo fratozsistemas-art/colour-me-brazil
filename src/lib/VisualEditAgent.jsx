@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { twMerge } from 'tailwind-merge'
+import { logger } from '@/lib/logger';
 
 export default function VisualEditAgent() {
 	// this functions job is to receive first a message from the parent window, to set or unset visual edits mode. 
@@ -432,7 +433,7 @@ export default function VisualEditAgent() {
 							message.data.replace || false
 						);
 					} else {
-						console.warn('[Agent] Invalid update-classes message:', message);
+						logger.warn('[Agent] Invalid update-classes message:', message);
 					}
 					break;
 
@@ -451,7 +452,7 @@ export default function VisualEditAgent() {
 							message.data.content
 						);
 					} else {
-						console.warn('[Agent] Invalid update-content message:', message);
+						logger.warn('[Agent] Invalid update-content message:', message);
 					}
 					break;
 

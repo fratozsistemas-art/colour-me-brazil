@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 /**
  * Service Worker Registration
  * Registers and manages service worker lifecycle
@@ -9,7 +11,7 @@ export const registerServiceWorker = () => {
       navigator.serviceWorker
         .register('/sw.js')
         .then((registration) => {
-          console.log('✓ Service Worker registered:', registration.scope);
+          logger.info('✓ Service Worker registered:', registration.scope);
 
           // Check for updates periodically
           setInterval(() => {
@@ -29,17 +31,17 @@ export const registerServiceWorker = () => {
           });
         })
         .catch((error) => {
-          console.error('✗ Service Worker registration failed:', error);
+          logger.error('✗ Service Worker registration failed', error);
         });
 
       // Handle controller change (new SW activated)
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        console.log('Service Worker updated, reloading page...');
+        logger.info('Service Worker updated, reloading page...');
         window.location.reload();
       });
     });
   } else {
-    console.log('Service Worker not supported in this browser');
+    logger.info('Service Worker not supported in this browser');
   }
 };
 
@@ -52,10 +54,10 @@ export const unregisterServiceWorker = async () => {
       const registrations = await navigator.serviceWorker.getRegistrations();
       for (const registration of registrations) {
         await registration.unregister();
-        console.log('Service Worker unregistered');
+        logger.info('Service Worker unregistered');
       }
     } catch (error) {
-      console.error('Failed to unregister service worker:', error);
+      logger.error('Failed to unregister service worker', error);
     }
   }
 };
@@ -69,7 +71,7 @@ const showUpdateNotification = () => {
   );
 
   if (shouldUpdate) {
-    window.location.reload();
+    skipWaitingAndActivate();
   }
 };
 
@@ -115,15 +117,15 @@ export const requestBackgroundSync = async (tag = 'sync-offline-data') => {
     try {
       const registration = await navigator.serviceWorker.ready;
       await registration.sync.register(tag);
-      console.log('Background sync registered:', tag);
+      logger.info('Background sync registered:', tag);
       return true;
     } catch (error) {
-      console.error('Background sync registration failed:', error);
+      logger.error('Background sync registration failed', error);
       return false;
     }
   }
   
-  console.warn('Background Sync not supported');
+  logger.warn('Background Sync not supported');
   return false;
 };
 
@@ -146,19 +148,19 @@ let deferredPrompt = null;
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
-  console.log('PWA install prompt ready');
+  logger.info('PWA install prompt ready');
 });
 
 export const promptPWAInstall = async () => {
   if (!deferredPrompt) {
-    console.log('PWA install prompt not available');
+    logger.info('PWA install prompt not available');
     return false;
   }
 
   deferredPrompt.prompt();
   const { outcome } = await deferredPrompt.userChoice;
   
-  console.log(`User ${outcome} the PWA installation`);
+  logger.info(`User ${outcome} the PWA installation`);
   deferredPrompt = null;
   
   return outcome === 'accepted';

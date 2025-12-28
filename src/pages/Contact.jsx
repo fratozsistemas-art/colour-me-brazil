@@ -9,6 +9,8 @@ import { Mail, Phone, MapPin, Send, CheckCircle, Shield, HelpCircle } from 'luci
 import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
+import { sanitizeText } from '@/lib/sanitize';
+import { logger } from '@/lib/logger';
 
 export default function Contact() {
   const [formData, setFormData] = useState({
@@ -30,8 +32,15 @@ export default function Contact() {
 
     setLoading(true);
     try {
+      const sanitizedData = {
+        name: sanitizeText(formData.name),
+        email: sanitizeText(formData.email),
+        subject: sanitizeText(formData.subject),
+        message: sanitizeText(formData.message),
+      };
+
       // TODO: Implement actual email sending via cloud function
-      // await base44.functions.sendContactEmail(formData);
+      // await base44.functions.sendContactEmail(sanitizedData);
       
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500));
@@ -45,7 +54,7 @@ export default function Contact() {
         setSubmitted(false);
       }, 5000);
     } catch (error) {
-      console.error('Failed to send message:', error);
+      logger.error('Failed to send message', error);
       toast.error('Failed to send message. Please try again or email us directly.');
     } finally {
       setLoading(false);

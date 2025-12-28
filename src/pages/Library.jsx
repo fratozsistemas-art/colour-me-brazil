@@ -306,7 +306,20 @@ export default function Library() {
 
   const saveColoringSession = useMutation({
     mutationFn: async (sessionData) => {
-      const { canvas, is_completed, coloring_time, ...restData } = sessionData;
+      if (!sessionData || typeof sessionData !== 'object') {
+        throw new Error('Coloring session data is missing.');
+      }
+
+      if (!coloringPage?.id || !currentProfile?.id) {
+        throw new Error('Missing coloring context for save.');
+      }
+
+      const {
+        canvas = null,
+        is_completed = false,
+        coloring_time = 0,
+        ...restData
+      } = sessionData;
       
       // Check if online
       if (!navigator.onLine) {
@@ -325,9 +338,19 @@ export default function Library() {
       if (is_completed && canvas) {
         try {
           // Convert canvas to blob
-          const blob = await new Promise(resolve => 
-            canvas.toBlob(resolve, 'image/png', 1.0)
-          );
+          if (typeof canvas.toBlob !== 'function') {
+            throw new Error('Invalid canvas element.');
+          }
+
+          const blob = await new Promise((resolve, reject) => {
+            canvas.toBlob((result) => {
+              if (result) {
+                resolve(result);
+              } else {
+                reject(new Error('Canvas conversion failed.'));
+              }
+            }, 'image/png', 1.0);
+          });
           
           // Upload the artwork
           const uploadResult = await base44.integrations.Core.UploadFile({
@@ -374,7 +397,17 @@ export default function Library() {
         });
       }
     },
-    onSuccess: async () => {
+    onSuccess: async (result, sessionData) => {
+      if (!sessionData || typeof sessionData !== 'object') {
+        setColoringPage(null);
+        return;
+      }
+
+      if (result?.offline) {
+        setColoringPage(null);
+        return;
+      }
+
       // Update profile progress
       const sessions = await base44.entities.ColoringSession.filter({ 
         profile_id: currentProfile.id 
@@ -514,7 +547,12 @@ export default function Library() {
           profileId={currentProfile?.id}
           illustrationUrl={coloringPage.illustration_url}
           bookData={selectedBook}
-          onSave={(data) => saveColoringSession.mutate(data)}
+          onSave={(data) => {
+            if (!data) {
+              return;
+            }
+            saveColoringSession.mutate(data);
+          }}
           onClose={() => setColoringPage(null)}
         />
       )}
