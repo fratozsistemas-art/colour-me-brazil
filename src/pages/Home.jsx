@@ -3,7 +3,6 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { createPageUrl } from '../utils';
-import { Link } from 'react-router-dom';
 import { 
   Book, Palette, Globe, Star, Trophy, Sparkles, 
   Smartphone, Download, ArrowRight, CheckCircle 
