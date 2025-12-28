@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/components/auth/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, Filter, Download, Lock, Wifi, WifiOff, Sparkles, Star } from 'lucide-react';
@@ -22,6 +23,7 @@ import ForYouSection from '../components/recommendations/ForYouSection';
 import { getRecommendations, getReadingPath, getBecauseYouRead } from '../components/recommendations/recommendationEngine';
 
 export default function Library() {
+  const { user, isAuthenticated, isLoadingAuth } = useAuth();
   const [currentProfile, setCurrentProfile] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCollection, setSelectedCollection] = useState('all');
@@ -35,63 +37,53 @@ export default function Library() {
   const [readingPath, setReadingPath] = useState(null);
   const [becauseYouRead, setBecauseYouRead] = useState(null);
   const [showForYou, setShowForYou] = useState(true);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [purchaseBook, setPurchaseBook] = useState(null);
   
   const queryClient = useQueryClient();
 
-  // Check authentication on mount
+  // ✅ Authentication protection
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const isAuth = await base44.auth.isAuthenticated();
-        if (!isAuth) {
-          window.location.href = '/';
-          return;
-        }
-        
-        // Validate token by fetching user
-        const user = await base44.auth.me();
-        if (!user) {
-          window.location.href = '/';
-          return;
-        }
-      } catch (error) {
-        console.error('Auth error:', error);
-        window.location.href = '/';
-        return;
-      }
-      setIsCheckingAuth(false);
-    };
-    checkAuth();
-  }, []);
+    if (!isLoadingAuth && !isAuthenticated) {
+      console.warn('⚠️ User not authenticated, redirecting to home...');
+      window.location.href = '/';
+    }
+  }, [isLoadingAuth, isAuthenticated]);
 
-  // Fetch user profiles with error handling - only profiles linked to current user's account
-  const { data: profiles = [], error: profilesError } = useQuery({
-    queryKey: ['profiles'],
+  // ✅ Fetch user profiles with proper authentication check
+  const { data: profiles = [], error: profilesError, isLoading: isLoadingProfiles } = useQuery({
+    queryKey: ['profiles', user?.id],
     queryFn: async () => {
       try {
-        const currentUser = await base44.auth.me();
-        if (!currentUser) return [];
+        if (!user || !user.id) {
+          throw new Error('User not authenticated');
+        }
 
         // Get the current user's parent account
         const parentAccounts = await base44.entities.ParentAccount.filter({ 
-          parent_user_id: currentUser.id 
+          parent_user_id: user.id 
         });
         
-        if (parentAccounts.length === 0) return [];
+        if (parentAccounts.length === 0) {
+          console.warn('⚠️ No parent account found for user');
+          return [];
+        }
 
         const parentAccount = parentAccounts[0];
         
         // Filter UserProfiles by parent_account_id
-        return await base44.entities.UserProfile.filter({ 
+        const userProfiles = await base44.entities.UserProfile.filter({ 
           parent_account_id: parentAccount.id 
         });
+        
+        return userProfiles || [];
       } catch (error) {
-        console.error('Failed to load profiles:', error);
-        return [];
+        console.error('❌ Failed to load profiles:', error);
+        throw error;
       }
     },
+    enabled: !!user && !!user.id,
+    retry: 2,
+    staleTime: 1000 * 60 * 5,
   });
 
   // Fetch books with error handling
@@ -312,14 +304,42 @@ export default function Library() {
 
   const saveColoringSession = useMutation({
     mutationFn: async (sessionData) => {
-      if (!sessionData) {
-        throw new Error('Session data is required');
+      // ✅ Defensive validation
+      if (!sessionData || typeof sessionData !== 'object') {
+        throw new Error('Invalid session data: data is null or not an object');
       }
-      const { canvas, is_completed, coloring_time, ...restData } = sessionData;
+
+      if (!currentProfile || !currentProfile.id) {
+        throw new Error('No profile selected');
+      }
+
+      if (!coloringPage || !coloringPage.id) {
+        throw new Error('No coloring page selected');
+      }
+
+      // ✅ Destructure with defaults
+      const {
+        canvas = null,
+        is_completed = false,
+        coloring_time = 0,
+        ...restData
+      } = sessionData;
+
+      // ✅ Validate required fields
+      if (!canvas) {
+        throw new Error('Canvas element is required');
+      }
+
+      console.log('💾 Saving coloring session:', {
+        profile_id: currentProfile.id,
+        page_id: coloringPage.id,
+        is_completed,
+        coloring_time
+      });
       
       // Check if online
       if (!navigator.onLine) {
-        // Save offline
+        console.log('📴 Offline: Saving via offline manager...');
         const { saveColoringSessionOffline } = await import('../components/offlineManager');
         await saveColoringSessionOffline(currentProfile.id, coloringPage.id, {
           book_id: coloringPage.book_id,
@@ -333,19 +353,35 @@ export default function Library() {
       // If completed, save as ColoredArtwork
       if (is_completed && canvas) {
         try {
-          // Convert canvas to blob
+          // ✅ Convert canvas to blob with timeout
           const blob = await new Promise((resolve, reject) => {
             if (!canvas || typeof canvas.toBlob !== 'function') {
               reject(new Error('Invalid canvas object'));
               return;
             }
-            canvas.toBlob(resolve, 'image/png', 1.0);
+
+            const timeout = setTimeout(() => {
+              reject(new Error('Canvas conversion timed out'));
+            }, 10000);
+
+            canvas.toBlob((blob) => {
+              clearTimeout(timeout);
+              if (!blob) {
+                reject(new Error('Failed to convert canvas to blob'));
+              } else {
+                resolve(blob);
+              }
+            }, 'image/png', 0.95);
           });
           
           // Upload the artwork
           const uploadResult = await base44.integrations.Core.UploadFile({
             file: blob
           });
+
+          if (!uploadResult || !uploadResult.file_url) {
+            throw new Error('File upload failed: no URL returned');
+          }
           
           // Create ColoredArtwork entity
           await base44.entities.ColoredArtwork.create({
@@ -356,8 +392,11 @@ export default function Library() {
             coloring_time_seconds: coloring_time,
             is_showcased: false
           });
+
+          console.log('✅ Artwork saved successfully');
         } catch (error) {
-          console.error('Error saving artwork:', error);
+          console.error('❌ Error saving artwork:', error);
+          throw error;
         }
       }
       
@@ -387,37 +426,47 @@ export default function Library() {
         });
       }
     },
-    onSuccess: async () => {
-      // Update profile progress
-      const sessions = await base44.entities.ColoringSession.filter({ 
-        profile_id: currentProfile.id 
-      });
-      
-      const completedPages = sessions.filter(s => s.is_completed).map(s => s.page_id);
-      const totalTime = sessions.reduce((sum, s) => sum + (s.coloring_time || 0), 0);
-      
-      await base44.entities.UserProfile.update(currentProfile.id, {
-        pages_colored: completedPages,
-        total_coloring_time: totalTime
-      });
+    onSuccess: async (data) => {
+      if (!data.offline) {
+        console.log('✅ Coloring session saved successfully');
+        
+        // Update profile progress
+        try {
+          const sessions = await base44.entities.ColoringSession.filter({ 
+            profile_id: currentProfile.id 
+          });
+          
+          const completedPages = sessions.filter(s => s.is_completed).map(s => s.page_id);
+          const totalTime = sessions.reduce((sum, s) => sum + (s.coloring_time || 0), 0);
+          
+          await base44.entities.UserProfile.update(currentProfile.id, {
+            pages_colored: completedPages,
+            total_coloring_time: totalTime
+          });
 
-      // Check for new achievements
-      await checkAndAwardAchievements(currentProfile.id);
+          // Check for new achievements
+          await checkAndAwardAchievements(currentProfile.id);
 
-      // Log coloring activity
-      if (sessionData.is_completed) {
-        await base44.entities.UserActivityLog.create({
-          profile_id: currentProfile.id,
-          activity_type: 'page_colored',
-          book_id: coloringPage.book_id,
-          page_id: coloringPage.id,
-          points_earned: 10
-        });
+          // Log coloring activity
+          await base44.entities.UserActivityLog.create({
+            profile_id: currentProfile.id,
+            activity_type: 'page_colored',
+            book_id: coloringPage.book_id,
+            page_id: coloringPage.id,
+            points_earned: 10
+          });
+        } catch (error) {
+          console.error('Error updating profile after save:', error);
+        }
       }
       
       queryClient.invalidateQueries(['profiles']);
       queryClient.invalidateQueries(['coloringSessions']);
       setColoringPage(null);
+    },
+    onError: (error) => {
+      console.error('❌ Coloring session save failed:', error);
+      alert('Failed to save artwork: ' + (error.message || 'Unknown error'));
     }
   });
 
@@ -461,13 +510,30 @@ export default function Library() {
     }
   }, []);
 
-  // Show loading while checking authentication
-  if (isCheckingAuth) {
+  // ✅ Show loading while checking authentication
+  if (isLoadingAuth) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mb-4" />
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-gray-600">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ Show message if not authenticated
+  if (!isAuthenticated || !user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="bg-white rounded-xl p-6 shadow-lg max-w-md">
+          <h2 className="text-xl font-bold mb-4">Authentication Required</h2>
+          <p className="text-gray-600 mb-4">
+            Please log in to access your library.
+          </p>
+          <Button onClick={() => window.location.href = '/'}>
+            Go to Home
+          </Button>
         </div>
       </div>
     );
