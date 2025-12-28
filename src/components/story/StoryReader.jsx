@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { 
   ChevronLeft, ChevronRight, X, Volume2, VolumeX, 
-  Palette, Play, Pause, RotateCcw, Languages, CheckCircle2, Zap, Wand2, Bookmark, BookmarkCheck
+  Palette, Play, Pause, RotateCcw, Languages, CheckCircle2, Zap, Wand2, Bookmark, BookmarkCheck, Star
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';

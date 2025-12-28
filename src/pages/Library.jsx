@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Filter, Download, Lock, Wifi, WifiOff, Sparkles } from 'lucide-react';
+import { Search, Filter, Download, Lock, Wifi, WifiOff, Sparkles, Star } from 'lucide-react';
 import BookCard from '../components/library/BookCard';
 import ProfileSelector from '../components/profile/ProfileSelector';
 import StoryReader from '../components/story/StoryReader';
