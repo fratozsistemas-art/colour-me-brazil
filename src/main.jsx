@@ -3,13 +3,16 @@ import ReactDOM from 'react-dom/client'
 import App from '@/App.jsx'
 import '@/index.css'
 import { registerServiceWorker } from './lib/registerServiceWorker'
+import { BrowserRouter } from 'react-router-dom'
 
 // Register service worker for offline functionality and PWA support
 registerServiceWorker();
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   // <React.StrictMode>
-  <App />
+  <BrowserRouter>
+    <App />
+  </BrowserRouter>
   // </React.StrictMode>,
 )
 
@@ -21,6 +24,5 @@ if (import.meta.hot) {
     window.parent?.postMessage({ type: 'sandbox:afterUpdate' }, '*');
   });
 }
-
 
 
