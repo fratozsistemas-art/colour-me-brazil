@@ -172,20 +172,6 @@ export default function ProductCard({ product, onAddToCart, index }) {
           </div>
         </div>
       </Card>
-
-      {/* Review Form Modal */}
-      <AnimatePresence>
-        {showReviewForm && (
-          <ReviewForm
-            productId={product.id}
-            productName={product.name_en}
-            onClose={() => setShowReviewForm(false)}
-            onSubmitSuccess={() => {
-              // Refresh reviews
-            }}
-          />
-        )}
-      </AnimatePresence>
-    </div>
+    </motion.div>
   );
 }
