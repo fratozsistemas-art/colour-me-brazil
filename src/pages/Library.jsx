@@ -46,7 +46,13 @@ export default function Library() {
       try {
         const isAuth = await base44.auth.isAuthenticated();
         if (!isAuth) {
-          // Redirect to home or show login prompt
+          window.location.href = '/';
+          return;
+        }
+        
+        // Validate token by fetching user
+        const user = await base44.auth.me();
+        if (!user) {
           window.location.href = '/';
           return;
         }
@@ -306,6 +312,9 @@ export default function Library() {
 
   const saveColoringSession = useMutation({
     mutationFn: async (sessionData) => {
+      if (!sessionData) {
+        throw new Error('Session data is required');
+      }
       const { canvas, is_completed, coloring_time, ...restData } = sessionData;
       
       // Check if online
@@ -325,9 +334,13 @@ export default function Library() {
       if (is_completed && canvas) {
         try {
           // Convert canvas to blob
-          const blob = await new Promise(resolve => 
-            canvas.toBlob(resolve, 'image/png', 1.0)
-          );
+          const blob = await new Promise((resolve, reject) => {
+            if (!canvas || typeof canvas.toBlob !== 'function') {
+              reject(new Error('Invalid canvas object'));
+              return;
+            }
+            canvas.toBlob(resolve, 'image/png', 1.0);
+          });
           
           // Upload the artwork
           const uploadResult = await base44.integrations.Core.UploadFile({
