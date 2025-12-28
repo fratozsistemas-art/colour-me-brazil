@@ -194,11 +194,9 @@ export default function Dashboard() {
                 <Sparkles className="w-6 h-6 text-purple-500" />
                 Recomendado para Você
               </h2>
-              <a href={createPageUrl('Library')}>
-                <Button variant="ghost" size="sm">
-                  Ver Tudo <ChevronRight className="w-4 h-4 ml-1" />
-                </Button>
-              </a>
+              <Button variant="ghost" size="sm" onClick={() => window.location.href = createPageUrl('Library')}>
+                Ver Tudo <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
             </div>
             
             {recommendations.length > 0 ? (
@@ -404,30 +402,22 @@ export default function Dashboard() {
                 <CardTitle className="text-lg">Ações Rápidas</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <a href={createPageUrl('Library')}>
-                  <Button variant="outline" className="w-full justify-start">
-                    <Book className="w-4 h-4 mr-2" />
-                    Explorar Livros
-                  </Button>
-                </a>
-                <a href={createPageUrl('ArtGallery')}>
-                  <Button variant="outline" className="w-full justify-start">
-                    <Palette className="w-4 h-4 mr-2" />
-                    Minha Galeria
-                  </Button>
-                </a>
-                <a href={createPageUrl('Leaderboard')}>
-                  <Button variant="outline" className="w-full justify-start">
-                    <Crown className="w-4 h-4 mr-2" />
-                    Ranking
-                  </Button>
-                </a>
-                <a href={createPageUrl('RewardsShop')}>
-                  <Button variant="outline" className="w-full justify-start">
-                    <Gift className="w-4 h-4 mr-2" />
-                    Loja de Prêmios
-                  </Button>
-                </a>
+                <Button variant="outline" className="w-full justify-start" onClick={() => window.location.href = createPageUrl('Library')}>
+                  <Book className="w-4 h-4 mr-2" />
+                  Explorar Livros
+                </Button>
+                <Button variant="outline" className="w-full justify-start" onClick={() => window.location.href = createPageUrl('ArtGallery')}>
+                  <Palette className="w-4 h-4 mr-2" />
+                  Minha Galeria
+                </Button>
+                <Button variant="outline" className="w-full justify-start" onClick={() => window.location.href = createPageUrl('Leaderboard')}>
+                  <Crown className="w-4 h-4 mr-2" />
+                  Ranking
+                </Button>
+                <Button variant="outline" className="w-full justify-start" onClick={() => window.location.href = createPageUrl('RewardsShop')}>
+                  <Gift className="w-4 h-4 mr-2" />
+                  Loja de Prêmios
+                </Button>
               </CardContent>
             </Card>
           </motion.div>
