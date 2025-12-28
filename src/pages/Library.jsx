@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/components/auth/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, Filter, Download, Lock, Wifi, WifiOff, Sparkles, Star } from 'lucide-react';
@@ -23,7 +22,8 @@ import ForYouSection from '../components/recommendations/ForYouSection';
 import { getRecommendations, getReadingPath, getBecauseYouRead } from '../components/recommendations/recommendationEngine';
 
 export default function Library() {
-  const { user, isAuthenticated, isLoadingAuth } = useAuth();
+  const [user, setUser] = useState(null);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [currentProfile, setCurrentProfile] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCollection, setSelectedCollection] = useState('all');
@@ -41,13 +41,36 @@ export default function Library() {
   
   const queryClient = useQueryClient();
 
-  // ✅ Authentication protection
+  // ✅ Authentication check with token validation
   useEffect(() => {
-    if (!isLoadingAuth && !isAuthenticated) {
-      console.warn('⚠️ User not authenticated, redirecting to home...');
-      window.location.href = '/';
-    }
-  }, [isLoadingAuth, isAuthenticated]);
+    const checkAuth = async () => {
+      setIsLoadingAuth(true);
+      try {
+        const token = localStorage.getItem('base44_access_token');
+        
+        if (!token) {
+          window.location.href = '/';
+          return;
+        }
+
+        const currentUser = await base44.auth.me();
+        
+        if (!currentUser || !currentUser.id) {
+          localStorage.removeItem('base44_access_token');
+          window.location.href = '/';
+          return;
+        }
+
+        setUser(currentUser);
+        setIsLoadingAuth(false);
+      } catch (error) {
+        console.error('Auth error:', error);
+        localStorage.removeItem('base44_access_token');
+        window.location.href = '/';
+      }
+    };
+    checkAuth();
+  }, []);
 
   // ✅ Fetch user profiles with proper authentication check
   const { data: profiles = [], error: profilesError, isLoading: isLoadingProfiles } = useQuery({
@@ -523,20 +546,8 @@ export default function Library() {
   }
 
   // ✅ Show message if not authenticated
-  if (!isAuthenticated || !user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="bg-white rounded-xl p-6 shadow-lg max-w-md">
-          <h2 className="text-xl font-bold mb-4">Authentication Required</h2>
-          <p className="text-gray-600 mb-4">
-            Please log in to access your library.
-          </p>
-          <Button onClick={() => window.location.href = '/'}>
-            Go to Home
-          </Button>
-        </div>
-      </div>
-    );
+  if (!user) {
+    return null;
   }
 
   // Handle database errors gracefully
