@@ -15,26 +15,29 @@ export default function PurchaseModal({ book, onClose, onPurchaseComplete }) {
     setError(null);
 
     try {
+      const user = await base44.auth.me();
+      if (!user) {
+        throw new Error('Authentication required');
+      }
+
       // Create checkout session
       const response = await base44.functions.invoke('createCheckoutSession', {
         itemType: isPrintedVersion ? 'printed_book' : 'book',
-        itemId: book.id,
-        amount: isPrintedVersion ? 2499 : 499, // R$ 24.99 or $4.99 in cents
-        currency: isPrintedVersion ? 'brl' : 'usd',
-        itemName: isPrintedVersion ? `${book.title_en} (Printed Edition)` : book.title_en,
-        successUrl: window.location.origin + '/Library?purchase=success&book_id=' + book.id,
-        cancelUrl: window.location.origin + '/Library?purchase=cancelled'
+        itemId: book.id
       });
 
       if (response.data.url) {
+        const checkoutUrl = new URL(response.data.url);
+        if (!checkoutUrl.hostname.endsWith('stripe.com')) {
+          throw new Error('Invalid checkout URL');
+        }
         // Redirect to Stripe checkout
-        window.location.href = response.data.url;
+        window.location.href = checkoutUrl.toString();
       } else {
         throw new Error('No checkout URL received');
       }
     } catch (err) {
-      console.error('Purchase error:', err);
-      setError(err.message || 'Failed to initiate purchase. Please try again.');
+      setError('Unable to process payment. Please try again or contact support.');
       setIsProcessing(false);
     }
   };

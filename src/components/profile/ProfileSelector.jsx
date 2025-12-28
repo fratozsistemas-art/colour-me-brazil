@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -15,8 +15,28 @@ export default function ProfileSelector({ onProfileCreated, existingProfiles = [
   const [selectedAvatar, setSelectedAvatar] = useState(AVATAR_OPTIONS[0].id);
   const [preferredLanguage, setPreferredLanguage] = useState('en');
   const [showAvatarInfo, setShowAvatarInfo] = useState(null);
+  const [parentVerified, setParentVerified] = useState(false);
+
+  useEffect(() => {
+    const cached = sessionStorage.getItem('parent_verified');
+    if (cached === 'true') {
+      setParentVerified(true);
+      return;
+    }
+
+    const answer = window.prompt('Parent verification: What is 8 + 6?');
+    if (answer === '14') {
+      sessionStorage.setItem('parent_verified', 'true');
+      setParentVerified(true);
+    } else {
+      window.location.href = '/';
+    }
+  }, []);
 
   const handleCreateProfile = () => {
+    if (!parentVerified) {
+      return;
+    }
     if (childName.trim().length >= 2) {
       onProfileCreated({
         child_name: childName.trim(),
@@ -29,6 +49,21 @@ export default function ProfileSelector({ onProfileCreated, existingProfiles = [
 
   const handleSelectProfile = (profile) => {
     onProfileCreated(profile);
+  };
+
+  if (!parentVerified) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-green-100 via-yellow-100 to-blue-100">
+        <Card className="p-8 shadow-2xl bg-white/95 backdrop-blur">
+          <p className="text-gray-700 text-center">Verifying parent access...</p>
+        </Card>
+      </div>
+    );
+  }
+
+  const maskChildName = (name) => {
+    if (!name || name.length <= 2) return name;
+    return `${name[0]}${'*'.repeat(name.length - 2)}${name[name.length - 1]}`;
   };
 
   if (isCreating) {
@@ -205,7 +240,7 @@ export default function ProfileSelector({ onProfileCreated, existingProfiles = [
                     className="p-6 rounded-2xl border-2 border-gray-200 hover:border-green-400 bg-white shadow-md hover:shadow-xl transition-all"
                   >
                     <div className="w-20 h-20 mx-auto mb-3">{avatar?.svg || '👤'}</div>
-                    <div className="font-bold text-lg text-gray-800">{profile.child_name}</div>
+                    <div className="font-bold text-lg text-gray-800">{maskChildName(profile.child_name)}</div>
                     <div className="text-sm text-gray-500 mt-1">
                       {profile.books_completed?.length || 0} books completed
                     </div>

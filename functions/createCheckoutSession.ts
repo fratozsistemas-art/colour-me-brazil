@@ -12,7 +12,32 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { itemType, itemId, amount, currency = 'usd', itemName, successUrl, cancelUrl } = await req.json();
+    const { itemType, itemId } = await req.json();
+
+    if (!itemType || !itemId) {
+      return Response.json({ error: 'itemType and itemId are required' }, { status: 400 });
+    }
+
+    const allowedOrigins = [
+      'https://colourmebrazil.com',
+      'https://www.colourmebrazil.com',
+      'http://localhost:5173'
+    ];
+    const origin = req.headers.get('origin');
+    if (!origin || !allowedOrigins.includes(origin)) {
+      return Response.json({ error: 'Invalid origin' }, { status: 403 });
+    }
+
+    const books = await base44.asServiceRole.entities.Book.filter({ id: itemId });
+    if (!books.length) {
+      return Response.json({ error: 'Item not found' }, { status: 404 });
+    }
+
+    const book = books[0];
+    const isPrinted = itemType === 'printed_book';
+    const amount = isPrinted ? 2499 : 499;
+    const currency = isPrinted ? 'brl' : 'usd';
+    const itemName = isPrinted ? `${book.title_en} (Printed Edition)` : book.title_en;
 
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
@@ -31,8 +56,8 @@ Deno.serve(async (req) => {
         },
       ],
       mode: 'payment',
-      success_url: successUrl || `${req.headers.get('origin')}/Library?purchase=success`,
-      cancel_url: cancelUrl || `${req.headers.get('origin')}/Library?purchase=cancelled`,
+      success_url: `${origin}/Library?purchase=success&book_id=${itemId}`,
+      cancel_url: `${origin}/Library?purchase=cancelled`,
       metadata: {
         user_id: user.id,
         item_type: itemType,
@@ -45,8 +70,8 @@ Deno.serve(async (req) => {
       user_id: user.id,
       item_type: itemType,
       item_id: itemId,
-      amount: amount,
-      currency: currency,
+      amount,
+      currency,
       stripe_payment_intent_id: session.payment_intent,
       status: 'pending'
     });

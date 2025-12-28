@@ -1,54 +1,12 @@
 import { base44 } from '@/api/base44Client';
-import { format, parseISO, differenceInDays, startOfDay } from 'date-fns';
 
 /**
  * Check and update user's activity streak
  */
 export async function updateStreak(profileId) {
   try {
-    const profile = await base44.entities.UserProfile.filter({ id: profileId });
-    if (!profile || profile.length === 0) return;
-
-    const userProfile = profile[0];
-    const today = format(new Date(), 'yyyy-MM-dd');
-    const lastActivityDate = userProfile.last_activity_date;
-
-    let newStreak = userProfile.current_streak || 0;
-    let longestStreak = userProfile.longest_streak || 0;
-
-    if (!lastActivityDate) {
-      // First activity ever
-      newStreak = 1;
-    } else {
-      const lastDate = startOfDay(parseISO(lastActivityDate));
-      const todayDate = startOfDay(new Date());
-      const daysDiff = differenceInDays(todayDate, lastDate);
-
-      if (daysDiff === 0) {
-        // Already updated today, no change
-        return userProfile;
-      } else if (daysDiff === 1) {
-        // Consecutive day, increment streak
-        newStreak += 1;
-      } else {
-        // Streak broken, reset to 1
-        newStreak = 1;
-      }
-    }
-
-    // Update longest streak if needed
-    if (newStreak > longestStreak) {
-      longestStreak = newStreak;
-    }
-
-    // Update profile
-    await base44.entities.UserProfile.update(profileId, {
-      current_streak: newStreak,
-      longest_streak: longestStreak,
-      last_activity_date: today
-    });
-
-    return { current_streak: newStreak, longest_streak: longestStreak };
+    const response = await base44.functions.invoke('updateStreak', { profileId });
+    return response.data;
   } catch (error) {
     console.error('Error updating streak:', error);
     return null;
