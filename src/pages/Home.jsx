@@ -15,6 +15,10 @@ export default function Home() {
     base44.auth.redirectToLogin(createPageUrl('Library'));
   };
 
+  const handleRoleStart = (destination) => {
+    base44.auth.redirectToLogin(createPageUrl(destination));
+  };
+
   // Generate QR code URLs for app download
   const iosAppUrl = 'https://apps.apple.com/app/colour-me-brazil'; // Replace with actual App Store URL
   const androidAppUrl = 'https://play.google.com/store/apps/details?id=com.colourmebrazil'; // Replace with actual Play Store URL
@@ -59,6 +63,36 @@ export default function Home() {
               Get Started
               <ArrowRight className="w-6 h-6 ml-2" />
             </Button>
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
+              <Button
+                onClick={() => handleRoleStart('Library')}
+                variant="outline"
+                className="border-green-600 text-green-700 hover:bg-green-50"
+              >
+                I'm a Child
+              </Button>
+              <Button
+                onClick={() => handleRoleStart('ParentPortal')}
+                variant="outline"
+                className="border-blue-600 text-blue-700 hover:bg-blue-50"
+              >
+                I'm a Parent
+              </Button>
+              <Button
+                onClick={() => handleRoleStart('CuratorDashboard')}
+                variant="outline"
+                className="border-purple-600 text-purple-700 hover:bg-purple-50"
+              >
+                I'm an Educator
+              </Button>
+              <Button
+                onClick={() => handleRoleStart('Dashboard')}
+                variant="outline"
+                className="border-gray-700 text-gray-700 hover:bg-gray-50"
+              >
+                I'm an Admin
+              </Button>
+            </div>
           </motion.div>
         </div>
 
@@ -203,6 +237,45 @@ export default function Home() {
                 </p>
               </Card>
             </motion.div>
+          </div>
+        </div>
+      </section>
+
+      <section className="py-16 px-4 bg-gradient-to-br from-blue-50 to-white">
+        <div className="container mx-auto max-w-6xl">
+          <h2 className="text-4xl font-bold text-center mb-12 text-gray-800">
+            Journeys Built for Every Role
+          </h2>
+          <div className="grid md:grid-cols-2 gap-8">
+            <Card className="p-6 border-2 border-green-200">
+              <h3 className="text-2xl font-bold text-green-700 mb-4">Child Journey</h3>
+              <ul className="space-y-2 text-gray-700">
+                <li>Home → Library → Book Reader → Coloring</li>
+                <li>Profile → Gamification (Leaderboard, Rewards)</li>
+                <li>Community (Showcase, Forum) → Learning Paths</li>
+              </ul>
+            </Card>
+            <Card className="p-6 border-2 border-blue-200">
+              <h3 className="text-2xl font-bold text-blue-700 mb-4">Parent Journey</h3>
+              <ul className="space-y-2 text-gray-700">
+                <li>Consent Flow → Parent Portal → Settings</li>
+                <li>Privacy Controls → Progress Monitoring</li>
+              </ul>
+            </Card>
+            <Card className="p-6 border-2 border-purple-200">
+              <h3 className="text-2xl font-bold text-purple-700 mb-4">Educator Journey</h3>
+              <ul className="space-y-2 text-gray-700">
+                <li>Curator Dashboard → Manage Books → Content Submission</li>
+                <li>Reading Paths → Moderation Tools</li>
+              </ul>
+            </Card>
+            <Card className="p-6 border-2 border-gray-200">
+              <h3 className="text-2xl font-bold text-gray-800 mb-4">Admin Journey</h3>
+              <ul className="space-y-2 text-gray-700">
+                <li>Dashboard → User Management → Content Moderation</li>
+                <li>Analytics → System Settings</li>
+              </ul>
+            </Card>
           </div>
         </div>
       </section>
