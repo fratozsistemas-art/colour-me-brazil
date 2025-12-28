@@ -33,6 +33,7 @@ import Shop from './pages/Shop';
 import Showcase from './pages/Showcase';
 import SubmitContent from './pages/SubmitContent';
 import TermsOfService from './pages/TermsOfService';
+import UserProfileManagement from './pages/UserProfileManagement';
 import __Layout from './Layout.jsx';
 
 
@@ -72,6 +73,7 @@ export const PAGES = {
     "Showcase": Showcase,
     "SubmitContent": SubmitContent,
     "TermsOfService": TermsOfService,
+    "UserProfileManagement": UserProfileManagement,
 }
 
 export const pagesConfig = {
