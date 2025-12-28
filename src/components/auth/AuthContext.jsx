@@ -89,7 +89,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     console.log('🔵 AuthProvider mounted, checking authentication...');
     checkAuth();
-  }, [checkAuth]);
+  }, []); // Remove checkAuth dependency to prevent infinite loops
 
   // ✅ Monitor localStorage changes (multi-tab sync)
   useEffect(() => {
