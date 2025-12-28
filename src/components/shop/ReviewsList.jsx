@@ -1,15 +1,36 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tantml:function_calls>';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Star, ThumbsUp, CheckCircle } from 'lucide-react';
+import { Star, ThumbsUp, CheckCircle, MapPin } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 
 export default function ReviewsList({ productId }) {
-  const currentProfileId = localStorage.getItem('currentProfileId');
+  const [currentUser, setCurrentUser] = useState(null);
+  const [currentProfile, setCurrentProfile] = useState(null);
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const isAuth = await base44.auth.isAuthenticated();
+        if (isAuth) {
+          const user = await base44.auth.me();
+          setCurrentUser(user);
+          
+          const profiles = await base44.entities.ShopUserProfile.filter({ 
+            user_id: user.id 
+          });
+          setCurrentProfile(profiles[0] || null);
+        }
+      } catch (error) {
+        // Not logged in
+      }
+    };
+    loadUser();
+  }, []);
 
   const { data: reviews = [] } = useQuery({
     queryKey: ['productReviews', productId],
@@ -23,8 +44,8 @@ export default function ReviewsList({ productId }) {
   });
 
   const { data: profiles = [] } = useQuery({
-    queryKey: ['profiles'],
-    queryFn: () => base44.entities.UserProfile.list(),
+    queryKey: ['shopProfiles'],
+    queryFn: () => base44.entities.ShopUserProfile.list(),
   });
 
   const { data: helpfulMarks = [] } = useQuery({
@@ -34,8 +55,23 @@ export default function ReviewsList({ productId }) {
 
   const markHelpful = useMutation({
     mutationFn: async (reviewId) => {
+      if (!currentUser) {
+        toast.error('Please login to mark helpful');
+        return;
+      }
+
+      let profileId = currentProfile?.id;
+      if (!profileId) {
+        const newProfile = await base44.entities.ShopUserProfile.create({
+          user_id: currentUser.id,
+          display_name: currentUser.full_name || currentUser.email.split('@')[0]
+        });
+        profileId = newProfile.id;
+        setCurrentProfile(newProfile);
+      }
+
       const existing = helpfulMarks.find(
-        h => h.review_id === reviewId && h.profile_id === currentProfileId
+        h => h.review_id === reviewId && h.profile_id === profileId
       );
 
       if (existing) {
@@ -47,7 +83,7 @@ export default function ReviewsList({ productId }) {
       } else {
         await base44.entities.ReviewHelpful.create({
           review_id: reviewId,
-          profile_id: currentProfileId
+          profile_id: profileId
         });
         const review = reviews.find(r => r.id === reviewId);
         await base44.entities.ProductReview.update(reviewId, {
@@ -63,9 +99,8 @@ export default function ReviewsList({ productId }) {
 
   const getProfile = (profileId) => profiles.find(p => p.id === profileId);
   const isMarkedHelpful = (reviewId) => 
-    helpfulMarks.some(h => h.review_id === reviewId && h.profile_id === currentProfileId);
+    currentProfile && helpfulMarks.some(h => h.review_id === reviewId && h.profile_id === currentProfile.id);
 
-  // Calculate average rating
   const averageRating = reviews.length > 0
     ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
     : 0;
@@ -86,10 +121,8 @@ export default function ReviewsList({ productId }) {
 
   return (
     <div className="space-y-6">
-      {/* Rating Summary */}
       <Card className="p-6">
         <div className="grid md:grid-cols-2 gap-6">
-          {/* Average Rating */}
           <div className="text-center md:border-r">
             <div className="text-5xl font-bold text-gray-800 mb-2">{averageRating}</div>
             <div className="flex items-center justify-center gap-1 mb-2">
@@ -107,7 +140,6 @@ export default function ReviewsList({ productId }) {
             <p className="text-sm text-gray-600">{reviews.length} reviews</p>
           </div>
 
-          {/* Rating Breakdown */}
           <div className="space-y-2">
             {ratingCounts.map(({ star, count }) => {
               const percentage = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
@@ -128,7 +160,6 @@ export default function ReviewsList({ productId }) {
         </div>
       </Card>
 
-      {/* Individual Reviews */}
       <div className="space-y-4">
         <h3 className="text-xl font-bold text-gray-800">Customer Reviews</h3>
         {reviews.map((review, index) => {
@@ -143,40 +174,53 @@ export default function ReviewsList({ productId }) {
               transition={{ delay: index * 0.05 }}
             >
               <Card className="p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">
-                      {profile?.child_name?.[0] || '?'}
+                <div className="flex items-start gap-3 mb-3">
+                  {profile?.avatar_url ? (
+                    <img
+                      src={profile.avatar_url}
+                      alt={profile.display_name}
+                      className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-orange-500 to-pink-500 flex items-center justify-center text-white font-bold text-lg">
+                      {profile?.display_name?.[0]?.toUpperCase() || '?'}
                     </div>
-                    <div>
-                      <div className="font-semibold text-gray-800">
-                        {profile?.child_name || 'Anonymous'}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="flex gap-0.5">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Star
-                              key={star}
-                              className={`w-4 h-4 ${
-                                star <= review.rating
-                                  ? 'fill-yellow-400 text-yellow-400'
-                                  : 'text-gray-300'
-                              }`}
-                            />
-                          ))}
-                        </div>
-                        {review.is_verified_purchase && (
-                          <span className="text-xs text-green-600 flex items-center gap-1">
-                            <CheckCircle className="w-3 h-3" />
-                            Verified Purchase
-                          </span>
-                        )}
-                      </div>
+                  )}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h4 className="font-semibold text-gray-800">
+                        {profile?.display_name || 'Anonymous'}
+                      </h4>
+                      {profile?.verified_buyer && (
+                        <span className="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded-full flex items-center gap-1">
+                          <Star className="w-3 h-3 fill-current" />
+                          Verified
+                        </span>
+                      )}
                     </div>
+                    {profile?.location && (
+                      <p className="text-xs text-gray-500 flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        {profile.location}
+                      </p>
+                    )}
                   </div>
                   <span className="text-xs text-gray-500">
                     {new Date(review.created_date).toLocaleDateString()}
                   </span>
+                </div>
+
+                <div className="flex gap-0.5 mb-3">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      className={`w-4 h-4 ${
+                        star <= review.rating
+                          ? 'fill-yellow-400 text-yellow-400'
+                          : 'text-gray-300'
+                      }`}
+                    />
+                  ))}
                 </div>
 
                 {review.review_title && (
@@ -185,11 +229,24 @@ export default function ReviewsList({ productId }) {
 
                 <p className="text-gray-700 mb-3 whitespace-pre-wrap">{review.review_text}</p>
 
-                <div className="flex items-center gap-2">
+                {review.is_verified_purchase && (
+                  <div className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full mb-3">
+                    <CheckCircle className="w-3 h-3" />
+                    Verified Purchase
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between pt-3 border-t">
+                  {profile?.total_reviews > 1 && (
+                    <span className="text-sm text-gray-500">
+                      {profile.total_reviews} reviews
+                    </span>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => markHelpful.mutate(review.id)}
+                    disabled={!currentUser}
                     className={isHelpful ? 'bg-blue-50 border-blue-300' : ''}
                   >
                     <ThumbsUp className={`w-4 h-4 mr-1 ${isHelpful ? 'fill-blue-500 text-blue-500' : ''}`} />

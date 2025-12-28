@@ -1,19 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, ShoppingCart, Star, Filter } from 'lucide-react';
+import { Search, ShoppingCart, Star, Filter, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ProductCard from '../components/shop/ProductCard';
 import Cart from '../components/shop/Cart';
+import { createPageUrl } from '../utils';
 
 export default function Shop() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [cart, setCart] = useState([]);
   const [showCart, setShowCart] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [shopProfile, setShopProfile] = useState(null);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const isAuth = await base44.auth.isAuthenticated();
+        if (isAuth) {
+          const user = await base44.auth.me();
+          setCurrentUser(user);
+          
+          const profiles = await base44.entities.ShopUserProfile.filter({ 
+            user_id: user.id 
+          });
+          setShopProfile(profiles[0] || null);
+        }
+      } catch (error) {
+        // User not logged in
+      }
+    };
+    loadUser();
+  }, []);
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['products'],
@@ -77,19 +100,39 @@ export default function Shop() {
 
   return (
     <div className="max-w-7xl mx-auto pb-24 md:pb-8">
-      {/* Header */}
-      <div className="mb-8 text-center">
-        <h1 className="text-4xl font-bold mb-2" style={{ 
-          background: 'linear-gradient(135deg, #FF6B35 0%, #2E86AB 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text'
-        }}>
-          Brazilian Culture Shop 🇧🇷
-        </h1>
-        <p className="text-lg" style={{ color: '#6C757D' }}>
-          Aquarela designs featuring Brazilian folklore and fauna
-        </p>
+      {/* Header with Greeting */}
+      <div className="mb-8 flex items-start justify-between">
+        <div className="text-center flex-1">
+          <h1 className="text-4xl font-bold mb-2" style={{ 
+            background: 'linear-gradient(135deg, #FF6B35 0%, #2E86AB 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text'
+          }}>
+            {currentUser ? `Welcome back, ${shopProfile?.display_name || currentUser.full_name || 'there'}! 👋` : 'Brazilian Culture Shop 🇧🇷'}
+          </h1>
+          <p className="text-lg" style={{ color: '#6C757D' }}>
+            Aquarela designs featuring Brazilian folklore and fauna
+          </p>
+        </div>
+        {currentUser && (
+          <Button
+            variant="outline"
+            onClick={() => window.location.href = createPageUrl('ProfileSettings')}
+            className="flex items-center gap-2"
+          >
+            {shopProfile?.avatar_url ? (
+              <img
+                src={shopProfile.avatar_url}
+                alt="Profile"
+                className="w-6 h-6 rounded-full object-cover"
+              />
+            ) : (
+              <User className="w-4 h-4" />
+            )}
+            Profile
+          </Button>
+        )}
       </div>
 
       {/* Search and Cart */}

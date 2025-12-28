@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -6,6 +6,7 @@ import { Star, Send, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
+import { createPageUrl } from '../../utils';
 
 export default function ReviewForm({ productId, productName, onClose, onSubmitSuccess }) {
   const [rating, setRating] = useState(0);
@@ -13,14 +14,38 @@ export default function ReviewForm({ productId, productName, onClose, onSubmitSu
   const [reviewTitle, setReviewTitle] = useState('');
   const [reviewText, setReviewText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [shopProfile, setShopProfile] = useState(null);
 
-  const currentProfileId = localStorage.getItem('currentProfileId');
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const isAuth = await base44.auth.isAuthenticated();
+        if (!isAuth) {
+          toast.error('Please login to write a review');
+          base44.auth.redirectToLogin(window.location.href);
+          return;
+        }
+        const user = await base44.auth.me();
+        setCurrentUser(user);
+
+        const profiles = await base44.entities.ShopUserProfile.filter({ 
+          user_id: user.id 
+        });
+        setShopProfile(profiles[0] || null);
+      } catch (error) {
+        toast.error('Please login to write a review');
+        base44.auth.redirectToLogin(window.location.href);
+      }
+    };
+    loadUser();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!currentProfileId) {
-      toast.error('Please select a profile first');
+    if (!currentUser) {
+      toast.error('Please login to submit a review');
       return;
     }
 
@@ -32,10 +57,20 @@ export default function ReviewForm({ productId, productName, onClose, onSubmitSu
     setIsSubmitting(true);
 
     try {
-      // Check if user already reviewed this product
+      let profileId = shopProfile?.id;
+      if (!shopProfile) {
+        const newProfile = await base44.entities.ShopUserProfile.create({
+          user_id: currentUser.id,
+          display_name: currentUser.full_name || currentUser.email.split('@')[0],
+          total_reviews: 0,
+          verified_buyer: false
+        });
+        profileId = newProfile.id;
+      }
+
       const existing = await base44.entities.ProductReview.filter({
         product_id: productId,
-        profile_id: currentProfileId
+        profile_id: profileId
       });
 
       if (existing.length > 0) {
@@ -46,12 +81,16 @@ export default function ReviewForm({ productId, productName, onClose, onSubmitSu
 
       await base44.entities.ProductReview.create({
         product_id: productId,
-        profile_id: currentProfileId,
+        profile_id: profileId,
         rating,
         review_title: reviewTitle,
         review_text: reviewText,
-        is_verified_purchase: false, // TODO: Check if user purchased
-        status: 'approved' // Auto-approve for now
+        is_verified_purchase: false,
+        status: 'approved'
+      });
+
+      await base44.entities.ShopUserProfile.update(profileId, {
+        total_reviews: (shopProfile?.total_reviews || 0) + 1
       });
 
       toast.success('Review submitted successfully!');
@@ -78,8 +117,22 @@ export default function ReviewForm({ productId, productName, onClose, onSubmitSu
         animate={{ scale: 1 }}
         exit={{ scale: 0.9 }}
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-2xl p-6 max-w-lg w-full"
+        className="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto"
       >
+        {currentUser && !shopProfile && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+            <p className="text-sm text-blue-800">
+              👋 Complete your profile to make your review stand out! 
+              <a 
+                href={createPageUrl('ProfileSettings')} 
+                className="font-semibold underline ml-2"
+              >
+                Set up profile
+              </a>
+            </p>
+          </div>
+        )}
+
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-800">Write a Review</h2>
           <Button variant="ghost" size="icon" onClick={onClose}>
@@ -90,7 +143,6 @@ export default function ReviewForm({ productId, productName, onClose, onSubmitSu
         <p className="text-gray-600 mb-4">{productName}</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Star Rating */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Your Rating *
@@ -117,7 +169,6 @@ export default function ReviewForm({ productId, productName, onClose, onSubmitSu
             </div>
           </div>
 
-          {/* Review Title */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Review Title (optional)
@@ -130,7 +181,6 @@ export default function ReviewForm({ productId, productName, onClose, onSubmitSu
             />
           </div>
 
-          {/* Review Text */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Your Review *
@@ -146,7 +196,6 @@ export default function ReviewForm({ productId, productName, onClose, onSubmitSu
             <p className="text-xs text-gray-500 mt-1">{reviewText.length}/1000</p>
           </div>
 
-          {/* Submit */}
           <div className="flex gap-2">
             <Button
               type="button"
@@ -161,9 +210,7 @@ export default function ReviewForm({ productId, productName, onClose, onSubmitSu
               disabled={isSubmitting || rating === 0 || !reviewText.trim()}
               className="flex-1 bg-gradient-to-r from-orange-500 to-pink-500"
             >
-              {isSubmitting ? (
-                'Submitting...'
-              ) : (
+              {isSubmitting ? 'Submitting...' : (
                 <>
                   <Send className="w-4 h-4 mr-2" />
                   Submit Review
