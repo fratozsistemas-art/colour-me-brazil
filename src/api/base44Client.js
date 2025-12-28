@@ -77,3 +77,32 @@ export const base44 = {
 
 // Export for debugging
 export { getBase44Client };
+export const base44Client = {
+  get auth() {
+    return getBase44Client().auth;
+  },
+  get entities() {
+    return getBase44Client().entities;
+  },
+  get functions() {
+    return getBase44Client().functions;
+  },
+  get integrations() {
+    return getBase44Client().integrations;
+  },
+  get agents() {
+    return getBase44Client().agents;
+  },
+  get socket() {
+    return getBase44Client().socket;
+  },
+  get logs() {
+    return getBase44Client().logs;
+  },
+  get runtime() {
+    return getBase44Client().runtime;
+  },
+  setToken(token) {
+    return getBase44Client().setToken(token);
+  },
+};

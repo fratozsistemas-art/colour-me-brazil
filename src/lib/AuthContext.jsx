@@ -1,20 +1,104 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import { useToast } from '@/components/ui/use-toast';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoadingAuth, setIsLoadingAuth] = useState(false);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [authError, setAuthError] = useState(null);
+  const { toast } = useToast();
 
-  // Simplified: Don't check auth on mount
-  // Let the user decide when to login
-  useEffect(() => {
-    console.log('🔐 AuthContext initialized (no auto-check)');
-    // App starts in unauthenticated state
-    // User can click "Get Started" to login
+  const isTokenValid = (token) => {
+    if (!token || typeof token !== 'string') return false;
+
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) return false;
+
+      const payload = JSON.parse(atob(parts[1]));
+      if (!payload.exp) return true;
+
+      const now = Math.floor(Date.now() / 1000);
+      return payload.exp > (now + 300);
+    } catch (error) {
+      console.error('❌ Token validation failed:', error);
+      return false;
+    }
+  };
+
+  const checkAuth = useCallback(async () => {
+    setIsLoadingAuth(true);
+    setAuthError(null);
+
+    try {
+      const { base44Client } = await import('@/api/base44Client');
+      const token = localStorage.getItem('base44_access_token');
+
+      if (!token || !isTokenValid(token)) {
+        console.warn('⚠️ Invalid or expired token found, clearing auth state');
+        localStorage.removeItem('base44_access_token');
+        localStorage.removeItem('token');
+        setUser(null);
+        setIsAuthenticated(false);
+        setIsLoadingAuth(false);
+        return false;
+      }
+
+      base44Client.setToken(token);
+      const currentUser = await base44Client.auth.me();
+
+      if (!currentUser || !currentUser.id) {
+        throw new Error('Invalid user data received');
+      }
+
+      setUser(currentUser);
+      setIsAuthenticated(true);
+      console.log('✅ Authentication successful:', currentUser.email);
+      setIsLoadingAuth(false);
+      return true;
+    } catch (error) {
+      console.error('❌ Authentication check failed:', error);
+
+      localStorage.removeItem('base44_access_token');
+      localStorage.removeItem('token');
+      setUser(null);
+      setIsAuthenticated(false);
+
+      if (error?.status === 401) {
+        setAuthError({
+          type: 'session_expired',
+          message: 'Your session has expired. Please log in again.',
+        });
+      } else {
+        setAuthError({
+          type: 'auth_failed',
+          message: 'Authentication failed. Please try again.',
+        });
+      }
+
+      setIsLoadingAuth(false);
+      return false;
+    }
   }, []);
+
+  useEffect(() => {
+    console.log('🔵 AuthProvider mounted, checking authentication...');
+    checkAuth();
+  }, [checkAuth]);
+
+  useEffect(() => {
+    const handleStorageChange = (event) => {
+      if (event.key === 'base44_access_token') {
+        console.log('🔄 Token changed in another tab, re-checking auth...');
+        checkAuth();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [checkAuth]);
 
   const login = async () => {
     try {
@@ -22,73 +106,43 @@ export const AuthProvider = ({ children }) => {
       setAuthError(null);
       
       // Import base44 only when needed
-      const { base44 } = await import('@/api/base44Client');
+      const { base44Client } = await import('@/api/base44Client');
       
       // Redirect to Base44 login
       const returnUrl = window.location.href;
-      base44.auth.redirectToLogin(returnUrl);
+      await base44Client.auth.redirectToLogin(returnUrl);
     } catch (error) {
       console.error('Login redirect failed:', error);
       setAuthError({
         type: 'login_failed',
-        message: error.message || 'Failed to redirect to login'
+        message: error.message || 'Failed to redirect to login',
       });
       setIsLoadingAuth(false);
-    }
-  };
-
-  const checkAuth = async () => {
-    try {
-      setIsLoadingAuth(true);
-      
-      // Import base44 only when needed
-      const { base44 } = await import('@/api/base44Client');
-      
-      // Check for token in localStorage
-      const token = localStorage.getItem('base44_access_token');
-      
-      if (!token) {
-        setIsAuthenticated(false);
-        setUser(null);
-        setIsLoadingAuth(false);
-        return;
-      }
-
-      // Set token and check user
-      base44.auth.setToken(token);
-      const currentUser = await base44.auth.me();
-      
-      setUser(currentUser);
-      setIsAuthenticated(true);
-      setIsLoadingAuth(false);
-    } catch (error) {
-      console.error('Auth check failed:', error);
-      
-      // Clear invalid token
-      localStorage.removeItem('base44_access_token');
-      localStorage.removeItem('token');
-      
-      setIsAuthenticated(false);
-      setUser(null);
-      setIsLoadingAuth(false);
+      toast({
+        variant: 'destructive',
+        title: 'Login Failed',
+        description: 'Unable to redirect to login page.',
+      });
     }
   };
 
   const logout = async (shouldRedirect = true) => {
     try {
       // Import base44 only when needed
-      const { base44 } = await import('@/api/base44Client');
+      const { base44Client } = await import('@/api/base44Client');
       
       setUser(null);
       setIsAuthenticated(false);
       
       if (shouldRedirect) {
-        base44.auth.logout(window.location.href);
+        const returnUrl = window.location.origin;
+        await base44Client.auth.logout(returnUrl);
       } else {
         // Just clear tokens
         localStorage.removeItem('base44_access_token');
         localStorage.removeItem('token');
       }
+      console.log('✅ Logout successful');
     } catch (error) {
       console.error('Logout failed:', error);
       // Force clear even if SDK fails

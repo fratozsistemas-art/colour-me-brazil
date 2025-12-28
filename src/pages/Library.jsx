@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Search, Filter, Download, Lock, Wifi, WifiOff, Sparkles, Star } from 'lucide-react';
 import BookCard from '../components/library/BookCard';
@@ -20,6 +21,8 @@ import { resetDailyQuest } from '../components/gamification/DailyQuestManager';
 import { setupOfflineSync, syncOfflineData, getAllDownloadedBooks } from '../components/offlineManager';
 import ForYouSection from '../components/recommendations/ForYouSection';
 import { getRecommendations, getReadingPath, getBecauseYouRead } from '../components/recommendations/recommendationEngine';
+import { useAuth } from '@/lib/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 export default function Library() {
   const [currentProfile, setCurrentProfile] = useState(null);
@@ -35,42 +38,29 @@ export default function Library() {
   const [readingPath, setReadingPath] = useState(null);
   const [becauseYouRead, setBecauseYouRead] = useState(null);
   const [showForYou, setShowForYou] = useState(true);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [purchaseBook, setPurchaseBook] = useState(null);
   
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { user, isAuthenticated, isLoadingAuth } = useAuth();
 
-  // Check authentication on mount
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const isAuth = await base44.auth.isAuthenticated();
-        if (!isAuth) {
-          // Redirect to home or show login prompt
-          window.location.href = '/';
-          return;
-        }
-      } catch (error) {
-        console.error('Auth error:', error);
-        window.location.href = '/';
-        return;
-      }
-      setIsCheckingAuth(false);
-    };
-    checkAuth();
-  }, []);
+    if (!isLoadingAuth && !isAuthenticated) {
+      console.warn('⚠️ User not authenticated, redirecting to home...');
+      navigate('/');
+    }
+  }, [isLoadingAuth, isAuthenticated, navigate]);
 
   // Fetch user profiles with error handling - only profiles linked to current user's account
   const { data: profiles = [], error: profilesError } = useQuery({
-    queryKey: ['profiles'],
+    queryKey: ['userProfiles', user?.id],
     queryFn: async () => {
       try {
-        const currentUser = await base44.auth.me();
-        if (!currentUser) return [];
+        if (!user?.id) return [];
 
         // Get the current user's parent account
         const parentAccounts = await base44.entities.ParentAccount.filter({ 
-          parent_user_id: currentUser.id 
+          parent_user_id: user.id 
         });
         
         if (parentAccounts.length === 0) return [];
@@ -86,6 +76,9 @@ export default function Library() {
         return [];
       }
     },
+    enabled: !!user?.id,
+    retry: 2,
+    staleTime: 1000 * 60 * 5,
   });
 
   // Fetch books with error handling
@@ -144,7 +137,7 @@ export default function Library() {
       setIsOnline(true);
       const result = await syncOfflineData();
       if (result.success && (result.results.coloringSessions > 0 || result.results.readingProgress > 0)) {
-        queryClient.invalidateQueries(['profiles']);
+        queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
         queryClient.invalidateQueries(['coloringSessions']);
         // Show success notification
         console.log('Synced offline data:', result.message);
@@ -240,7 +233,7 @@ export default function Library() {
       });
 
       // Reload recommendations after book interaction
-      queryClient.invalidateQueries(['profiles']);
+      queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
     }
   };
 
@@ -272,7 +265,7 @@ export default function Library() {
       reading_progress: newProgress
     });
     
-    queryClient.invalidateQueries(['profiles']);
+    queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
   };
 
   const markBookCompleted = async (bookId) => {
@@ -296,7 +289,7 @@ export default function Library() {
         points_earned: 50
       });
 
-      queryClient.invalidateQueries(['profiles']);
+      queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
     }
   };
 
@@ -306,7 +299,34 @@ export default function Library() {
 
   const saveColoringSession = useMutation({
     mutationFn: async (sessionData) => {
-      const { canvas, is_completed, coloring_time, ...restData } = sessionData;
+      if (!sessionData || typeof sessionData !== 'object') {
+        throw new Error('Invalid session data: data is null or not an object');
+      }
+
+      const {
+        canvas = null,
+        is_completed = false,
+        coloring_time = 0,
+        book_id,
+        page_number,
+        ...restData
+      } = sessionData;
+
+      if (!canvas) {
+        throw new Error('Canvas element is required');
+      }
+      if (!book_id) {
+        throw new Error('Book ID is required');
+      }
+      if (page_number === undefined || page_number === null) {
+        throw new Error('Page number is required');
+      }
+      if (!currentProfile || !currentProfile.id) {
+        throw new Error('No profile selected');
+      }
+      if (!coloringPage) {
+        throw new Error('No coloring page selected');
+      }
       
       // Check if online
       if (!navigator.onLine) {
@@ -325,9 +345,20 @@ export default function Library() {
       if (is_completed && canvas) {
         try {
           // Convert canvas to blob
-          const blob = await new Promise(resolve => 
-            canvas.toBlob(resolve, 'image/png', 1.0)
-          );
+          const blob = await new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              reject(new Error('Canvas conversion timed out'));
+            }, 10000);
+
+            canvas.toBlob((converted) => {
+              clearTimeout(timeout);
+              if (!converted) {
+                reject(new Error('Failed to convert canvas to blob'));
+                return;
+              }
+              resolve(converted);
+            }, 'image/png', 0.95);
+          });
           
           // Upload the artwork
           const uploadResult = await base44.integrations.Core.UploadFile({
@@ -374,7 +405,7 @@ export default function Library() {
         });
       }
     },
-    onSuccess: async () => {
+    onSuccess: async (_data, sessionData) => {
       // Update profile progress
       const sessions = await base44.entities.ColoringSession.filter({ 
         profile_id: currentProfile.id 
@@ -392,7 +423,7 @@ export default function Library() {
       await checkAndAwardAchievements(currentProfile.id);
 
       // Log coloring activity
-      if (sessionData.is_completed) {
+      if (sessionData?.is_completed) {
         await base44.entities.UserActivityLog.create({
           profile_id: currentProfile.id,
           activity_type: 'page_colored',
@@ -402,7 +433,7 @@ export default function Library() {
         });
       }
       
-      queryClient.invalidateQueries(['profiles']);
+      queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
       queryClient.invalidateQueries(['coloringSessions']);
       setColoringPage(null);
     }
@@ -449,13 +480,29 @@ export default function Library() {
   }, []);
 
   // Show loading while checking authentication
-  if (isCheckingAuth) {
+  if (isLoadingAuth) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mb-4" />
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-gray-600">Checking authentication...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated || !user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Card className="p-6 max-w-md">
+          <h2 className="text-xl font-bold mb-4">Authentication Required</h2>
+          <p className="text-gray-600 mb-4">
+            Please log in to access your library.
+          </p>
+          <Button onClick={() => navigate('/')}>
+            Go to Home
+          </Button>
+        </Card>
       </div>
     );
   }
@@ -537,7 +584,7 @@ export default function Library() {
             profile={currentProfile}
             onChallengeComplete={async () => {
               await checkAndAwardAchievements(currentProfile.id);
-              queryClient.invalidateQueries(['profiles']);
+              queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
             }}
           />
           <DailyQuestCard 
