@@ -6,8 +6,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { base44 } from '@/api/base44Client';
 import { createPageUrl } from '../utils';
-import { User, Mail, MapPin, MessageSquare, Upload, Star } from 'lucide-react';
+import { User, Mail, MapPin, MessageSquare, Upload, Star, Package } from 'lucide-react';
 import { toast } from 'sonner';
+import OrderHistory from '../components/profile/OrderHistory';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function ProfileSettings() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -131,13 +133,26 @@ export default function ProfileSettings() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto pb-24 md:pb-8">
+    <div className="max-w-6xl mx-auto pb-24 md:pb-8">
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-gray-800 mb-2">Profile Settings</h1>
         <p className="text-gray-600">Manage your public profile and review information</p>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-6">
+      <Tabs defaultValue="profile" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsTrigger value="profile" className="flex items-center gap-2">
+            <User className="w-4 h-4" />
+            Profile
+          </TabsTrigger>
+          <TabsTrigger value="orders" className="flex items-center gap-2">
+            <Package className="w-4 h-4" />
+            Order History
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="profile">
+          <div className="grid md:grid-cols-3 gap-6">
         {/* Main Profile Form */}
         <Card className="md:col-span-2 p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -297,6 +312,12 @@ export default function ProfileSettings() {
           )}
         </div>
       </div>
+        </TabsContent>
+
+        <TabsContent value="orders">
+          <OrderHistory userId={currentUser?.id} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
