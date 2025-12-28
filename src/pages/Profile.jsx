@@ -3,7 +3,10 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trophy, Book, Palette, Clock, Star, Award, Zap, Globe, Shield, TrendingUp, Target } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Trophy, Book, Palette, Clock, Star, Award, Zap, Globe, Shield, TrendingUp, Target, Camera, Edit, Save, X } from 'lucide-react';
+import { toast } from 'sonner';
 import { BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getProfileAchievements, checkAndAwardAchievements, calculateLevel, getPointsForNextLevel } from '../components/achievementManager';
@@ -21,6 +24,9 @@ import ColoringHistory from '../components/profile/ColoringHistory';
 
 export default function Profile() {
   const currentProfileId = localStorage.getItem('currentProfileId');
+  const [isEditingBio, setIsEditingBio] = React.useState(false);
+  const [editedBio, setEditedBio] = React.useState('');
+  const [uploadingPicture, setUploadingPicture] = React.useState(false);
 
   const { data: profile, refetch: refetchProfile } = useQuery({
     queryKey: ['profile', currentProfileId],
@@ -107,6 +113,51 @@ export default function Profile() {
     booksInProgress: [...new Set(coloringSessions.filter(s => !s.is_completed).map(s => s.book_id))].length
   };
 
+  const handleProfilePictureUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be less than 5MB');
+      return;
+    }
+
+    setUploadingPicture(true);
+    try {
+      const uploadResult = await base44.integrations.Core.UploadFile({ file });
+      await base44.entities.UserProfile.update(profile.id, {
+        profile_picture_url: uploadResult.file_url
+      });
+      toast.success('Profile picture updated!');
+      refetchProfile();
+    } catch (error) {
+      console.error('Error uploading profile picture:', error);
+      toast.error('Failed to upload profile picture');
+    } finally {
+      setUploadingPicture(false);
+    }
+  };
+
+  const handleSaveBio = async () => {
+    try {
+      await base44.entities.UserProfile.update(profile.id, {
+        bio: editedBio
+      });
+      toast.success('Bio updated!');
+      setIsEditingBio(false);
+      refetchProfile();
+    } catch (error) {
+      console.error('Error updating bio:', error);
+      toast.error('Failed to update bio');
+    }
+  };
+
+  React.useEffect(() => {
+    if (profile && !isEditingBio) {
+      setEditedBio(profile.bio || '');
+    }
+  }, [profile, isEditingBio]);
+
   return (
     <div className="max-w-6xl mx-auto pb-24 md:pb-8">
       {/* Level Progress */}
@@ -120,20 +171,47 @@ export default function Profile() {
           className={`absolute inset-0 bg-gradient-to-br opacity-10 ${currentTier.color}`}
         />
         <div className="relative z-10 flex flex-col md:flex-row items-center gap-6">
-          <div className="relative">
-            <AvatarDisplay
-              avatarId={profile.avatar_icon}
-              level={profile.level || 1}
-              size="xlarge"
-              showName={false}
-              language={profile.preferred_language || 'en'}
-            />
+          <div className="relative group">
+            {profile.profile_picture_url ? (
+              <img
+                src={profile.profile_picture_url}
+                alt={profile.child_name}
+                className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
+              />
+            ) : (
+              <AvatarDisplay
+                avatarId={profile.avatar_icon}
+                level={profile.level || 1}
+                size="xlarge"
+                showName={false}
+                language={profile.preferred_language || 'en'}
+              />
+            )}
             {currentTier.rewards.avatarFrame && (
               <div className={`absolute inset-0 rounded-full border-4 ${currentTier.borderStyle} pointer-events-none`} />
             )}
             {profile.equipped_avatar_items?.length > 0 && (
               <div className="absolute -top-2 -right-2 bg-purple-500 text-white text-xs font-bold px-2 py-1 rounded-full">
                 {profile.equipped_avatar_items.length}
+              </div>
+            )}
+            <label
+              htmlFor="profile-picture-upload"
+              className="absolute bottom-0 right-0 bg-orange-500 text-white p-2 rounded-full cursor-pointer hover:bg-orange-600 transition-colors shadow-lg opacity-0 group-hover:opacity-100"
+            >
+              <Camera className="w-4 h-4" />
+              <input
+                id="profile-picture-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleProfilePictureUpload}
+                className="hidden"
+                disabled={uploadingPicture}
+              />
+            </label>
+            {uploadingPicture && (
+              <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white" />
               </div>
             )}
           </div>
@@ -161,6 +239,68 @@ export default function Profile() {
             <p className="text-xs text-gray-500 mb-4">
               {500 - ((profile.total_points || 0) % 500)} points to level {(profile.level || 1) + 1}
             </p>
+
+            {/* Bio Section */}
+            <div className="mb-4">
+              {isEditingBio ? (
+                <div className="space-y-2">
+                  <Textarea
+                    value={editedBio}
+                    onChange={(e) => setEditedBio(e.target.value)}
+                    placeholder="Write a short bio about yourself..."
+                    maxLength={200}
+                    className="text-sm"
+                    rows={3}
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={handleSaveBio}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <Save className="w-3 h-3 mr-1" />
+                      Save
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setIsEditingBio(false)}
+                    >
+                      <X className="w-3 h-3 mr-1" />
+                      Cancel
+                    </Button>
+                  </div>
+                  <p className="text-xs text-gray-500">{editedBio.length}/200</p>
+                </div>
+              ) : (
+                <div>
+                  {profile.bio ? (
+                    <div className="relative group">
+                      <p className="text-sm text-gray-600 italic mb-2">"{profile.bio}"</p>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setIsEditingBio(true)}
+                        className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Edit className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setIsEditingBio(true)}
+                      className="text-xs"
+                    >
+                      <Edit className="w-3 h-3 mr-1" />
+                      Add Bio
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="flex flex-wrap gap-4 justify-center md:justify-start text-sm text-gray-600">
               <span className="flex items-center gap-1">
                 <Book className="w-4 h-4" />
@@ -193,12 +333,61 @@ export default function Profile() {
       {/* Tier Progression */}
       <TierDisplay points={profile.total_points || 0} showRewards={true} />
 
-      {/* Statistics - Full Width with Graphs */}
+      {/* Enhanced Statistics Section */}
       <Card className="p-8 mt-8">
-        <h2 className="text-3xl font-bold text-gray-800 mb-8 flex items-center gap-3">
+        <h2 className="text-3xl font-bold text-gray-800 mb-6 flex items-center gap-3">
           <TrendingUp className="w-8 h-8" style={{ color: '#FF6B35' }} />
           Your Statistics
         </h2>
+
+        {/* Key Stats Summary */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <Card className="p-4 bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-200">
+            <div className="flex items-center justify-between mb-2">
+              <Book className="w-6 h-6 text-orange-600" />
+              <span className="text-xs font-semibold text-orange-600">BOOKS</span>
+            </div>
+            <div className="text-3xl font-bold text-orange-600 mb-1">
+              {profile.books_completed?.length || 0}
+            </div>
+            <div className="text-xs text-gray-600">Completed</div>
+          </Card>
+
+          <Card className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200">
+            <div className="flex items-center justify-between mb-2">
+              <Palette className="w-6 h-6 text-blue-600" />
+              <span className="text-xs font-semibold text-blue-600">PAGES</span>
+            </div>
+            <div className="text-3xl font-bold text-blue-600 mb-1">
+              {coloredPages}
+            </div>
+            <div className="text-xs text-gray-600">Colored</div>
+          </Card>
+
+          <Card className="p-4 bg-gradient-to-br from-teal-50 to-teal-100 border-2 border-teal-200">
+            <div className="flex items-center justify-between mb-2">
+              <Clock className="w-6 h-6 text-teal-600" />
+              <span className="text-xs font-semibold text-teal-600">TIME</span>
+            </div>
+            <div className="text-3xl font-bold text-teal-600 mb-1">
+              {Math.floor((profile.total_coloring_time || 0) / 3600)}h
+            </div>
+            <div className="text-xs text-gray-600">
+              {Math.floor(((profile.total_coloring_time || 0) % 3600) / 60)}m coloring
+            </div>
+          </Card>
+
+          <Card className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200">
+            <div className="flex items-center justify-between mb-2">
+              <Zap className="w-6 h-6 text-purple-600" />
+              <span className="text-xs font-semibold text-purple-600">STREAK</span>
+            </div>
+            <div className="text-3xl font-bold text-purple-600 mb-1">
+              {profile.current_streak || 0}
+            </div>
+            <div className="text-xs text-gray-600">Days active</div>
+          </Card>
+        </div>
         
         <div className="grid md:grid-cols-3 gap-8 mb-8">
           {/* Activity Breakdown Chart */}
