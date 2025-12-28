@@ -3,6 +3,8 @@ import { useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { base44 } from '@/api/base44Client';
 import { pagesConfig } from '@/pages.config';
+import { hasConsentFor } from '@/components/legal/CookieConsentBanner';
+import { hasParentalConsent } from '@/lib/consent';
 
 export default function NavigationTracker() {
     const location = useLocation();
@@ -39,7 +41,7 @@ export default function NavigationTracker() {
             pageName = matchedKey || null;
         }
 
-        if (isAuthenticated && pageName) {
+        if (isAuthenticated && pageName && hasConsentFor('analytics') && hasParentalConsent()) {
             base44.appLogs.logUserInApp(pageName).catch(() => {
                 // Silently fail - logging shouldn't break the app
             });

@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ShieldCheck, Mail, Check, AlertCircle, User, Calendar } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import toast from 'react-hot-toast';
+import { recordParentalConsent } from '@/lib/consent';
 
 /**
  * COPPA-Compliant Parental Consent Flow
@@ -357,7 +358,16 @@ export default function ParentalConsentFlow({ onConsentGranted, onCancel }) {
 
         // Simulate saving
         await new Promise(resolve => setTimeout(resolve, 1000));
-        
+
+        recordParentalConsent({
+          parent_name: parentName,
+          parent_email: parentEmail,
+          child_name: childName,
+          child_age: parseInt(childAge),
+          consent_method: 'email_verification',
+          consents: consentChecks,
+        });
+
         toast.success('Parental consent recorded successfully!');
         
         // Pass data back to parent component

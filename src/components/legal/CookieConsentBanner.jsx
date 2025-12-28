@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { X, Cookie, Settings } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { Link } from 'react-router-dom';
+import { hasParentalConsent } from '@/lib/consent';
 
 const CONSENT_KEY = 'cookie_consent_v1';
 
@@ -57,8 +58,10 @@ export default function CookieConsentBanner() {
       cookiesToClear.forEach(cookie => localStorage.removeItem(cookie));
     }
 
+    const analyticsAllowed = consent.analytics && hasParentalConsent();
+
     // If analytics cookies are disabled, disable analytics
-    if (!consent.analytics) {
+    if (!analyticsAllowed) {
       localStorage.removeItem('_analytics_session');
       // TODO: Disable analytics tracking if implemented
       if (window.gtag) {
