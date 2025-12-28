@@ -13,10 +13,11 @@ import { Button } from '@/components/ui/button';
 import OfflineSyncIndicator from '@/components/offline/OfflineSyncIndicator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import BugReportForm from '@/components/moderation/BugReportForm';
+import { BrowserRouter } from 'react-router-dom';
 
-      export default function Layout({ children, currentPageName }) {
-        const [showBugReportModal, setShowBugReportModal] = React.useState(false);
-        const currentProfileId = localStorage.getItem('currentProfileId');
+export default function Layout({ children, currentPageName }) {
+  const [showBugReportModal, setShowBugReportModal] = React.useState(false);
+  const currentProfileId = localStorage.getItem('currentProfileId');
   const menuItems = [
     { 
       category: 'Main',
@@ -59,7 +60,8 @@ import BugReportForm from '@/components/moderation/BugReportForm';
   ];
 
   return (
-    <div className="min-h-screen" style={{ background: 'linear-gradient(to bottom right, #FFF8F0, #A8DADC)' }}>
+    <BrowserRouter>
+      <div className="min-h-screen" style={{ background: 'linear-gradient(to bottom right, #FFF8F0, #A8DADC)' }}>
       {/* Header */}
       <header className="bg-white shadow-md sticky top-0 z-50 border-b-2" style={{ borderColor: '#FF6B35' }}>
         <div className="container mx-auto px-4 py-4">
@@ -206,6 +208,7 @@ import BugReportForm from '@/components/moderation/BugReportForm';
           </button>
         </div>
       </nav>
-    </div>
-  );
-}
+      </div>
+      </BrowserRouter>
+      );
+      }
