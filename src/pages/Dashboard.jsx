@@ -10,7 +10,6 @@ import {
   TrendingUp, Target, Gift, ChevronRight, Calendar,
   Zap, Award, Crown
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -96,11 +95,11 @@ export default function Dashboard() {
           <Sparkles className="w-16 h-16 text-orange-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold mb-2">Bem-vindo!</h2>
           <p className="text-gray-600 mb-4">Selecione ou crie um perfil para começar sua aventura</p>
-          <Link to={createPageUrl('Library')}>
+          <a href={createPageUrl('Library')}>
             <Button className="bg-gradient-to-r from-orange-500 to-pink-500">
               Ir para Biblioteca
             </Button>
-          </Link>
+          </a>
         </Card>
       </div>
     );
@@ -195,11 +194,11 @@ export default function Dashboard() {
                 <Sparkles className="w-6 h-6 text-purple-500" />
                 Recomendado para Você
               </h2>
-              <Link to={createPageUrl('Library')}>
+              <a href={createPageUrl('Library')}>
                 <Button variant="ghost" size="sm">
                   Ver Tudo <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
-              </Link>
+              </a>
             </div>
             
             {recommendations.length > 0 ? (
@@ -242,11 +241,11 @@ export default function Dashboard() {
                 <CardContent className="p-8 text-center">
                   <Book className="w-12 h-12 text-gray-300 mx-auto mb-2" />
                   <p className="text-gray-500">Comece a explorar para receber recomendações personalizadas!</p>
-                  <Link to={createPageUrl('Library')}>
+                  <a href={createPageUrl('Library')}>
                     <Button className="mt-4 bg-gradient-to-r from-orange-500 to-pink-500">
                       Ir para Biblioteca
                     </Button>
-                  </Link>
+                  </a>
                 </CardContent>
               </Card>
             )}
@@ -285,11 +284,11 @@ export default function Dashboard() {
                               Página {currentPage + 1} de {book.page_count || 12}
                             </p>
                             <Progress value={progress} className="h-2 mb-2" />
-                            <Link to={createPageUrl('Library')}>
+                            <a href={createPageUrl('Library')}>
                               <Button size="sm" variant="outline" className="w-full">
                                 Continuar
                               </Button>
-                            </Link>
+                            </a>
                           </div>
                         </div>
                       </CardContent>
@@ -405,30 +404,30 @@ export default function Dashboard() {
                 <CardTitle className="text-lg">Ações Rápidas</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <Link to={createPageUrl('Library')}>
+                <a href={createPageUrl('Library')}>
                   <Button variant="outline" className="w-full justify-start">
                     <Book className="w-4 h-4 mr-2" />
                     Explorar Livros
                   </Button>
-                </Link>
-                <Link to={createPageUrl('ArtGallery')}>
+                </a>
+                <a href={createPageUrl('ArtGallery')}>
                   <Button variant="outline" className="w-full justify-start">
                     <Palette className="w-4 h-4 mr-2" />
                     Minha Galeria
                   </Button>
-                </Link>
-                <Link to={createPageUrl('Leaderboard')}>
+                </a>
+                <a href={createPageUrl('Leaderboard')}>
                   <Button variant="outline" className="w-full justify-start">
                     <Crown className="w-4 h-4 mr-2" />
                     Ranking
                   </Button>
-                </Link>
-                <Link to={createPageUrl('RewardsShop')}>
+                </a>
+                <a href={createPageUrl('RewardsShop')}>
                   <Button variant="outline" className="w-full justify-start">
                     <Gift className="w-4 h-4 mr-2" />
                     Loja de Prêmios
                   </Button>
-                </Link>
+                </a>
               </CardContent>
             </Card>
           </motion.div>
