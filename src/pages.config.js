@@ -26,6 +26,7 @@ import SubmitContent from './pages/SubmitContent';
 import ReadingSettings from './pages/ReadingSettings';
 import Dashboard from './pages/Dashboard';
 import ProductDetails from './pages/ProductDetails';
+import ProfileSettings from './pages/ProfileSettings';
 import __Layout from './Layout.jsx';
 
 
@@ -58,6 +59,7 @@ export const PAGES = {
     "ReadingSettings": ReadingSettings,
     "Dashboard": Dashboard,
     "ProductDetails": ProductDetails,
+    "ProfileSettings": ProfileSettings,
 }
 
 export const pagesConfig = {

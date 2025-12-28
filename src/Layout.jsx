@@ -24,7 +24,8 @@ import BugReportForm from '@/components/moderation/BugReportForm';
         { name: 'Home', path: 'Home', icon: Book },
         { name: 'Dashboard', path: 'Dashboard', icon: Sparkles },
         { name: 'Library', path: 'Library', icon: Book },
-        { name: 'Profile', path: 'Profile', icon: User }
+        { name: 'Profile', path: 'Profile', icon: User },
+        { name: 'Shop', path: 'Shop', icon: ShoppingBag }
       ]
     },
     {
