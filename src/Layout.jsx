@@ -1,5 +1,4 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from './utils';
 import { Book, Settings, User, Palette, ShoppingBag, Trophy, Upload, Shield, MessageSquare, Sparkles, Users, Menu, Image, BookOpen, Route, FileText, Bug } from 'lucide-react';
 import {
@@ -16,7 +15,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import BugReportForm from '@/components/moderation/BugReportForm';
 
       export default function Layout({ children, currentPageName }) {
-        const navigate = useNavigate();
         const [showBugReportModal, setShowBugReportModal] = React.useState(false);
         const currentProfileId = localStorage.getItem('currentProfileId');
   const menuItems = [
@@ -66,7 +64,7 @@ import BugReportForm from '@/components/moderation/BugReportForm';
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             {/* Logo */}
-            <Link to={createPageUrl('Home')} className="flex items-center gap-2">
+            <a href={createPageUrl('Home')} className="flex items-center gap-2">
               <img 
                 src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69383fc9e0a81f2fec355d14/fb45bdf53_A_beautiful_watercolor_toucan_bird_illustration_in-1765301342087.png"
                 alt="Colour Me Brazil Logo"
@@ -83,15 +81,15 @@ import BugReportForm from '@/components/moderation/BugReportForm';
                 </h1>
                 <p className="text-xs" style={{ color: '#6C757D' }}>Explore Culture Through Art</p>
               </div>
-            </Link>
+            </a>
 
             {/* Navigation */}
             <nav className="hidden lg:flex items-center gap-3">
               {/* Main Navigation Items */}
               {menuItems[0].items.map(({ name, path, icon: Icon }) => (
-                <Link
+                <a
                   key={path}
-                  to={createPageUrl(path)}
+                  href={createPageUrl(path)}
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
                     currentPageName === path
                       ? 'font-semibold shadow-md'
@@ -106,7 +104,7 @@ import BugReportForm from '@/components/moderation/BugReportForm';
                 >
                   <Icon className="w-4 h-4" />
                   <span>{name}</span>
-                </Link>
+                </a>
               ))}
 
               {/* More Dropdown */}
@@ -126,13 +124,13 @@ import BugReportForm from '@/components/moderation/BugReportForm';
                       </DropdownMenuLabel>
                       {category.items.map(({ name, path, icon: Icon }) => (
                         <DropdownMenuItem key={path} asChild>
-                          <Link
-                            to={createPageUrl(path)}
+                          <a
+                            href={createPageUrl(path)}
                             className="flex items-center gap-2 cursor-pointer"
                           >
                             <Icon className="w-4 h-4" />
                             <span>{name}</span>
-                          </Link>
+                          </a>
                         </DropdownMenuItem>
                       ))}
                     </React.Fragment>
@@ -187,15 +185,15 @@ import BugReportForm from '@/components/moderation/BugReportForm';
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white shadow-lg" style={{ borderTop: '2px solid #FF6B35' }}>
         <div className="grid grid-cols-4 gap-1 py-2">
           {menuItems[0].items.map(({ name, path, icon: Icon }) => (
-            <Link
+            <a
               key={path}
-              to={createPageUrl(path)}
+              href={createPageUrl(path)}
               className="flex flex-col items-center gap-1 px-2 py-2 rounded-lg transition-all"
               style={{ color: currentPageName === path ? '#FF6B35' : '#6C757D' }}
             >
               <Icon className="w-6 h-6" />
               <span className="text-xs font-medium">{name}</span>
-            </Link>
+            </a>
           ))}
           <button 
             onClick={() => setShowBugReportModal(true)}
