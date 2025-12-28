@@ -66,7 +66,7 @@ function getBase44Client() {
 // Export a stable reference that will initialize on first use
 export const base44 = {
   get auth() {
-    return getBase44Client().auth;
+    return rateLimitProxy(getBase44Client().auth);
   },
   get entities() {
     return rateLimitProxy(getBase44Client().entities);
@@ -75,19 +75,19 @@ export const base44 = {
     return rateLimitProxy(getBase44Client().functions);
   },
   get integrations() {
-    return getBase44Client().integrations;
+    return rateLimitProxy(getBase44Client().integrations);
   },
   get agents() {
-    return getBase44Client().agents;
+    return rateLimitProxy(getBase44Client().agents);
   },
   get socket() {
-    return getBase44Client().socket;
+    return rateLimitProxy(getBase44Client().socket);
   },
   get logs() {
-    return getBase44Client().logs;
+    return rateLimitProxy(getBase44Client().logs);
   },
   get runtime() {
-    return getBase44Client().runtime;
+    return rateLimitProxy(getBase44Client().runtime);
   },
   // Direct access to client if needed
   _getClient() {
