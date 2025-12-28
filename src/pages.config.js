@@ -1,33 +1,33 @@
-import ArtGallery from './pages/ArtGallery';
-import AudioGenerator from './pages/AudioGenerator';
-import BrandGuidelines from './pages/BrandGuidelines';
-import CollaborativeStories from './pages/CollaborativeStories';
-import ContentModeration from './pages/ContentModeration';
-import CuratorDashboard from './pages/CuratorDashboard';
-import Events from './pages/Events';
-import Forum from './pages/Forum';
-import GenerateCovers from './pages/GenerateCovers';
-import Home from './pages/Home';
-import Leaderboard from './pages/Leaderboard';
-import LearningPaths from './pages/LearningPaths';
-import Library from './pages/Library';
-import ManageBooks from './pages/ManageBooks';
-import ManageUsers from './pages/ManageUsers';
-import ManifestBookReader from './pages/ManifestBookReader';
-import ManifestLibrary from './pages/ManifestLibrary';
-import ParentPortal from './pages/ParentPortal';
-import Profile from './pages/Profile';
-import ReadingPaths from './pages/ReadingPaths';
-import RewardsShop from './pages/RewardsShop';
-import Settings from './pages/Settings';
-import Shop from './pages/Shop';
-import Showcase from './pages/Showcase';
-import SubmitContent from './pages/SubmitContent';
-import ReadingSettings from './pages/ReadingSettings';
-import Dashboard from './pages/Dashboard';
+import { lazy } from 'react';
 import __Layout from './Layout.jsx';
 
-
+const ArtGallery = lazy(() => import('./pages/ArtGallery'));
+const AudioGenerator = lazy(() => import('./pages/AudioGenerator'));
+const BrandGuidelines = lazy(() => import('./pages/BrandGuidelines'));
+const CollaborativeStories = lazy(() => import('./pages/CollaborativeStories'));
+const ContentModeration = lazy(() => import('./pages/ContentModeration'));
+const CuratorDashboard = lazy(() => import('./pages/CuratorDashboard'));
+const Events = lazy(() => import('./pages/Events'));
+const Forum = lazy(() => import('./pages/Forum'));
+const GenerateCovers = lazy(() => import('./pages/GenerateCovers'));
+const Home = lazy(() => import('./pages/Home'));
+const Leaderboard = lazy(() => import('./pages/Leaderboard'));
+const LearningPaths = lazy(() => import('./pages/LearningPaths'));
+const Library = lazy(() => import('./pages/Library'));
+const ManageBooks = lazy(() => import('./pages/ManageBooks'));
+const ManageUsers = lazy(() => import('./pages/ManageUsers'));
+const ManifestBookReader = lazy(() => import('./pages/ManifestBookReader'));
+const ManifestLibrary = lazy(() => import('./pages/ManifestLibrary'));
+const ParentPortal = lazy(() => import('./pages/ParentPortal'));
+const Profile = lazy(() => import('./pages/Profile'));
+const ReadingPaths = lazy(() => import('./pages/ReadingPaths'));
+const RewardsShop = lazy(() => import('./pages/RewardsShop'));
+const Settings = lazy(() => import('./pages/Settings'));
+const Shop = lazy(() => import('./pages/Shop'));
+const Showcase = lazy(() => import('./pages/Showcase'));
+const SubmitContent = lazy(() => import('./pages/SubmitContent'));
+const ReadingSettings = lazy(() => import('./pages/ReadingSettings'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
 export const PAGES = {
     "ArtGallery": ArtGallery,
     "AudioGenerator": AudioGenerator,

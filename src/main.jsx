@@ -4,9 +4,15 @@ import App from '@/App.jsx'
 import '@/index.css'
 import { registerServiceWorker } from './lib/registerServiceWorker'
 import { BrowserRouter } from 'react-router-dom'
+import { validateEnv } from '@/lib/env'
+import { initAnalytics } from '@/lib/analytics'
+import { configureConsole } from '@/lib/console'
 
 // Register service worker for offline functionality and PWA support
+configureConsole();
+validateEnv();
 registerServiceWorker();
+initAnalytics();
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -24,4 +30,3 @@ if (import.meta.hot) {
     window.parent?.postMessage({ type: 'sandbox:afterUpdate' }, '*');
   });
 }
-

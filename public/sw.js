@@ -11,6 +11,7 @@ const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
+  '/offline.html',
   '/legal/privacy-policy.md',
   '/legal/terms-of-service.md',
   '/legal/cookie-policy.md',
@@ -38,9 +39,6 @@ self.addEventListener('install', (event) => {
         // Don't fail installation if some assets can't be cached
         return Promise.resolve();
       });
-    }).then(() => {
-      // Force activation immediately
-      return self.skipWaiting();
     })
   );
 });
@@ -59,10 +57,7 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
-    }).then(() => {
-      // Take control of all pages immediately
-      return self.clients.claim();
-    })
+    }).then(() => self.clients.claim())
   );
 });
 
@@ -157,7 +152,7 @@ async function cacheFirst(request) {
     const networkResponse = await fetch(request);
     
     // Cache successful responses
-    if (networkResponse.ok) {
+    if (networkResponse.ok && shouldCacheResponse(networkResponse)) {
       const cache = await caches.open(CACHE_NAME);
       cache.put(request, networkResponse.clone());
     }
@@ -178,7 +173,7 @@ async function networkFirst(request) {
     const networkResponse = await fetch(request);
     
     // Cache successful responses
-    if (networkResponse.ok) {
+    if (networkResponse.ok && shouldCacheResponse(networkResponse)) {
       const cache = await caches.open(CACHE_NAME);
       cache.put(request, networkResponse.clone());
     }
@@ -205,7 +200,7 @@ async function staleWhileRevalidate(request) {
   const cachedResponse = await caches.match(request);
   
   const fetchPromise = fetch(request).then((networkResponse) => {
-    if (networkResponse.ok) {
+    if (networkResponse.ok && shouldCacheResponse(networkResponse)) {
       const cache = caches.open(CACHE_NAME);
       cache.then((c) => c.put(request, networkResponse.clone()));
     }
@@ -218,81 +213,48 @@ async function staleWhileRevalidate(request) {
 }
 
 /**
+ * Validate responses before caching.
+ */
+function shouldCacheResponse(response) {
+  const contentType = response.headers.get('content-type') || '';
+  const contentLength = response.headers.get('content-length');
+  const sizeLimit = 10 * 1024 * 1024;
+
+  if (
+    !contentType.includes('text/html') &&
+    !contentType.includes('application/json') &&
+    !contentType.includes('text/css') &&
+    !contentType.includes('application/javascript') &&
+    !contentType.includes('image/') &&
+    !contentType.includes('font/')
+  ) {
+    return false;
+  }
+
+  if (contentLength && Number(contentLength) > sizeLimit) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
  * Create offline fallback response
  */
 function createOfflineResponse() {
-  return new Response(
-    `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Offline - Colour Me Brazil</title>
-      <style>
-        body {
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          min-height: 100vh;
-          margin: 0;
-          background: linear-gradient(to bottom right, #FFF8F0, #A8DADC);
-        }
-        .container {
-          text-align: center;
-          padding: 2rem;
-          background: white;
-          border-radius: 1rem;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          max-width: 400px;
-        }
-        .icon {
-          font-size: 4rem;
-          margin-bottom: 1rem;
-        }
-        h1 {
-          color: #FF6B35;
-          margin-bottom: 1rem;
-        }
-        p {
-          color: #6C757D;
-          margin-bottom: 1.5rem;
-        }
-        button {
-          background: linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%);
-          color: white;
-          border: none;
-          padding: 0.75rem 1.5rem;
-          border-radius: 0.5rem;
-          font-size: 1rem;
-          cursor: pointer;
-          transition: transform 0.2s;
-        }
-        button:hover {
-          transform: scale(1.05);
-        }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="icon">📡</div>
-        <h1>You're Offline</h1>
-        <p>It looks like you've lost your internet connection. Some features may not be available.</p>
-        <button onclick="location.reload()">Try Again</button>
-      </div>
-    </body>
-    </html>
-    `,
-    {
+  return caches.match('/offline.html').then((cached) => {
+    if (cached) {
+      return cached;
+    }
+
+    return new Response('Offline', {
       status: 503,
       statusText: 'Service Unavailable',
       headers: new Headers({
-        'Content-Type': 'text/html',
-        'Content-Security-Policy': "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'",
+        'Content-Type': 'text/plain',
       }),
-    }
-  );
+    });
+  });
 }
 
 // Handle messages from clients

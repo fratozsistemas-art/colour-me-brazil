@@ -2,6 +2,7 @@ import React from 'react';
 import { AlertTriangle, RefreshCw, Home, Bug } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { logger } from '@/lib/logger';
 
 /**
  * Error Boundary Component
@@ -25,7 +26,7 @@ class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     // Log error to console in development
-    console.error('Error Boundary caught an error:', error, errorInfo);
+    logger.error('Error Boundary caught an error', error, errorInfo);
 
     // Update state with error details
     this.setState({
@@ -51,7 +52,7 @@ class ErrorBoundary extends React.Component {
       url: window.location.href,
     };
 
-    console.log('Error logged:', errorData);
+    logger.info('Error logged:', errorData);
   };
 
   handleReset = () => {
