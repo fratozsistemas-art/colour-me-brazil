@@ -183,10 +183,17 @@ export default function StoryReader({
 
   useEffect(() => {
     // Load and potentially auto-play audio
+    // Priority: Parent recording > AI-generated audio
     if (currentPage) {
-      const audioUrl = language === 'en' 
+      const parentAudioUrl = language === 'en' 
+        ? currentPage.parent_audio_en_url 
+        : currentPage.parent_audio_pt_url;
+      
+      const aiAudioUrl = language === 'en' 
         ? currentPage.audio_narration_en_url 
         : currentPage.audio_narration_pt_url;
+      
+      const audioUrl = parentAudioUrl || aiAudioUrl;
       
       if (audioUrl && audioRef.current) {
         audioRef.current.src = audioUrl;
@@ -196,10 +203,16 @@ export default function StoryReader({
   }, [currentPage, language, playbackSpeed]);
 
   const togglePlayPause = () => {
-    // Use TTS if enabled or no audio URL available
-    const audioUrl = language === 'en' 
+    // Priority: Parent recording > AI-generated audio > TTS
+    const parentAudioUrl = language === 'en' 
+      ? currentPage?.parent_audio_en_url 
+      : currentPage?.parent_audio_pt_url;
+    
+    const aiAudioUrl = language === 'en' 
       ? currentPage?.audio_narration_en_url 
       : currentPage?.audio_narration_pt_url;
+    
+    const audioUrl = parentAudioUrl || aiAudioUrl;
 
     if (useTTSMode || !audioUrl) {
       toggleTTS();
@@ -1010,6 +1023,20 @@ export default function StoryReader({
           <div className={`border-b p-4 flex-shrink-0 ${
             backgroundColor === 'night' ? 'bg-gray-800 border-gray-700' : 'bg-gray-50'
           }`}>
+            {/* Parent Recording Badge */}
+            {(currentPage?.parent_audio_en_url || currentPage?.parent_audio_pt_url) && (
+              <div className="mb-3 px-3 py-2 bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 rounded-lg flex items-center gap-2">
+                <span className="text-xl">💝</span>
+                <span className="text-sm font-medium text-pink-700">
+                  {language === 'en' && currentPage.parent_audio_en_url ? 
+                    "Parent's Voice Recording" : 
+                    language === 'pt' && currentPage.parent_audio_pt_url ?
+                    "Gravação da Voz dos Pais" :
+                    "AI Narration Available"
+                  }
+                </span>
+              </div>
+            )}
             <div className="flex items-center gap-2 mb-3">
               <Button
                 variant="outline"
