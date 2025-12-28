@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getUnsyncedCount, syncOfflineData } from '../offlineManager';
+import { getUnsyncedCount, syncOfflineData } from '../offlineManager.jsx';
 
 export default function OfflineSyncIndicator() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
