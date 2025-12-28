@@ -25,7 +25,7 @@ export default function Layout({ children, currentPageName }) {
         { name: 'Home', path: 'Home', icon: Book },
         { name: 'Dashboard', path: 'Dashboard', icon: Sparkles },
         { name: 'Library', path: 'Library', icon: Book },
-        { name: 'Profile', path: 'Profile', icon: User },
+        { name: 'Perfis', path: 'UserProfileManagement', icon: Users },
         { name: 'Shop', path: 'Shop', icon: ShoppingBag }
       ]
     },
