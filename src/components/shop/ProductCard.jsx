@@ -1,14 +1,21 @@
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, Star } from 'lucide-react';
+import { ShoppingCart, Star, Eye } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { createPageUrl } from '../../utils';
+import ProductRating from './ProductRating';
 
 export default function ProductCard({ product, onAddToCart, index }) {
   const [selectedSize, setSelectedSize] = useState(product.sizes?.[0] || null);
 
-  const handleAddToCart = () => {
+  const handleAddToCart = (e) => {
+    e.stopPropagation();
     onAddToCart(product, selectedSize);
+  };
+
+  const handleViewDetails = () => {
+    window.location.href = createPageUrl('ProductDetails') + '?id=' + product.id;
   };
 
   const categoryIcons = {
@@ -24,9 +31,13 @@ export default function ProductCard({ product, onAddToCart, index }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
     >
-      <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2" style={{ borderColor: 'transparent' }}
+      <Card 
+        className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 cursor-pointer" 
+        style={{ borderColor: 'transparent' }}
         onMouseEnter={(e) => e.currentTarget.style.borderColor = '#A8DADC'}
-        onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}>
+        onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
+        onClick={handleViewDetails}
+      >
         {/* Product Image */}
         <div className="relative aspect-square bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden group">
           {product.image_url ? (
@@ -42,6 +53,11 @@ export default function ProductCard({ product, onAddToCart, index }) {
               </div>
             </div>
           )}
+
+          {/* View Details Overlay */}
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+            <Eye className="w-12 h-12 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
 
           {/* Featured Badge */}
           {product.is_featured && (
@@ -88,6 +104,11 @@ export default function ProductCard({ product, onAddToCart, index }) {
             {product.description_en}
           </p>
 
+          {/* Rating */}
+          <div className="mb-3">
+            <ProductRating productId={product.id} showCount={true} />
+          </div>
+
           {/* Theme Badge */}
           {product.design_theme && (
             <div className="mb-3">
@@ -108,7 +129,10 @@ export default function ProductCard({ product, onAddToCart, index }) {
                 {product.sizes.map(size => (
                   <button
                     key={size}
-                    onClick={() => setSelectedSize(size)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedSize(size);
+                    }}
                     className="px-3 py-1 rounded-lg text-sm font-medium transition-all"
                     style={selectedSize === size ? {
                       backgroundColor: '#2E86AB',
@@ -148,6 +172,20 @@ export default function ProductCard({ product, onAddToCart, index }) {
           </div>
         </div>
       </Card>
-    </motion.div>
+
+      {/* Review Form Modal */}
+      <AnimatePresence>
+        {showReviewForm && (
+          <ReviewForm
+            productId={product.id}
+            productName={product.name_en}
+            onClose={() => setShowReviewForm(false)}
+            onSubmitSuccess={() => {
+              // Refresh reviews
+            }}
+          />
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
