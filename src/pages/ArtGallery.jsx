@@ -11,7 +11,6 @@ import {
 } from 'lucide-react';
 import ShareButton from '../components/social/ShareButton';
 import { createPageUrl } from '../utils';
-import { useNavigate } from 'react-router-dom';
 import ColoringCanvas from '../components/coloring/ColoringCanvas';
 import { toast } from 'sonner';
 import {
@@ -26,7 +25,6 @@ import {
 } from '@/components/ui/alert-dialog';
 
 export default function ArtGallery() {
-  const navigate = useNavigate();
   const [currentProfile, setCurrentProfile] = useState(null);
   const [selectedArtwork, setSelectedArtwork] = useState(null);
   const [filterShowcased, setFilterShowcased] = useState('all');
@@ -167,7 +165,7 @@ export default function ArtGallery() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <p className="text-gray-600 mb-4">Please select a profile first</p>
-          <Button onClick={() => navigate(createPageUrl('Library'))}>Go to Library</Button>
+          <Button onClick={() => window.location.href = createPageUrl('Library')}>Go to Library</Button>
         </div>
       </div>
     );
@@ -194,7 +192,7 @@ export default function ArtGallery() {
               Your collection of beautiful colored artwork
             </p>
           </div>
-          <Button variant="outline" onClick={() => navigate(createPageUrl('Library'))}>
+          <Button variant="outline" onClick={() => window.location.href = createPageUrl('Library')}>
             Back to Library
           </Button>
         </div>
@@ -281,7 +279,7 @@ export default function ArtGallery() {
           </p>
           <Button 
             className="bg-gradient-to-r from-orange-500 to-pink-500"
-            onClick={() => navigate(createPageUrl('Library'))}
+            onClick={() => window.location.href = createPageUrl('Library')}
           >
             Start Coloring
           </Button>
