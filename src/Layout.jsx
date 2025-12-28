@@ -59,7 +59,6 @@ export default function Layout({ children, currentPageName }) {
   ];
 
   return (
-    <BrowserRouter>
       <div className="min-h-screen" style={{ background: 'linear-gradient(to bottom right, #FFF8F0, #A8DADC)' }}>
       {/* Header */}
       <header className="bg-white shadow-md sticky top-0 z-50 border-b-2" style={{ borderColor: '#FF6B35' }}>
