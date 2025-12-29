@@ -36,6 +36,7 @@ import TermsOfService from './pages/TermsOfService';
 import UserProfileManagement from './pages/UserProfileManagement';
 import AIArtStudio from './pages/AIArtStudio';
 import CustomBookStudio from './pages/CustomBookStudio';
+import PublishedBooks from './pages/PublishedBooks';
 import __Layout from './Layout.jsx';
 
 
@@ -78,6 +79,7 @@ export const PAGES = {
     "UserProfileManagement": UserProfileManagement,
     "AIArtStudio": AIArtStudio,
     "CustomBookStudio": CustomBookStudio,
+    "PublishedBooks": PublishedBooks,
 }
 
 export const pagesConfig = {

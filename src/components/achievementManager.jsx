@@ -162,6 +162,33 @@ const ACHIEVEMENT_DEFINITIONS = [
     description_pt: 'Dê 50 curtidas na vitrine',
     icon: '❤️',
     checkCondition: (profile, stats) => (profile.total_likes_given || 0) >= 50
+  },
+  {
+    id: 'author',
+    name_en: 'Author',
+    name_pt: 'Autor',
+    description_en: 'Create your first custom book',
+    description_pt: 'Crie seu primeiro livro personalizado',
+    icon: '📚',
+    checkCondition: (profile, stats) => stats.customBooksCreated > 0
+  },
+  {
+    id: 'publisher',
+    name_en: 'Publisher',
+    name_pt: 'Publicador',
+    description_en: 'Publish 3 custom books',
+    description_pt: 'Publique 3 livros personalizados',
+    icon: '📖',
+    checkCondition: (profile, stats) => stats.customBooksPublished >= 3
+  },
+  {
+    id: 'bestseller',
+    name_en: 'Bestseller',
+    name_pt: 'Best-seller',
+    description_en: 'Get 100 views on your custom books',
+    description_pt: 'Obtenha 100 visualizações em seus livros',
+    icon: '⭐',
+    checkCondition: (profile, stats) => stats.customBooksViews >= 100
   }
 ];
 
@@ -184,6 +211,9 @@ const POINTS_CONFIG = {
   night_owl: 150,
   perfectionist: 200,
   socialite: 250,
+  author: 200,
+  publisher: 400,
+  bestseller: 500,
   page_colored: 10,
   book_completed: 50,
   quiz_correct: 10,
@@ -251,6 +281,11 @@ export async function checkAndAwardAchievements(profileId) {
       log => log.activity_type === 'book_completed' && new Date(log.created_date) >= oneWeekAgo
     ).length;
     
+    // Get custom books stats
+    const customBooks = await base44.entities.CustomBook.filter({ profile_id: profileId });
+    const publishedBooks = customBooks.filter(b => b.is_published);
+    const totalViews = customBooks.reduce((sum, b) => sum + (b.views || 0), 0);
+    
     const stats = {
       pagesColored: completedSessions.length,
       booksCompleted: profile.books_completed?.length || 0,
@@ -258,7 +293,10 @@ export async function checkAndAwardAchievements(profileId) {
       totalTime: profile.total_coloring_time || 0,
       fastestPageTime: fastestTime,
       quizzesCorrect: profile.quizzes_correct || 0,
-      booksCompletedThisWeek
+      booksCompletedThisWeek,
+      customBooksCreated: customBooks.length,
+      customBooksPublished: publishedBooks.length,
+      customBooksViews: totalViews
     };
 
     const newAchievements = [];

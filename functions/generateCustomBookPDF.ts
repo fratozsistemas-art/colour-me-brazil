@@ -85,10 +85,29 @@ Deno.serve(async (req) => {
             doc.text(book.subtitle_en, 105, 50, { align: 'center' });
           }
 
-          // Note: Images would require fetching and converting to base64
-          // For simplicity, we'll add a placeholder
-          doc.setFontSize(10);
-          doc.text('[Story content]', 105, 140, { align: 'center' });
+          // Try to add book cover if available
+          if (book.cover_image_url) {
+            try {
+              const imgResponse = await fetch(book.cover_image_url);
+              if (imgResponse.ok) {
+                const imgBlob = await imgResponse.blob();
+                const arrayBuffer = await imgBlob.arrayBuffer();
+                const uint8Array = new Uint8Array(arrayBuffer);
+                
+                let binary = '';
+                const len = uint8Array.byteLength;
+                for (let i = 0; i < len; i++) {
+                  binary += String.fromCharCode(uint8Array[i]);
+                }
+                const base64 = btoa(binary);
+                const imgData = `data:image/png;base64,${base64}`;
+                
+                doc.addImage(imgData, 'PNG', 55, 70, 100, 100);
+              }
+            } catch (error) {
+              console.error('Error adding book cover:', error);
+            }
+          }
         }
       } else if (page.type === 'coloring' || page.type === 'artwork') {
         // Artwork page
@@ -97,17 +116,31 @@ Deno.serve(async (req) => {
           try {
             // Fetch image and convert to base64
             const imgResponse = await fetch(artwork.artwork_url);
+            if (!imgResponse.ok) throw new Error('Failed to fetch image');
+            
             const imgBlob = await imgResponse.blob();
             const arrayBuffer = await imgBlob.arrayBuffer();
-            const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+            const uint8Array = new Uint8Array(arrayBuffer);
+            
+            // Convert to base64 more efficiently
+            let binary = '';
+            const len = uint8Array.byteLength;
+            for (let i = 0; i < len; i++) {
+              binary += String.fromCharCode(uint8Array[i]);
+            }
+            const base64 = btoa(binary);
             const imgData = `data:image/png;base64,${base64}`;
 
-            // Add image to PDF
-            doc.addImage(imgData, 'PNG', 20, 30, 170, 220);
+            // Calculate dimensions to fit page while maintaining aspect ratio
+            const maxWidth = 170;
+            const maxHeight = 220;
+            
+            // Add image to PDF centered
+            doc.addImage(imgData, 'PNG', 20, 30, maxWidth, maxHeight);
           } catch (error) {
             console.error('Error adding image:', error);
             doc.setFontSize(10);
-            doc.text('[Artwork]', 105, 140, { align: 'center' });
+            doc.text('[Artwork - Failed to load image]', 105, 140, { align: 'center' });
           }
         }
       }
