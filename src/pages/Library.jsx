@@ -157,6 +157,10 @@ export default function Library() {
     }
   };
 
+  const handleRecommendationDismissed = (bookId) => {
+    setRecommendations(prev => prev.filter(book => book.id !== bookId));
+  };
+
   // Setup offline sync and online/offline detection
   useEffect(() => {
     setupOfflineSync();
@@ -701,6 +705,7 @@ export default function Library() {
             becauseYouRead={becauseYouRead}
             userProfile={currentProfile}
             onBookClick={handleBookClick}
+            onRecommendationDismissed={handleRecommendationDismissed}
             language={currentProfile.preferred_language || 'en'}
           />
 

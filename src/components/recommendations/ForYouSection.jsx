@@ -2,6 +2,7 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Sparkles, TrendingUp, BookOpen, Star } from 'lucide-react';
 import BookCard from '../library/BookCard';
+import RecommendationCard from './RecommendationCard';
 import { motion } from 'framer-motion';
 
 export default function ForYouSection({ 
