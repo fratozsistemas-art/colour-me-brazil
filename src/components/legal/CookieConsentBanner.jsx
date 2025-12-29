@@ -5,7 +5,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { X, Cookie, Settings } from 'lucide-react';
 import { createPageUrl } from '@/utils';
-import { Link } from 'react-router-dom';
 
 const CONSENT_KEY = 'cookie_consent_v1';
 
@@ -101,9 +100,9 @@ export default function CookieConsentBanner() {
                   <p className="text-xs text-gray-500 mb-4">
                     Essential cookies are required for the site to function. You can customize
                     optional cookies or learn more in our{' '}
-                    <Link to={createPageUrl('CookiePolicy')} className="text-blue-600 underline">
+                    <a href={createPageUrl('CookiePolicy')} className="text-blue-600 underline">
                       Cookie Policy
-                    </Link>
+                    </a>
                     .
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -254,9 +253,9 @@ export default function CookieConsentBanner() {
 
               <p className="text-xs text-center text-gray-500 mt-4">
                 Read our{' '}
-                <Link to={createPageUrl('CookiePolicy')} className="text-blue-600 underline">
+                <a href={createPageUrl('CookiePolicy')} className="text-blue-600 underline">
                   Cookie Policy
-                </Link>
+                </a>
                 {' '}for more details
               </p>
             </div>
