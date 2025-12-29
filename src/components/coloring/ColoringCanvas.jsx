@@ -136,29 +136,54 @@ export default function ColoringCanvas({
     }
   }, [strokes, backgroundImage, fillHistory]);
 
-  // ✅ CRITICAL FIX: Cleanup memory leaks on unmount
+  // ✅ CRITICAL FIX: Enhanced cleanup to prevent memory leaks
   useEffect(() => {
     return () => {
+      console.log('🧹 ColoringCanvas unmounting, cleaning up resources...');
+      
       const canvas = canvasRef.current;
+      const fillCanvas = fillCanvasRef.current;
+      
+      // Clear main canvas
       if (canvas) {
-        const ctx = canvas.getContext('2d');
-        // Clear canvas
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Clear stored data
-        setStrokes([]);
-        setFillHistory([]);
-        setHistory([]);
-        
-        // Revoke object URLs
-        if (backgroundImage && typeof backgroundImage === 'string' && backgroundImage.startsWith('blob:')) {
+        try {
+          const ctx = canvas.getContext('2d');
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          canvas.width = 1;
+          canvas.height = 1;
+        } catch (error) {
+          console.error('Error clearing main canvas:', error);
+        }
+      }
+      
+      // Clear fill canvas
+      if (fillCanvas) {
+        try {
+          const ctx = fillCanvas.getContext('2d');
+          ctx.clearRect(0, 0, fillCanvas.width, fillCanvas.height);
+          fillCanvas.width = 1;
+          fillCanvas.height = 1;
+        } catch (error) {
+          console.error('Error clearing fill canvas:', error);
+        }
+      }
+      
+      // Revoke blob URLs
+      if (backgroundImage) {
+        if (typeof backgroundImage === 'string' && backgroundImage.startsWith('blob:')) {
           URL.revokeObjectURL(backgroundImage);
         }
       }
       
-      console.log('🧹 ColoringCanvas cleanup completed');
+      // Clear texture patterns
+      if (texturePattern && texturePattern instanceof HTMLCanvasElement) {
+        texturePattern.width = 1;
+        texturePattern.height = 1;
+      }
+      
+      console.log('✅ ColoringCanvas cleanup completed');
     };
-  }, []);
+  }, [backgroundImage, texturePattern]);
 
   const redrawCanvas = () => {
     const canvas = canvasRef.current;

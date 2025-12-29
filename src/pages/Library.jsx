@@ -359,20 +359,23 @@ export default function Library() {
 
   const saveColoringSession = useMutation({
     mutationFn: async (sessionData) => {
-      // ✅ Defensive validation
+      // ✅ CRITICAL FIX: Enhanced validation with detailed error messages
       if (!sessionData || typeof sessionData !== 'object') {
+        console.error('❌ Invalid session data received:', sessionData);
         throw new Error('Invalid session data: data is null or not an object');
       }
 
       if (!currentProfile || !currentProfile.id) {
-        throw new Error('No profile selected');
+        console.error('❌ No profile selected');
+        throw new Error('No profile selected - please select a profile to save progress');
       }
 
       if (!coloringPage || !coloringPage.id) {
+        console.error('❌ No coloring page selected');
         throw new Error('No coloring page selected');
       }
 
-      // ✅ Destructure with defaults (handle null/undefined sessionData)
+      // ✅ Destructure with defaults and null safety
       const {
         canvas = null,
         basename = null,
@@ -381,16 +384,19 @@ export default function Library() {
         ...restData
       } = sessionData || {};
 
-      // ✅ Validate required fields
-      if (!canvas) {
-        throw new Error('Canvas element is required');
+      // ✅ Validate critical required fields
+      if (!canvas || typeof canvas.toBlob !== 'function') {
+        console.error('❌ Invalid canvas element:', canvas);
+        throw new Error('Canvas element is required and must be valid');
       }
 
       console.log('💾 Saving coloring session:', {
         profile_id: currentProfile.id,
         page_id: coloringPage.id,
+        book_id: coloringPage.book_id,
         is_completed,
-        coloring_time
+        coloring_time,
+        has_basename: !!basename
       });
       
       // Check if online
