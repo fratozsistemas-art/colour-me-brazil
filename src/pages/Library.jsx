@@ -53,6 +53,15 @@ export default function Library() {
           return;
         }
 
+        // ✅ Validate token format and expiration
+        const isValidToken = validateToken(token);
+        if (!isValidToken) {
+          console.warn('⚠️ Invalid token detected, clearing auth');
+          localStorage.removeItem('base44_access_token');
+          window.location.href = '/';
+          return;
+        }
+
         const currentUser = await base44.auth.me();
         
         if (!currentUser || !currentUser.id) {
@@ -71,6 +80,21 @@ export default function Library() {
     };
     checkAuth();
   }, []);
+
+  // ✅ Token validation helper
+  const validateToken = (token) => {
+    if (!token || typeof token !== 'string') return false;
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) return false;
+      const payload = JSON.parse(atob(parts[1]));
+      if (!payload.exp) return true;
+      const now = Math.floor(Date.now() / 1000);
+      return payload.exp > now;
+    } catch {
+      return false;
+    }
+  };
 
   // ✅ Fetch user profiles with proper authentication check
   const { data: profiles = [], error: profilesError, isLoading: isLoadingProfiles } = useQuery({

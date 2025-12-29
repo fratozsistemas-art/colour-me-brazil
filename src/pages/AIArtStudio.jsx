@@ -66,7 +66,9 @@ export default function AIArtStudio() {
 
     setIsGenerating(true);
     try {
-      const fullPrompt = `${prompt}, ${selectedStyle.prompt}, Brazilian cultural theme, child-friendly, colorful, artistic`;
+      // ✅ Sanitize prompt to prevent injection attacks
+      const sanitizedPrompt = prompt.trim().slice(0, 500).replace(/[<>\"']/g, '');
+      const fullPrompt = `${sanitizedPrompt}, ${selectedStyle.prompt}, Brazilian cultural theme, child-friendly, colorful, artistic`;
       
       const result = await base44.integrations.Core.GenerateImage({
         prompt: fullPrompt
@@ -132,12 +134,13 @@ export default function AIArtStudio() {
     if (!generatedArt || !currentProfile) return;
 
     try {
+      // ✅ Sanitize data before saving
       await base44.entities.ColoredArtwork.create({
         profile_id: currentProfile.id,
         artwork_url: generatedArt.url,
         is_ai_generated: true,
-        ai_prompt: generatedArt.prompt,
-        ai_style: generatedArt.style,
+        ai_prompt: String(generatedArt.prompt).slice(0, 500),
+        ai_style: String(generatedArt.style).slice(0, 100),
         is_showcased: false,
         coloring_time_seconds: 0
       });
@@ -154,12 +157,13 @@ export default function AIArtStudio() {
     if (!generatedArt || !currentProfile) return;
 
     try {
+      // ✅ Sanitize data before saving
       await base44.entities.ColoredArtwork.create({
         profile_id: currentProfile.id,
         artwork_url: generatedArt.url,
         is_ai_generated: true,
-        ai_prompt: generatedArt.prompt,
-        ai_style: generatedArt.style,
+        ai_prompt: String(generatedArt.prompt).slice(0, 500),
+        ai_style: String(generatedArt.style).slice(0, 100),
         is_showcased: true,
         coloring_time_seconds: 0
       });
