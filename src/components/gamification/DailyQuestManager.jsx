@@ -162,6 +162,13 @@ export async function checkQuestProgress(profileId) {
     
     // Get today's activities
     const activities = await base44.entities.UserActivityLog.filter({ profile_id: profileId });
+    
+    // Validate activities exists and is array
+    if (!activities || !Array.isArray(activities)) {
+      console.warn('No activities found for profile:', profileId);
+      return { quest, progress: { current: 0, target: quest.checkProgress(profile, []).target }, completed: false };
+    }
+    
     const progress = quest.checkProgress(profile, activities);
     
     // Check if completed

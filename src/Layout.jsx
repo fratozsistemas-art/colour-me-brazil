@@ -121,7 +121,7 @@ export default function Layout({ children, currentPageName }) {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
                   {menuItems.slice(1).map((category, idx) => (
-                    <React.Fragment key={category.category}>
+                    <div key={category.category}>
                       {idx > 0 && <DropdownMenuSeparator />}
                       <DropdownMenuLabel className="text-xs font-semibold text-gray-500">
                         {category.category}
@@ -137,7 +137,7 @@ export default function Layout({ children, currentPageName }) {
                           </a>
                         </DropdownMenuItem>
                       ))}
-                    </React.Fragment>
+                    </div>
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>

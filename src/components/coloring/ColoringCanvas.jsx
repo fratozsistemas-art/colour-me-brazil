@@ -7,6 +7,8 @@ import ShareButton from '../social/ShareButton';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getBookPalette, THEME_PALETTES, getAllPaletteNames } from './colorPalettes';
 import BrushSelector, { BRUSH_TYPES } from './BrushSelector';
+import AdvancedTextures, { createAdvancedTexture } from './AdvancedTextures';
+import ColorBalancePanel from './ColorBalancePanel';
 import TutorialOverlay from './TutorialOverlay';
 import HelpCenter from './HelpCenter';
 import ContextualTip from './ContextualTip';
@@ -67,6 +69,9 @@ export default function ColoringCanvas({
   const [showHelp, setShowHelp] = useState(false);
   const [activeTip, setActiveTip] = useState(null);
   const [hasSeenIntro, setHasSeenIntro] = useState(false);
+  const [textureIntensity, setTextureIntensity] = useState(0.5);
+  const [showAdvancedTextures, setShowAdvancedTextures] = useState(false);
+  const [showColorBalance, setShowColorBalance] = useState(false);
 
   // Use lineArtUrl if provided, otherwise fall back to illustrationUrl
   const effectiveImageUrl = lineArtUrl || illustrationUrl;
@@ -661,8 +666,8 @@ export default function ColoringCanvas({
       const b = data[i + 2];
       
       // Skip black lines (boundaries)
-      const brightness = (r + g + b) / 3;
-      if (brightness < 50) continue;
+      const bright = (r + g + b) / 3;
+      if (bright < 50) continue;
 
       const hexColor = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
       const adjusted = adjustColor(hexColor, hue, saturation, brightness);
@@ -677,6 +682,55 @@ export default function ColoringCanvas({
 
     ctx.putImageData(imageData, 0, 0);
     saveToHistory(strokes, fillHistory);
+  };
+
+  const applyAdvancedColorBalance = (params) => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+
+    for (let i = 0; i < data.length; i += 4) {
+      let r = data[i];
+      let g = data[i + 1];
+      let b = data[i + 2];
+      
+      // Skip black lines (boundaries)
+      const bright = (r + g + b) / 3;
+      if (bright < 50) continue;
+
+      // Apply RGB balance
+      r = Math.max(0, Math.min(255, r + params.redBalance));
+      g = Math.max(0, Math.min(255, g + params.greenBalance));
+      b = Math.max(0, Math.min(255, b + params.blueBalance));
+
+      // Apply warmth
+      if (params.warmth !== 0) {
+        r = Math.max(0, Math.min(255, r + params.warmth));
+        b = Math.max(0, Math.min(255, b - params.warmth));
+      }
+
+      // Convert to hex for HSL adjustment
+      const hexColor = `#${Math.round(r).toString(16).padStart(2, '0')}${Math.round(g).toString(16).padStart(2, '0')}${Math.round(b).toString(16).padStart(2, '0')}`;
+      const adjusted = adjustColor(hexColor, params.hue, params.saturation, params.lightness);
+      const rgb = hexToRgb(adjusted);
+      
+      if (rgb) {
+        // Apply contrast
+        const contrast = params.contrast / 100;
+        r = ((rgb.r / 255 - 0.5) * contrast + 0.5) * 255;
+        g = ((rgb.g / 255 - 0.5) * contrast + 0.5) * 255;
+        b = ((rgb.b / 255 - 0.5) * contrast + 0.5) * 255;
+
+        data[i] = Math.max(0, Math.min(255, r));
+        data[i + 1] = Math.max(0, Math.min(255, g));
+        data[i + 2] = Math.max(0, Math.min(255, b));
+      }
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+    saveToHistory(strokes, fillHistory);
+    setShowColorBalance(false);
   };
 
   const createTexturePattern = (type) => {
@@ -1371,76 +1425,24 @@ export default function ColoringCanvas({
                     )}
                   </div>
 
-                  {/* Texture Fill Mode */}
+                  {/* Advanced Texture Library */}
                   <div className="mt-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-xs font-medium text-gray-700">
-                        🎨 Texture Fill
-                      </label>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setShowTutorial('texture')}
-                        title="Learn about textures"
-                        className="h-6 w-6"
-                      >
-                        <HelpCircle className="w-3 h-3" />
-                      </Button>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2" id="texture-selector">
-                      <Button
-                        size="sm"
-                        variant={texturePattern === null ? 'default' : 'outline'}
-                        onClick={() => setTexturePattern(null)}
-                      >
-                        None
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={texturePattern?.id === 'dots' ? 'default' : 'outline'}
-                        onClick={() => {
-                          const pattern = createTexturePattern('dots');
-                          pattern.id = 'dots';
-                          setTexturePattern(pattern);
-                        }}
-                      >
-                        Dots
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={texturePattern?.id === 'stripes' ? 'default' : 'outline'}
-                        onClick={() => {
-                          const pattern = createTexturePattern('stripes');
-                          pattern.id = 'stripes';
-                          setTexturePattern(pattern);
-                        }}
-                      >
-                        Stripes
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={texturePattern?.id === 'crosshatch' ? 'default' : 'outline'}
-                        onClick={() => {
-                          const pattern = createTexturePattern('crosshatch');
-                          pattern.id = 'crosshatch';
-                          setTexturePattern(pattern);
-                        }}
-                      >
-                        Cross
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={texturePattern?.id === 'noise' ? 'default' : 'outline'}
-                        onClick={() => {
-                          const pattern = createTexturePattern('noise');
-                          pattern.id = 'noise';
-                          setTexturePattern(pattern);
-                        }}
-                        className="col-span-2"
-                      >
-                        Noise
-                      </Button>
-                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowAdvancedTextures(!showAdvancedTextures)}
+                      className="w-full justify-start mb-2"
+                    >
+                      🎨 Texture Library ({showAdvancedTextures ? 'Hide' : 'Show'})
+                    </Button>
+                    
+                    {showAdvancedTextures && (
+                      <AdvancedTextures
+                        selectedTexture={texturePattern?.id || null}
+                        onTextureChange={(pattern) => setTexturePattern(pattern)}
+                        textureIntensity={textureIntensity}
+                        onIntensityChange={setTextureIntensity}
+                      />
+                    )}
                   </div>
                 </div>
               )}
@@ -1580,91 +1582,18 @@ export default function ColoringCanvas({
               </div>
             )}
 
-            {/* Color Adjustment Tools */}
-            <div className="mb-6" id="color-adjust-button">
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowColorAdjust(!showColorAdjust)}
-                  className="flex-1 justify-start"
-                >
-                  🎨 Color Adjustment
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowTutorial('colorAdjust')}
-                  title="Learn about color adjustment"
-                >
-                  <HelpCircle className="w-4 h-4" />
-                </Button>
-              </div>
+            {/* Advanced Color Balance Panel */}
+            <div className="mb-6">
+              <Button
+                variant="outline"
+                onClick={() => setShowColorBalance(!showColorBalance)}
+                className="w-full justify-start mb-2"
+              >
+                🎨 Advanced Color Balance ({showColorBalance ? 'Hide' : 'Show'})
+              </Button>
               
-              {showColorAdjust && (
-                <div className="mt-3 space-y-3 bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-3">
-                  <div id="hue-slider">
-                    <label className="text-xs font-medium text-gray-700">
-                      Hue: {hue}°
-                    </label>
-                    <input
-                      type="range"
-                      min="-180"
-                      max="180"
-                      value={hue}
-                      onChange={(e) => setHue(Number(e.target.value))}
-                      className="w-full accent-purple-500"
-                    />
-                  </div>
-
-                  <div id="saturation-slider">
-                    <label className="text-xs font-medium text-gray-700">
-                      Saturation: {saturation}%
-                    </label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="200"
-                      value={saturation}
-                      onChange={(e) => setSaturation(Number(e.target.value))}
-                      className="w-full accent-pink-500"
-                    />
-                  </div>
-
-                  <div id="brightness-slider">
-                    <label className="text-xs font-medium text-gray-700">
-                      Brightness: {brightness}%
-                    </label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="200"
-                      value={brightness}
-                      onChange={(e) => setBrightness(Number(e.target.value))}
-                      className="w-full accent-orange-500"
-                    />
-                  </div>
-
-                  <div className="flex gap-2" id="apply-adjust">
-                    <Button
-                      size="sm"
-                      onClick={applyColorAdjustment}
-                      className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500"
-                    >
-                      Apply
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setHue(0);
-                        setSaturation(100);
-                        setBrightness(100);
-                      }}
-                    >
-                      Reset
-                    </Button>
-                  </div>
-                </div>
+              {showColorBalance && (
+                <ColorBalancePanel onApply={applyAdvancedColorBalance} />
               )}
             </div>
 
