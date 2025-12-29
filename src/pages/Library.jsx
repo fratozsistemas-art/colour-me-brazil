@@ -340,14 +340,14 @@ export default function Library() {
         throw new Error('No coloring page selected');
       }
 
-      // ✅ Destructure with defaults
+      // ✅ Destructure with defaults (handle null/undefined sessionData)
       const {
         canvas = null,
         basename = null,
         is_completed = false,
         coloring_time = 0,
         ...restData
-      } = sessionData;
+      } = sessionData || {};
 
       // ✅ Validate required fields
       if (!canvas) {
