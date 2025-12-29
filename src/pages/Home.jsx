@@ -11,7 +11,7 @@ import { motion } from 'framer-motion';
 
 export default function Home() {
   const handleGetStarted = () => {
-    base44.auth.redirectToLogin(createPageUrl('Library'));
+    window.location.href = createPageUrl('Library');
   };
 
   // Generate QR code URLs for app download
