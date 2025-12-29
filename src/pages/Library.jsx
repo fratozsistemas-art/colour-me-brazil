@@ -157,8 +157,12 @@ export default function Library() {
     }
   };
 
-  const handleRecommendationDismissed = (bookId) => {
+  const handleRecommendationDismissed = async (bookId) => {
     setRecommendations(prev => prev.filter(book => book.id !== bookId));
+    // Reload recommendations after dismissing
+    if (currentProfile && books.length > 0) {
+      await loadRecommendations(currentProfile);
+    }
   };
 
   // Setup offline sync and online/offline detection

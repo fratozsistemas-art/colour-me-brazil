@@ -11,6 +11,7 @@ export default function ForYouSection({
   becauseYouRead,
   userProfile,
   onBookClick,
+  onRecommendationDismissed,
   language = 'en'
 }) {
   if (!recommendations || recommendations.length === 0) {
@@ -47,29 +48,13 @@ export default function ForYouSection({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
             >
-              <div className="relative">
-                <BookCard
-                  book={book}
-                  userProfile={userProfile}
-                  onClick={() => onBookClick(book)}
-                />
-                {book.recommendationReasons && book.recommendationReasons.length > 0 && (
-                  <div className="absolute top-2 right-2 z-10">
-                    <div className="bg-purple-600 text-white text-xs px-2 py-1 rounded-full shadow-lg flex items-center gap-1">
-                      <Star className="w-3 h-3 fill-current" />
-                      <span className="font-medium">
-                        {book.recommendationScore > 50 ? 'Top Pick' : 'For You'}
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-              {book.recommendationReasons && book.recommendationReasons.length > 0 && (
-                <div className="mt-2 text-xs text-gray-600">
-                  <span className="font-medium">Why: </span>
-                  {book.recommendationReasons.slice(0, 2).join(' • ')}
-                </div>
-              )}
+              <RecommendationCard
+                book={book}
+                profileId={userProfile?.id}
+                onClick={() => onBookClick(book)}
+                onDismiss={onRecommendationDismissed}
+                language={language}
+              />
             </motion.div>
           ))}
         </div>
@@ -176,10 +161,12 @@ export default function ForYouSection({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
               >
-                <BookCard
+                <RecommendationCard
                   book={book}
-                  userProfile={userProfile}
+                  profileId={userProfile?.id}
                   onClick={() => onBookClick(book)}
+                  onDismiss={onRecommendationDismissed}
+                  language={language}
                 />
               </motion.div>
             ))}
