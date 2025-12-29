@@ -194,7 +194,10 @@ const POINTS_CONFIG = {
   comment_given: 5,
   forum_topic_created: 15,
   forum_reply_posted: 5,
-  showcase_item_posted: 20
+  showcase_item_posted: 20,
+  custom_book_created: 100,
+  book_published: 150,
+  book_exported: 50
 };
 
     export function calculateLevel(points) {
