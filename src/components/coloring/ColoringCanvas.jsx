@@ -10,6 +10,7 @@ import BrushSelector, { BRUSH_TYPES } from './BrushSelector';
 import TutorialOverlay from './TutorialOverlay';
 import HelpCenter from './HelpCenter';
 import ContextualTip from './ContextualTip';
+import { validateFile } from '@/components/utils/uploadValidator';
 
 export default function ColoringCanvas({ 
   pageId, 
@@ -983,20 +984,31 @@ export default function ColoringCanvas({
   };
 
   const handleSave = async () => {
-    const canvas = canvasRef.current;
-    const thumbnail = canvas.toDataURL('image/jpeg', 0.5);
-    const coloringTime = Math.floor((Date.now() - startTime) / 1000);
-    const isCompleted = strokes.length > 10 || fillHistory.length > 5;
-    
-    if (onSave) {
-      await onSave({
-        strokes: JSON.stringify({ strokes, fillHistory }),
-        thumbnail_data: thumbnail,
-        coloring_time: coloringTime,
-        is_completed: isCompleted,
-        canvas: canvas,
-        basename: effectiveImageUrl || illustrationUrl // Include basename
-      });
+    try {
+      const canvas = canvasRef.current;
+      
+      // ✅ Validate canvas before saving
+      if (!canvas || !canvas.getContext) {
+        throw new Error('Invalid canvas element');
+      }
+
+      const thumbnail = canvas.toDataURL('image/jpeg', 0.5);
+      const coloringTime = Math.floor((Date.now() - startTime) / 1000);
+      const isCompleted = strokes.length > 10 || fillHistory.length > 5;
+      
+      if (onSave) {
+        await onSave({
+          strokes: JSON.stringify({ strokes, fillHistory }),
+          thumbnail_data: thumbnail,
+          coloring_time: coloringTime,
+          is_completed: isCompleted,
+          canvas: canvas,
+          basename: effectiveImageUrl || illustrationUrl
+        });
+      }
+    } catch (error) {
+      console.error('Save error:', error.message); // Não logar dados sensíveis
+      alert('Failed to save artwork. Please try again.');
     }
   };
 
