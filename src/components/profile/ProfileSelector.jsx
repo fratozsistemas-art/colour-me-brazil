@@ -7,6 +7,7 @@ import { Sparkles, User, Info } from 'lucide-react';
 import { BRAZILIAN_FAUNA_AVATARS } from './BrazilianFaunaAvatars';
 import AvatarInfoModal from './AvatarInfoModal';
 import DOMPurify from 'dompurify';
+import { logAuditEvent, AuditEventType } from '@/components/utils/auditLogger';
 
 const AVATAR_OPTIONS = BRAZILIAN_FAUNA_AVATARS;
 
@@ -40,12 +41,21 @@ export default function ProfileSelector({ onProfileCreated, existingProfiles = [
     }
 
     console.log('✅ Creating profile with sanitized data');
-    onProfileCreated({
-      child_name: sanitizedName, // ✅ Sanitized first name only
+    
+    const profileData = {
+      child_name: sanitizedName,
       avatar_icon: selectedAvatar,
       preferred_language: preferredLanguage,
       narration_language: preferredLanguage
+    };
+    
+    // ✅ Audit log
+    logAuditEvent(AuditEventType.PROFILE_CREATED, {
+      child_name: sanitizedName,
+      language: preferredLanguage,
     });
+    
+    onProfileCreated(profileData);
   };
 
   const handleSelectProfile = (profile) => {

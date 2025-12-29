@@ -1,6 +1,8 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { rateLimiter } from '@/components/utils/rateLimiter';
+import { logAuditEvent, AuditEventType } from '@/components/utils/auditLogger';
+import { logError } from '@/components/utils/errorHandler';
 
 const AuthContext = createContext();
 
@@ -158,7 +160,7 @@ export const AuthProvider = ({ children }) => {
       // Clear rate limit on successful redirect
       rateLimiter.clearLimit('login_attempt');
     } catch (error) {
-      console.error('❌ Login redirect failed:', error);
+      logError(error, { action: 'login_redirect' });
       setAuthError('Failed to initiate login. Please try again.');
       setIsLoadingAuth(false);
       
