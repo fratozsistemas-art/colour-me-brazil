@@ -89,6 +89,13 @@ export const AuthProvider = ({ children }) => {
       setUser(currentUser);
       setIsAuthenticated(true);
       console.log('✅ Authentication successful:', currentUser.email);
+      
+      // ✅ Audit log
+      await logAuditEvent(AuditEventType.USER_LOGIN, {
+        user_id: currentUser.id,
+        role: currentUser.role,
+      });
+      
       setIsLoadingAuth(false);
       return true;
 
@@ -174,6 +181,11 @@ export const AuthProvider = ({ children }) => {
     try {
       const { base44 } = await import('@/api/base44Client');
       
+      // ✅ Audit log before logout
+      await logAuditEvent(AuditEventType.USER_LOGOUT, {
+        user_id: user?.id,
+      });
+      
       setUser(null);
       setIsAuthenticated(false);
 
@@ -187,7 +199,7 @@ export const AuthProvider = ({ children }) => {
 
       console.log('✅ Logout successful');
     } catch (error) {
-      console.error('❌ Logout failed:', error);
+      logError(error, { action: 'logout' });
       // ✅ Force cleanup even on error
       localStorage.removeItem('base44_access_token');
       localStorage.removeItem('token');
