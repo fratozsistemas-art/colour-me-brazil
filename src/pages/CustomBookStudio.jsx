@@ -13,7 +13,7 @@ import ContentSelector from '../components/custom-books/ContentSelector';
 import BookPageEditor from '../components/custom-books/BookPageEditor';
 import CustomBookPreview from '../components/custom-books/CustomBookPreview';
 import { awardPoints, checkAndAwardAchievements } from '../components/achievementManager';
-import { createPageUrl } from './utils';
+import { createPageUrl } from '../utils';
 
 export default function CustomBookStudio() {
   const [currentProfile, setCurrentProfile] = useState(null);
