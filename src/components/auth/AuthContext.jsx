@@ -86,8 +86,7 @@ export const AuthProvider = ({ children }) => {
 
       setUser(currentUser);
       setIsAuthenticated(true);
-      // ✅ Log sem dados sensíveis
-      console.log('✅ Authentication successful for user:', currentUser.id?.substring(0, 8) + '***');
+      console.log('✅ Authentication successful:', currentUser.email);
       setIsLoadingAuth(false);
       return true;
 
