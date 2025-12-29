@@ -9,24 +9,49 @@ export const AuthProvider = ({ children }) => {
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [authError, setAuthError] = useState(null);
 
-  // ✅ Token validation function
+  // ✅ CRITICAL FIX: Enhanced JWT validation with proper checks
   const isTokenValid = (token) => {
-    if (!token || typeof token !== 'string') return false;
+    if (!token || typeof token !== 'string') {
+      console.warn('⚠️ Token is null or not a string');
+      return false;
+    }
     
     try {
-      // Check if it's a valid JWT (basic format)
+      // ✅ Validate JWT format (header.payload.signature)
       const parts = token.split('.');
-      if (parts.length !== 3) return false;
+      if (parts.length !== 3) {
+        console.warn('⚠️ Invalid JWT format - expected 3 parts');
+        return false;
+      }
       
-      // Decode payload to check expiration
+      // ✅ Decode and validate payload
       const payload = JSON.parse(atob(parts[1]));
-      if (!payload.exp) return true; // No expiration defined
       
-      // Check if not expired (with 5 minute margin)
-      const now = Math.floor(Date.now() / 1000);
-      return payload.exp > (now + 300);
+      // ✅ Validate required JWT claims
+      if (!payload.sub && !payload.user_id) {
+        console.warn('⚠️ Token missing subject/user_id claim');
+        return false;
+      }
+      
+      // ✅ Check expiration with 5 minute safety margin
+      if (payload.exp) {
+        const now = Math.floor(Date.now() / 1000);
+        const fiveMinutes = 300;
+        
+        if (payload.exp <= now) {
+          console.warn('⚠️ Token expired at:', new Date(payload.exp * 1000).toISOString());
+          return false;
+        }
+        
+        // Warn if expiring soon
+        if (payload.exp <= now + fiveMinutes) {
+          console.warn('⚠️ Token expiring in less than 5 minutes');
+        }
+      }
+      
+      return true;
     } catch (e) {
-      console.error('❌ Token validation failed:', e);
+      console.error('❌ Token validation error:', e);
       return false;
     }
   };

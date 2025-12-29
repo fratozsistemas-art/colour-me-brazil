@@ -15,16 +15,21 @@ export default function PurchaseModal({ book, onClose, onPurchaseComplete }) {
     setError(null);
 
     try {
-      // Create checkout session
+      // ✅ CRITICAL FIX: Enviar apenas item_id, backend determina o preço
+      // NUNCA envie amount/price do cliente para evitar fraude (PCI-DSS)
       const response = await base44.functions.invoke('createCheckoutSession', {
         itemType: isPrintedVersion ? 'printed_book' : 'book',
-        itemId: book.id,
-        amount: isPrintedVersion ? 2499 : 499, // R$ 24.99 or $4.99 in cents
-        currency: isPrintedVersion ? 'brl' : 'usd',
-        itemName: isPrintedVersion ? `${book.title_en} (Printed Edition)` : book.title_en,
+        itemId: book.id, // ✅ Apenas ID - backend valida preço
+        // ❌ REMOVIDO: amount (vulnerabilidade de segurança)
+        // Backend busca preço do banco de dados
         successUrl: window.location.origin + '/Library?purchase=success&book_id=' + book.id,
         cancelUrl: window.location.origin + '/Library?purchase=cancelled'
       });
+
+      // ✅ Validar resposta do backend
+      if (!response || !response.data) {
+        throw new Error('Invalid response from server');
+      }
 
       if (response.data.url) {
         // Redirect to Stripe checkout
@@ -33,7 +38,7 @@ export default function PurchaseModal({ book, onClose, onPurchaseComplete }) {
         throw new Error('No checkout URL received');
       }
     } catch (err) {
-      console.error('Purchase error:', err);
+      console.error('❌ Purchase error:', err);
       setError(err.message || 'Failed to initiate purchase. Please try again.');
       setIsProcessing(false);
     }
