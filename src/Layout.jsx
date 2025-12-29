@@ -32,6 +32,7 @@ export default function Layout({ children, currentPageName }) {
       category: 'Community',
       items: [
         { name: 'My Gallery', path: 'ArtGallery', icon: Image },
+        { name: 'AI Art Studio', path: 'AIArtStudio', icon: Sparkles },
         { name: 'Showcase', path: 'Showcase', icon: Sparkles },
         { name: 'Forum', path: 'Forum', icon: MessageSquare },
         { name: 'Stories', path: 'CollaborativeStories', icon: BookOpen },
