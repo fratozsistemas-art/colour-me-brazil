@@ -5,7 +5,7 @@ import { queryClientInstance } from '@/lib/query-client'
 import VisualEditAgent from '@/lib/VisualEditAgent'
 import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './pages.config'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, useInRouterContext } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import CookieConsentBanner from '@/components/legal/CookieConsentBanner';
@@ -73,6 +73,15 @@ const AuthenticatedApp = () => {
   );
 };
 
+const RouterContainer = ({ children }) => {
+  const inRouter = useInRouterContext();
+
+  if (inRouter) {
+    return children;
+  }
+
+  return <Router>{children}</Router>;
+};
 
 function App() {
 
@@ -80,12 +89,12 @@ function App() {
     <ErrorBoundary>
       <AuthProvider>
         <QueryClientProvider client={queryClientInstance}>
-          <Router>
+          <RouterContainer>
             <NavigationTracker />
             <ErrorBoundary>
               <AuthenticatedApp />
             </ErrorBoundary>
-          </Router>
+          </RouterContainer>
           <Toaster />
           <CookieConsentBanner />
           <VisualEditAgent />
