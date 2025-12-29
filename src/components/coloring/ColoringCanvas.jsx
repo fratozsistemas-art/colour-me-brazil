@@ -945,7 +945,8 @@ export default function ColoringCanvas({
         thumbnail_data: thumbnail,
         coloring_time: coloringTime,
         is_completed: isCompleted,
-        canvas: canvas
+        canvas: canvas,
+        basename: effectiveImageUrl || illustrationUrl // Include basename
       });
     }
   };
