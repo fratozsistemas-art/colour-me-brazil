@@ -51,6 +51,16 @@ export default function StoryReader({
 
   const currentPage = pages[pageIndex];
 
+  // Debug logging
+  useEffect(() => {
+    console.log('StoryReader Debug:', {
+      pagesLength: pages.length,
+      currentPageIndex: pageIndex,
+      showCompleteButton,
+      isLastPage: pageIndex === pages.length - 1
+    });
+  }, [pageIndex, pages.length, showCompleteButton]);
+
   useEffect(() => {
     // Reset audio when page changes
     if (audioRef.current) {
@@ -1200,7 +1210,7 @@ export default function StoryReader({
               <Button
                 variant="outline"
                 onClick={nextPage}
-                disabled={pageIndex === pages.length - 1}
+                disabled={pageIndex >= pages.length - 1}
               >
                 Next
                 <ChevronRight className="w-4 h-4 ml-2" />
