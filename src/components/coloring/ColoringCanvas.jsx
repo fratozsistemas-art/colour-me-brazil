@@ -136,6 +136,30 @@ export default function ColoringCanvas({
     }
   }, [strokes, backgroundImage, fillHistory]);
 
+  // ✅ CRITICAL FIX: Cleanup memory leaks on unmount
+  useEffect(() => {
+    return () => {
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        // Clear canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Clear stored data
+        setStrokes([]);
+        setFillHistory([]);
+        setHistory([]);
+        
+        // Revoke object URLs
+        if (backgroundImage && typeof backgroundImage === 'string' && backgroundImage.startsWith('blob:')) {
+          URL.revokeObjectURL(backgroundImage);
+        }
+      }
+      
+      console.log('🧹 ColoringCanvas cleanup completed');
+    };
+  }, []);
+
   const redrawCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
