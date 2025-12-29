@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Undo, Redo, Eraser, Save, Download, X, Paintbrush, Grid3x3, ZoomIn, ZoomOut, Maximize2, Share2, Palette, Loader2, Upload, HelpCircle, GraduationCap } from 'lucide-react';
+import { Undo, Redo, Eraser, Save, Download, X, Paintbrush, Grid3x3, ZoomIn, ZoomOut, Maximize2, Share2, Palette, Loader2, Upload, HelpCircle, GraduationCap, XCircle } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import ShareButton from '../social/ShareButton';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -72,6 +72,7 @@ export default function ColoringCanvas({
   const [textureIntensity, setTextureIntensity] = useState(0.5);
   const [showAdvancedTextures, setShowAdvancedTextures] = useState(false);
   const [showColorBalance, setShowColorBalance] = useState(false);
+  const [imageLoadError, setImageLoadError] = useState(false);
 
   // Use lineArtUrl if provided, otherwise fall back to illustrationUrl
   const effectiveImageUrl = lineArtUrl || illustrationUrl;
@@ -126,9 +127,10 @@ export default function ColoringCanvas({
         setBackgroundImage(img);
         setIsLoading(false);
       };
-      img.onerror = () => {
-        console.error('Failed to load illustration from:', effectiveImageUrl);
+      img.onerror = (error) => {
+        console.error('Failed to load illustration from:', effectiveImageUrl, error);
         setIsLoading(false);
+        setImageLoadError(true);
       };
       img.src = effectiveImageUrl;
     }
@@ -1199,11 +1201,52 @@ export default function ColoringCanvas({
               className="relative max-w-3xl w-full aspect-square bg-white rounded-lg shadow-lg overflow-hidden"
               style={{ cursor: isLoading ? 'wait' : (isPanning ? 'grabbing' : (paintMode === 'fill' ? 'pointer' : 'crosshair')) }}
             >
-              {isLoading && (
+              {isLoading && !imageLoadError && (
                 <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
                   <div className="text-center">
                     <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-2" />
                     <p className="text-sm text-gray-600">Loading image...</p>
+                  </div>
+                </div>
+              )}
+              {imageLoadError && (
+                <div className="absolute inset-0 flex items-center justify-center bg-red-50/90 z-10">
+                  <div className="text-center max-w-md p-4">
+                    <XCircle className="w-12 h-12 text-red-500 mx-auto mb-3" />
+                    <p className="text-sm font-semibold text-red-700 mb-2">Failed to load illustration</p>
+                    <p className="text-xs text-red-600 mb-3">
+                      The coloring page image could not be loaded. Please check your internet connection or try again later.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setImageLoadError(false);
+                        setIsLoading(true);
+                        const img = new Image();
+                        img.crossOrigin = 'anonymous';
+                        img.onload = () => {
+                          setBackgroundImage(img);
+                          setIsLoading(false);
+                        };
+                        img.onerror = () => {
+                          console.error('Retry failed to load illustration');
+                          setIsLoading(false);
+                          setImageLoadError(true);
+                        };
+                        img.src = effectiveImageUrl;
+                      }}
+                      className="mr-2"
+                    >
+                      Retry
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={onClose}
+                    >
+                      Close
+                    </Button>
                   </div>
                 </div>
               )}
