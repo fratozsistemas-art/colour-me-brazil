@@ -33,6 +33,7 @@ export default function Layout({ children, currentPageName }) {
       items: [
         { name: 'My Gallery', path: 'ArtGallery', icon: Image },
         { name: 'AI Art Studio', path: 'AIArtStudio', icon: Sparkles },
+        { name: 'Custom Books', path: 'CustomBookStudio', icon: BookOpen },
         { name: 'Showcase', path: 'Showcase', icon: Sparkles },
         { name: 'Forum', path: 'Forum', icon: MessageSquare },
         { name: 'Stories', path: 'CollaborativeStories', icon: BookOpen },
