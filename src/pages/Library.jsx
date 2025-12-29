@@ -129,14 +129,16 @@ export default function Library() {
       const profile = profiles.find(p => p.id === savedProfileId);
       if (profile) {
         setCurrentProfile(profile);
-        // Update streak and reset daily challenge/quest on load
-        updateStreak(profile.id);
-        resetDailyChallenge(profile.id);
-        resetDailyQuest(profile.id);
+        // Update streak and reset daily challenge/quest on load (async, non-blocking)
+        Promise.all([
+          updateStreak(profile.id),
+          resetDailyChallenge(profile.id),
+          resetDailyQuest(profile.id)
+        ]).catch(console.error);
         
-        // Generate recommendations when profile and books are loaded
+        // Defer recommendations loading to not block initial render
         if (books.length > 0) {
-          loadRecommendations(profile);
+          setTimeout(() => loadRecommendations(profile), 100);
         }
       }
     }
@@ -144,13 +146,19 @@ export default function Library() {
 
   const loadRecommendations = async (profile) => {
     try {
-      const recs = await getRecommendations(profile, books);
+      // Load recommendations in parallel for better performance
+      const [recs, path, because] = await Promise.all([
+        getRecommendations(profile, books),
+        Promise.resolve(null), // Compute path after recs
+        getBecauseYouRead(profile, books)
+      ]);
+      
       setRecommendations(recs);
       
-      const path = getReadingPath(profile, books, recs);
-      setReadingPath(path);
+      // Compute reading path with recommendations
+      const readingPath = getReadingPath(profile, books, recs);
+      setReadingPath(readingPath);
       
-      const because = getBecauseYouRead(profile, books);
       setBecauseYouRead(because);
     } catch (error) {
       console.error('Error loading recommendations:', error);
@@ -159,24 +167,27 @@ export default function Library() {
 
   // Setup offline sync and online/offline detection
   useEffect(() => {
-    setupOfflineSync();
+    // Defer offline sync setup to not block initial render
+    setTimeout(() => {
+      setupOfflineSync();
+      loadDownloadedCount();
+    }, 500);
     
     const handleOnline = async () => {
       setIsOnline(true);
-      const result = await syncOfflineData();
-      if (result.success && (result.results.coloringSessions > 0 || result.results.readingProgress > 0)) {
-        queryClient.invalidateQueries(['profiles']);
-        queryClient.invalidateQueries(['coloringSessions']);
-        // Show success notification
-        console.log('Synced offline data:', result.message);
-      }
+      // Sync in background, don't await
+      syncOfflineData().then(result => {
+        if (result.success && (result.results.coloringSessions > 0 || result.results.readingProgress > 0)) {
+          queryClient.invalidateQueries(['profiles']);
+          queryClient.invalidateQueries(['coloringSessions']);
+          console.log('Synced offline data:', result.message);
+        }
+      }).catch(console.error);
     };
     const handleOffline = () => setIsOnline(false);
     
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    
-    loadDownloadedCount();
     
     return () => {
       window.removeEventListener('online', handleOnline);
