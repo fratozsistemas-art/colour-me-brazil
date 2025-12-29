@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, User, Info } from 'lucide-react';
 import { BRAZILIAN_FAUNA_AVATARS } from './BrazilianFaunaAvatars';
 import AvatarInfoModal from './AvatarInfoModal';
+import DOMPurify from 'dompurify';
 
 const AVATAR_OPTIONS = BRAZILIAN_FAUNA_AVATARS;
 
@@ -18,15 +19,33 @@ export default function ProfileSelector({ onProfileCreated, existingProfiles = [
   const [preferredLanguage, setPreferredLanguage] = useState('en');
   const [showAvatarInfo, setShowAvatarInfo] = useState(null);
 
+  // ✅ CRITICAL FIX: COPPA Compliance - Sanitize and validate child data
   const handleCreateProfile = () => {
-    if (childName.trim().length >= 2) {
-      onProfileCreated({
-        child_name: childName.trim(),
-        avatar_icon: selectedAvatar,
-        preferred_language: preferredLanguage,
-        narration_language: preferredLanguage
-      });
+    const sanitizedName = DOMPurify.sanitize(childName.trim(), {
+      ALLOWED_TAGS: [],
+      ALLOWED_ATTR: [],
+      KEEP_CONTENT: true
+    });
+
+    // ✅ Validate name length and characters
+    if (sanitizedName.length < 2 || sanitizedName.length > 50) {
+      alert('Name must be between 2 and 50 characters');
+      return;
     }
+
+    // ✅ Only allow letters, spaces, hyphens, apostrophes (no PII like full names)
+    if (!/^[a-zA-ZÀ-ÿ\s'-]+$/.test(sanitizedName)) {
+      alert('Name contains invalid characters');
+      return;
+    }
+
+    console.log('✅ Creating profile with sanitized data');
+    onProfileCreated({
+      child_name: sanitizedName, // ✅ Sanitized first name only
+      avatar_icon: selectedAvatar,
+      preferred_language: preferredLanguage,
+      narration_language: preferredLanguage
+    });
   };
 
   const handleSelectProfile = (profile) => {
@@ -65,12 +84,17 @@ export default function ProfileSelector({ onProfileCreated, existingProfiles = [
                 </label>
                 <Input
                   type="text"
-                  placeholder="Enter your name"
+                  placeholder="Enter your first name only"
                   value={childName}
                   onChange={(e) => setChildName(e.target.value)}
                   className="text-lg p-6"
-                  maxLength={20}
+                  maxLength={50}
+                  autoComplete="off"
+                  aria-label="Child's first name"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  ℹ️ First name only (no last names for privacy)
+                </p>
               </div>
 
               {/* Avatar Selection */}
@@ -200,17 +224,21 @@ export default function ProfileSelector({ onProfileCreated, existingProfiles = [
                 const avatar = AVATAR_OPTIONS.find(a => a.id === profile.avatar_icon);
                 return (
                   <motion.button
-                    key={profile.id}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => handleSelectProfile(profile)}
-                    className="p-6 rounded-2xl border-2 border-gray-200 hover:border-green-400 bg-white shadow-md hover:shadow-xl transition-all"
+                   key={profile.id}
+                   whileHover={{ scale: 1.05 }}
+                   whileTap={{ scale: 0.95 }}
+                   onClick={() => handleSelectProfile(profile)}
+                   className="p-6 rounded-2xl border-2 border-gray-200 hover:border-green-400 bg-white shadow-md hover:shadow-xl transition-all"
+                   aria-label={`Select ${profile.child_name}'s profile`}
                   >
-                    <div className="w-20 h-20 mx-auto mb-3">{avatar?.svg || '👤'}</div>
-                    <div className="font-bold text-lg text-gray-800">{profile.child_name}</div>
-                    <div className="text-sm text-gray-500 mt-1">
-                      {profile.books_completed?.length || 0} books completed
-                    </div>
+                   <div className="w-20 h-20 mx-auto mb-3">{avatar?.svg || '👤'}</div>
+                   {/* ✅ Display only first name (COPPA compliance) */}
+                   <div className="font-bold text-lg text-gray-800">
+                     {profile.child_name}
+                   </div>
+                   <div className="text-sm text-gray-500 mt-1">
+                     {profile.books_completed?.length || 0} books completed
+                   </div>
                   </motion.button>
                 );
               })}

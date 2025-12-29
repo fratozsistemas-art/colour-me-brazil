@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
+import { rateLimiter } from '@/components/utils/rateLimiter';
 
 const AuthContext = createContext();
 
@@ -130,15 +131,32 @@ export const AuthProvider = ({ children }) => {
   }, [checkAuth]);
 
   const login = async () => {
+    // ✅ CRITICAL FIX: Rate limiting to prevent brute force
+    const rateCheck = rateLimiter.checkLimit('login_attempt', 5, 300000); // 5 attempts per 5 minutes
+    
+    if (!rateCheck.allowed) {
+      const errorMsg = `Too many login attempts. Please wait ${rateCheck.waitTime} seconds.`;
+      setAuthError(errorMsg);
+      toast.error('Rate Limit Exceeded', {
+        description: errorMsg,
+      });
+      return;
+    }
+
     setIsLoadingAuth(true);
     setAuthError(null);
 
     try {
+      rateLimiter.recordAttempt('login_attempt');
+      
       const { base44 } = await import('@/api/base44Client');
       const returnUrl = window.location.href;
       
       console.log('🔐 Redirecting to Base44 login...');
       await base44.auth.redirectToLogin(returnUrl);
+      
+      // Clear rate limit on successful redirect
+      rateLimiter.clearLimit('login_attempt');
     } catch (error) {
       console.error('❌ Login redirect failed:', error);
       setAuthError('Failed to initiate login. Please try again.');
