@@ -1,9 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
-// Voice mappings for ElevenLabs
+// BEST Voice mappings for ElevenLabs - optimized for children's stories
 const VOICE_MAPPINGS = {
-  pt: 'pNInz6obpgDQGcFmaJgB', // Adam
-  en: 'jsCqWAovK2LkecY7zXl4' // Emily (child-friendly)
+  pt: 'XrExE9yKIg1WjnnlVkGX', // Matilda - soft, warm, perfect for Portuguese storytelling
+  en: '21m00Tcm4TlvDq8ikWAM' // Rachel - clear, friendly, great for English stories
 };
 
 Deno.serve(async (req) => {
@@ -62,10 +62,10 @@ Deno.serve(async (req) => {
           text,
           model_id: 'eleven_multilingual_v2',
           voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75,
-            style: 0.5,
-            use_speaker_boost: true
+            stability: 0.7,        // Higher = more consistent, professional
+            similarity_boost: 0.8, // Higher = more natural voice quality
+            style: 0.3,            // Lower = calmer, better for children
+            use_speaker_boost: true // Enhanced audio clarity
           }
         })
       }

@@ -31,7 +31,9 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'ElevenLabs API key not configured' }, { status: 500 });
     }
 
-    // Default voices by language
+    // BEST voices for children's stories by language
+    // Portuguese: Matilda - soft, warm, perfect for storytelling to children
+    // English: Rachel - clear, friendly, great for young audiences
     const defaultVoiceId = voice_id || (language === 'pt' ? 'XrExE9yKIg1WjnnlVkGX' : '21m00Tcm4TlvDq8ikWAM');
 
     // Call ElevenLabs API with enhanced parameters
@@ -48,10 +50,11 @@ Deno.serve(async (req) => {
           text: text,
           model_id: 'eleven_multilingual_v2',
           voice_settings: {
-            stability: Math.max(0, Math.min(1, stability)),
-            similarity_boost: Math.max(0, Math.min(1, similarity_boost)),
-            style: Math.max(0, Math.min(1, style)),
-            use_speaker_boost: use_speaker_boost
+            // Optimized for children's storytelling
+            stability: Math.max(0, Math.min(1, stability || 0.7)), // Higher = more consistent
+            similarity_boost: Math.max(0, Math.min(1, similarity_boost || 0.8)), // Higher = more natural
+            style: Math.max(0, Math.min(1, style || 0.3)), // Lower = more neutral for kids
+            use_speaker_boost: use_speaker_boost !== false // Better clarity
           }
         })
       }

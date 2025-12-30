@@ -2,9 +2,9 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
 // Expanded voice mappings for ElevenLabs
 const VOICE_MAPPINGS = {
-  // Default voices by language
-  'default_en': '21m00Tcm4TlvDq8ikWAM', // Rachel - clear English
-  'default_pt': 'pNInz6obpgDQGcFmaJgB', // Adam - Portuguese
+  // BEST Default voices by language for children
+  'default_en': '21m00Tcm4TlvDq8ikWAM', // Rachel - clear, friendly English
+  'default_pt': 'XrExE9yKIg1WjnnlVkGX', // Matilda - warm, soft Portuguese (MUCH BETTER than Adam)
   
   // Child-friendly voices
   'child_male': 'IKne3meq5aSn9XLyUdCD', // Charlie - energetic boy
@@ -87,10 +87,10 @@ Deno.serve(async (req) => {
           text,
           model_id: 'eleven_multilingual_v2',
           voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75,
-            style: 0.5,
-            use_speaker_boost: true
+            stability: 0.7,        // Higher = more consistent tone (better for stories)
+            similarity_boost: 0.8, // Higher = more natural voice
+            style: 0.3,            // Lower = less dramatic, more neutral (better for kids)
+            use_speaker_boost: true // Enhanced clarity
           }
         })
       }
