@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Search, Filter, Download, Lock, Wifi, WifiOff, Sparkles, Star } from 'lucide-react';
 import BookCard from '../components/library/BookCard';
 import ProfileSelector from '../components/profile/ProfileSelector';
+import AdvancedBookFilters from '../components/library/AdvancedBookFilters';
 import StoryReader from '../components/story/StoryReader';
 import ColoringCanvas from '../components/coloring/ColoringCanvas';
 import PurchaseModal from '../components/shop/PurchaseModal';
@@ -31,6 +32,7 @@ export default function Library() {
   const [selectedBook, setSelectedBook] = useState(null);
   const [storyPages, setStoryPages] = useState([]);
   const [coloringPage, setColoringPage] = useState(null);
+  const [activeFilters, setActiveFilters] = useState({});
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [downloadedCount, setDownloadedCount] = useState(0);
   const [recommendations, setRecommendations] = useState([]);
@@ -532,18 +534,73 @@ export default function Library() {
     }
   });
 
-  // Filter books
+  // Advanced filter books
   const filteredBooks = books.filter(book => {
-    const matchesSearch = 
-      book.title_en?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      book.title_pt?.toLowerCase().includes(searchQuery.toLowerCase());
+    // Basic search
+    const matchesSearch = !activeFilters.search || 
+      book.title_en?.toLowerCase().includes(activeFilters.search.toLowerCase()) ||
+      book.title_pt?.toLowerCase().includes(activeFilters.search.toLowerCase()) ||
+      book.author?.toLowerCase().includes(activeFilters.search.toLowerCase());
     
-    const matchesCollection = 
-      selectedCollection === 'all' || book.collection === selectedCollection;
+    // Collection filter
+    const matchesCollection = !activeFilters.collection || activeFilters.collection === 'all' || 
+      book.collection === activeFilters.collection;
+    
+    // Age range filter
+    const bookAgeRange = book.age_recommendation || '6-12 years';
+    const ageMatch = bookAgeRange.match(/(\d+)-(\d+)/);
+    let matchesAge = true;
+    if (ageMatch && (activeFilters.ageMin || activeFilters.ageMax)) {
+      const bookMinAge = parseInt(ageMatch[1]);
+      const bookMaxAge = parseInt(ageMatch[2]);
+      if (activeFilters.ageMin) {
+        matchesAge = matchesAge && bookMaxAge >= parseInt(activeFilters.ageMin);
+      }
+      if (activeFilters.ageMax) {
+        matchesAge = matchesAge && bookMinAge <= parseInt(activeFilters.ageMax);
+      }
+    }
+    
+    // Cultural tags filter
+    const matchesTags = !activeFilters.culturalTags?.length || 
+      activeFilters.culturalTags.some(tag => book.cultural_tags?.includes(tag));
+    
+    // Completion status filter
+    let matchesCompletion = true;
+    if (activeFilters.completionStatus && activeFilters.completionStatus !== 'all' && currentProfile) {
+      const isCompleted = currentProfile.books_completed?.includes(book.id);
+      const hasProgress = currentProfile.reading_progress?.[book.id] !== undefined;
+      
+      if (activeFilters.completionStatus === 'completed') {
+        matchesCompletion = isCompleted;
+      } else if (activeFilters.completionStatus === 'in_progress') {
+        matchesCompletion = hasProgress && !isCompleted;
+      } else if (activeFilters.completionStatus === 'not_started') {
+        matchesCompletion = !hasProgress && !isCompleted;
+      }
+    }
     
     const matchesLockStatus = showLockedBooks || !book.is_locked;
 
-    return matchesSearch && matchesCollection && matchesLockStatus;
+    return matchesSearch && matchesCollection && matchesAge && matchesTags && 
+           matchesCompletion && matchesLockStatus;
+  }).sort((a, b) => {
+    // Apply sorting
+    const sortBy = activeFilters.sortBy || 'order_index';
+    const sortOrder = activeFilters.sortOrder || 'asc';
+    
+    let comparison = 0;
+    if (sortBy === 'title_pt') {
+      comparison = (a.title_pt || '').localeCompare(b.title_pt || '');
+    } else if (sortBy === 'created_date') {
+      comparison = new Date(b.created_date) - new Date(a.created_date);
+    } else if (sortBy === 'page_count') {
+      comparison = (b.page_count || 0) - (a.page_count || 0);
+    } else {
+      comparison = (a.order_index || 0) - (b.order_index || 0);
+    }
+    
+    return sortOrder === 'desc' ? -comparison : comparison;
   });
 
   // Collection stats
@@ -769,75 +826,25 @@ export default function Library() {
         </div>
       )}
 
-      {/* Search and Filters */}
-      <div className="bg-white rounded-xl p-6 shadow-md mb-8">
-        <div className="flex flex-col md:flex-row gap-4">
-          {/* Search */}
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <Input
-              type="text"
-              placeholder="Search books..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+      {/* Advanced Search and Filters */}
+      <AdvancedBookFilters 
+        onFilterChange={setActiveFilters} 
+        books={books}
+      />
 
-          {/* Collection Filter */}
-          <div className="flex gap-2">
-            <Button
-              variant={selectedCollection === 'all' ? 'default' : 'outline'}
-              onClick={() => setSelectedCollection('all')}
-              className="flex items-center gap-2"
-              style={selectedCollection === 'all' ? { 
-                background: 'linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%)',
-                color: '#FFFFFF',
-                border: 'none'
-              } : {}}
-            >
-              <Filter className="w-4 h-4" />
-              All
-            </Button>
-            <Button
-              variant={selectedCollection === 'amazon' ? 'default' : 'outline'}
-              onClick={() => setSelectedCollection('amazon')}
-              style={selectedCollection === 'amazon' ? { 
-                background: 'linear-gradient(135deg, #06A77D 0%, #2E86AB 100%)',
-                color: '#FFFFFF',
-                border: 'none'
-              } : {}}
-            >
-              🌿 Amazon
-            </Button>
-            <Button
-              variant={selectedCollection === 'culture' ? 'default' : 'outline'}
-              onClick={() => setSelectedCollection('culture')}
-              style={selectedCollection === 'culture' ? { 
-                background: 'linear-gradient(135deg, #2E86AB 0%, #FF6B35 100%)',
-                color: '#FFFFFF',
-                border: 'none'
-              } : {}}
-            >
-              🎨 Culture
-            </Button>
-          </div>
-        </div>
-
-        {/* Additional Filters */}
-        <div className="flex items-center gap-4 mt-4 pt-4 border-t">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={showLockedBooks}
-              onChange={(e) => setShowLockedBooks(e.target.checked)}
-              className="rounded"
-            />
-            <span className="text-sm text-gray-700">Show locked books</span>
-          </label>
-          <div className="text-sm text-gray-500">
-            Showing {filteredBooks.length} of {books.length} books
-          </div>
+      {/* Filter Results Summary */}
+      <div className="flex items-center gap-4 mb-6">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={showLockedBooks}
+            onChange={(e) => setShowLockedBooks(e.target.checked)}
+            className="rounded"
+          />
+          <span className="text-sm text-gray-700">Mostrar livros bloqueados</span>
+        </label>
+        <div className="text-sm text-gray-500">
+          Exibindo {filteredBooks.length} de {books.length} livros
         </div>
       </div>
 

@@ -143,8 +143,8 @@ export default function ContentModeration() {
 
       <div className="mt-8 border-t pt-8">
         <h2 className="text-2xl font-bold mb-4">Legacy Submission Review</h2>
-
-      {/* Stats */}
+      
+        {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <Card className="p-6 bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
           <div className="flex items-center gap-3">
@@ -365,6 +365,7 @@ export default function ContentModeration() {
             )}
           </Card>
         </div>
+      </div>
       </div>
     </div>
   );
