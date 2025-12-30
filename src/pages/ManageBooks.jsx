@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
-import { Plus, Edit, Trash2, Save, X, BookOpen, Palette, Volume2, Loader2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Save, X, BookOpen, Palette, Volume2, Loader2, Wand2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import BookCreationWizard from '../components/curator/BookCreationWizard';
 import {
   Select,
   SelectContent,
@@ -18,6 +19,7 @@ import {
 export default function ManageBooks() {
   const [editingBook, setEditingBook] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
   const [selectedBook, setSelectedBook] = useState(null);
   const [audioGenerationBookId, setAudioGenerationBookId] = useState(null);
   const [audioGenerationLanguage, setAudioGenerationLanguage] = useState('en');
@@ -277,19 +279,45 @@ export default function ManageBooks() {
   }
 
   return (
+    <>
+      {/* Book Creation Wizard Modal */}
+      {showWizard && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl p-6 max-w-5xl w-full my-8">
+            <BookCreationWizard
+              onComplete={(book) => {
+                setShowWizard(false);
+                queryClient.invalidateQueries(['books']);
+                toast.success(`Livro "${book.title_pt}" criado com sucesso! 🎉`);
+              }}
+              onCancel={() => setShowWizard(false)}
+            />
+          </div>
+        </div>
+      )}
+
     <div className="max-w-6xl mx-auto p-6">
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">Manage Books</h1>
           <p className="text-gray-600">Add, edit, or remove books from the library</p>
         </div>
-        <Button
-          onClick={() => setIsCreating(true)}
-          className="bg-green-600 hover:bg-green-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add New Book
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => setShowWizard(true)}
+            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+          >
+            <Wand2 className="w-4 h-4 mr-2" />
+            Criar com Assistente
+          </Button>
+          <Button
+            onClick={() => setIsCreating(true)}
+            variant="outline"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Criar Rápido
+          </Button>
+        </div>
       </div>
 
       <AnimatePresence>
@@ -527,5 +555,6 @@ export default function ManageBooks() {
         ))}
       </div>
     </div>
+    </>
   );
 }

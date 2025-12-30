@@ -11,6 +11,10 @@ import ReadingPreferences from '../components/profile/ReadingPreferences';
 import BookmarksManager from '../components/profile/BookmarksManager';
 import ReadingHistoryView from '../components/profile/ReadingHistoryView';
 import NotificationPreferences from '../components/profile/NotificationPreferences';
+import AvatarCustomizer from '../components/profile/AvatarCustomizer';
+import ReadingPreferencesExpanded from '../components/profile/ReadingPreferencesExpanded';
+import ActivityTimeline from '../components/profile/ActivityTimeline';
+import AgeBasedContentRestrictions from '../components/parent/AgeBasedContentRestrictions';
 
 export default function ProfileSettings() {
   const queryClient = useQueryClient();
