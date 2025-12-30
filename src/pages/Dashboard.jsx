@@ -179,8 +179,8 @@ export default function Dashboard() {
               Desafios de Hoje
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <DailyChallengeCard profileId={profile.id} />
-              <DailyQuestCard profileId={profile.id} />
+              <DailyChallengeCard profile={profile} />
+              <DailyQuestCard profile={profile} />
             </div>
           </motion.div>
 

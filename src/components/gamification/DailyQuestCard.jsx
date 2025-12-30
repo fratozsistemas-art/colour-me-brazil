@@ -12,9 +12,11 @@ export default function DailyQuestCard({ profile }) {
   const language = profile?.preferred_language || 'en';
   
   useEffect(() => {
-    loadQuest();
-    const interval = setInterval(loadQuest, 30000); // Refresh every 30s
-    return () => clearInterval(interval);
+    if (profile?.id) {
+      loadQuest();
+      const interval = setInterval(loadQuest, 30000); // Refresh every 30s
+      return () => clearInterval(interval);
+    }
   }, [profile]);
   
   const loadQuest = async () => {

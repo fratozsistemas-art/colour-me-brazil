@@ -13,10 +13,14 @@ export default function DailyChallengeCard({ profile, onChallengeComplete }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadChallenge();
+    if (profile?.id) {
+      loadChallenge();
+    }
   }, [profile]);
 
   const loadChallenge = async () => {
+    if (!profile?.id) return;
+    
     setLoading(true);
     try {
       const todayChallenge = await getTodayChallenge();
@@ -24,7 +28,7 @@ export default function DailyChallengeCard({ profile, onChallengeComplete }) {
       
       // Check if already completed today
       const today = new Date().toISOString().split('T')[0];
-      if (profile.daily_challenge_completed && profile.daily_challenge_date === today) {
+      if (profile?.daily_challenge_completed && profile?.daily_challenge_date === today) {
         setIsCompleted(true);
         setProgress(100);
       } else {
@@ -97,7 +101,7 @@ export default function DailyChallengeCard({ profile, onChallengeComplete }) {
     return null;
   }
 
-  const language = profile.preferred_language || 'en';
+  const language = profile?.preferred_language || 'en';
   const title = language === 'en' ? challenge.title_en : challenge.title_pt;
   const description = language === 'en' ? challenge.description_en : challenge.description_pt;
 
