@@ -72,11 +72,7 @@ export default function AvatarCustomizer({ currentAvatar, profileId, onAvatarCha
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {BRAZILIAN_FAUNA_AVATARS.map((avatar) => (
-              <motion.div
-                key={avatar.id}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
+              <div key={avatar.id}>
                 <Card
                   className={`p-3 cursor-pointer transition-all ${
                     selectedAvatar === avatar.id
@@ -91,7 +87,7 @@ export default function AvatarCustomizer({ currentAvatar, profileId, onAvatarCha
                   <p className="text-xs font-semibold text-center">{avatar.namePt}</p>
                   <p className="text-xs text-gray-500 text-center">{avatar.emoji}</p>
                 </Card>
-              </motion.div>
+              </div>
             ))}
           </div>
         </TabsContent>
