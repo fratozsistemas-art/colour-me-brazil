@@ -1694,6 +1694,8 @@ export default function ColoringCanvas({
                   <ShareButton
                     title="My Coloring Page"
                     text="Check out my coloring page on Colour Me Brazil! 🎨"
+                    imageUrl={canvas?.toDataURL('image/png')}
+                    customMessage="I just finished coloring this amazing page on Colour Me Brazil! 🎨✨"
                     variant="outline"
                     size="default"
                     showText={false}

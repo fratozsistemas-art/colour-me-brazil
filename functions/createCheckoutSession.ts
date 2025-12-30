@@ -1,101 +1,92 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import Stripe from 'npm:stripe@17.5.0';
 
-const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY'));
+const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY'), {
+  apiVersion: '2024-12-18.acacia',
+});
 
 Deno.serve(async (req) => {
   try {
-    // ✅ CRITICAL: Validate authentication first
+    // Authenticate user
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
 
-    if (!user || !user.id) {
-      console.error('❌ Unauthorized checkout attempt');
-      return Response.json({ error: 'Unauthorized - please log in' }, { status: 401 });
+    if (!user) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { itemType, itemId, successUrl, cancelUrl } = await req.json();
+    const { priceId, productId, successUrl, cancelUrl } = await req.json();
 
-    // ✅ CRITICAL FIX: Buscar preço do banco de dados (PCI-DSS compliance)
-    // NUNCA confie em preços/valores vindos do cliente
-    let amount, currency, itemName;
-    
-    if (itemType === 'book' || itemType === 'printed_book') {
-      const books = await base44.asServiceRole.entities.Book.filter({ id: itemId });
-      if (books.length === 0) {
-        console.error('❌ Book not found:', itemId);
-        return Response.json({ error: 'Book not found' }, { status: 404 });
-      }
-      
-      const book = books[0];
-      // ✅ Preço vem do banco de dados (fonte confiável)
-      amount = itemType === 'printed_book' ? 2499 : 499; // Em centavos
-      currency = itemType === 'printed_book' ? 'brl' : 'usd';
-      itemName = itemType === 'printed_book' 
-        ? `${book.title_en} (Printed Edition)` 
-        : book.title_en;
-      
-      console.log('✅ Price fetched from database:', { itemId, amount, currency, itemName });
+    if (!priceId || !productId) {
+      return Response.json({ error: 'Missing priceId or productId' }, { status: 400 });
+    }
+
+    // Get price details to determine mode
+    const price = await stripe.prices.retrieve(priceId);
+    const mode = price.type === 'recurring' ? 'subscription' : 'payment';
+
+    // Create or retrieve Stripe customer
+    let customer;
+    const existingCustomers = await stripe.customers.list({
+      email: user.email,
+      limit: 1
+    });
+
+    if (existingCustomers.data.length > 0) {
+      customer = existingCustomers.data[0];
     } else {
-      return Response.json({ error: 'Invalid item type' }, { status: 400 });
+      customer = await stripe.customers.create({
+        email: user.email,
+        metadata: {
+          user_id: user.id,
+          full_name: user.full_name || user.email
+        }
+      });
     }
 
-    // Create Stripe checkout session
+    // Create checkout session
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
+      customer: customer.id,
+      mode: mode,
       line_items: [
         {
-          price_data: {
-            currency: currency,
-            product_data: {
-              name: itemName,
-              description: `Purchase ${itemType}: ${itemName}`,
-            },
-            unit_amount: amount, // amount in cents
-          },
+          price: priceId,
           quantity: 1,
         },
       ],
-      mode: 'payment',
-      success_url: successUrl || `${req.headers.get('origin')}/Library?purchase=success`,
-      cancel_url: cancelUrl || `${req.headers.get('origin')}/Library?purchase=cancelled`,
+      success_url: successUrl || `${req.headers.get('origin')}/Shop?purchase=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: cancelUrl || `${req.headers.get('origin')}/Shop?purchase=cancelled`,
       metadata: {
         user_id: user.id,
-        item_type: itemType,
-        item_id: itemId,
-      },
+        product_id: productId,
+        price_id: priceId
+      }
     });
 
-    // ✅ Create purchase record with audit trail
+    // Create pending purchase record
     await base44.asServiceRole.entities.Purchase.create({
       user_id: user.id,
-      item_type: itemType,
-      item_id: itemId,
-      amount: amount, // ✅ Preço validado do servidor
-      currency: currency,
-      stripe_payment_intent_id: session.payment_intent,
-      status: 'pending'
-    });
-
-    // ✅ Log de auditoria
-    console.log('✅ Checkout session created:', {
-      user_id: user.id,
-      session_id: session.id,
-      amount,
-      currency,
-      item_type: itemType
+      stripe_customer_id: customer.id,
+      product_id: productId,
+      price_id: priceId,
+      amount: price.unit_amount,
+      currency: price.currency,
+      status: 'pending',
+      purchase_type: mode === 'subscription' ? 'subscription' : 'one_time',
+      metadata: {
+        session_id: session.id
+      }
     });
 
     return Response.json({ 
-      sessionId: session.id,
       url: session.url,
-      amount_charged: amount // ✅ Retornar para validação no cliente
+      sessionId: session.id 
     });
+
   } catch (error) {
-    console.error('❌ Checkout error:', error);
+    console.error('Checkout session error:', error);
     return Response.json({ 
-      error: 'Failed to create checkout session',
-      details: error.message 
+      error: error.message || 'Failed to create checkout session' 
     }, { status: 500 });
   }
 });

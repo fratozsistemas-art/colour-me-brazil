@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import Stripe from 'npm:stripe@17.5.0';
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY'), {
-  apiVersion: '2024-11-20.acacia',
+  apiVersion: '2024-12-18.acacia',
 });
 
 Deno.serve(async (req) => {
@@ -14,40 +14,41 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get all active products from Stripe
+    // Get all active products
     const products = await stripe.products.list({
       active: true,
-      limit: 100,
+      expand: ['data.default_price']
     });
 
-    // Get prices for all products
-    const prices = await stripe.prices.list({
-      active: true,
-      limit: 100,
-    });
+    // Get all prices for these products
+    const productsWithPrices = await Promise.all(
+      products.data.map(async (product) => {
+        const prices = await stripe.prices.list({
+          product: product.id,
+          active: true
+        });
 
-    // Combine products with their prices
-    const productsWithPrices = products.data.map(product => {
-      const productPrices = prices.data.filter(price => price.product === product.id);
-      return {
-        id: product.id,
-        name: product.name,
-        description: product.description,
-        images: product.images,
-        metadata: product.metadata,
-        prices: productPrices.map(price => ({
-          id: price.id,
-          amount: price.unit_amount,
-          currency: price.currency,
-          type: price.type,
-          interval: price.recurring?.interval,
-        })),
-      };
-    });
+        return {
+          id: product.id,
+          name: product.name,
+          description: product.description,
+          images: product.images,
+          metadata: product.metadata,
+          prices: prices.data.map(price => ({
+            id: price.id,
+            unit_amount: price.unit_amount,
+            currency: price.currency,
+            recurring: price.recurring,
+            type: price.type
+          }))
+        };
+      })
+    );
 
     return Response.json({ products: productsWithPrices });
+
   } catch (error) {
-    console.error('Error fetching Stripe products:', error);
+    console.error('Error fetching products:', error);
     return Response.json({ 
       error: error.message || 'Failed to fetch products' 
     }, { status: 500 });
