@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -7,8 +7,22 @@ import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CheckCircle2, XCircle, Eye, Clock, BookOpen, Palette, Mic, Tag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ModerationQueue from '@/components/moderation/ModerationQueue';
 
 export default function ContentModeration() {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const currentUser = await base44.auth.me();
+        setUser(currentUser);
+      } catch (error) {
+        console.error('Error loading user:', error);
+      }
+    };
+    loadUser();
+  }, []);
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [feedback, setFeedback] = useState('');
   const [newTags, setNewTags] = useState([]);
@@ -123,6 +137,12 @@ export default function ContentModeration() {
         <h1 className="text-4xl font-bold text-gray-800 mb-2">Content Moderation</h1>
         <p className="text-gray-600">Review and manage user-submitted content</p>
       </div>
+
+      {/* Enhanced Moderation Queue */}
+      {user && <ModerationQueue user={user} />}
+
+      <div className="mt-8 border-t pt-8">
+        <h2 className="text-2xl font-bold mb-4">Legacy Submission Review</h2>
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
