@@ -10,7 +10,21 @@ import {
 import { motion } from 'framer-motion';
 
 export default function Home() {
+  const [isReturningUser, setIsReturningUser] = useState(false);
+
+  useEffect(() => {
+    // Check if user has visited before
+    const hasVisited = localStorage.getItem('hasVisitedApp');
+    
+    if (hasVisited) {
+      // Redirect returning users directly to Library
+      window.location.href = createPageUrl('Library');
+    }
+  }, []);
+
   const handleGetStarted = () => {
+    // Mark user as having visited
+    localStorage.setItem('hasVisitedApp', 'true');
     window.location.href = createPageUrl('Library');
   };
 
