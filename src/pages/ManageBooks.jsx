@@ -26,10 +26,16 @@ export default function ManageBooks() {
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data: books = [], isLoading } = useQuery({
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  const { data: allBooks = [], isLoading } = useQuery({
     queryKey: ['books'],
     queryFn: () => base44.entities.Book.list()
   });
+
+  const books = statusFilter === 'all' 
+    ? allBooks 
+    : allBooks.filter(b => b.status === statusFilter);
 
   const { data: pages = [] } = useQuery({
     queryKey: ['pages', selectedBook?.id],
@@ -297,7 +303,7 @@ export default function ManageBooks() {
       )}
 
     <div className="max-w-6xl mx-auto p-6">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">Manage Books</h1>
           <p className="text-gray-600">Add, edit, or remove books from the library</p>
@@ -318,6 +324,31 @@ export default function ManageBooks() {
             Criar Rápido
           </Button>
         </div>
+      </div>
+
+      {/* Status Filter */}
+      <div className="flex gap-2 mb-6">
+        <Button
+          variant={statusFilter === 'all' ? 'default' : 'outline'}
+          onClick={() => setStatusFilter('all')}
+          size="sm"
+        >
+          Todos ({allBooks.length})
+        </Button>
+        <Button
+          variant={statusFilter === 'draft' ? 'default' : 'outline'}
+          onClick={() => setStatusFilter('draft')}
+          size="sm"
+        >
+          📝 Rascunhos ({allBooks.filter(b => b.status === 'draft').length})
+        </Button>
+        <Button
+          variant={statusFilter === 'published' ? 'default' : 'outline'}
+          onClick={() => setStatusFilter('published')}
+          size="sm"
+        >
+          ✅ Publicados ({allBooks.filter(b => b.status === 'published').length})
+        </Button>
       </div>
 
       <AnimatePresence>
@@ -360,6 +391,14 @@ export default function ManageBooks() {
                     <p className="text-sm text-gray-500 mt-1">by {book.author}</p>
                   )}
                   <div className="flex gap-2 mt-2 flex-wrap">
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      book.status === 'draft' ? 'bg-orange-100 text-orange-800' :
+                      book.status === 'published' ? 'bg-green-100 text-green-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {book.status === 'draft' ? '📝 Rascunho' : 
+                       book.status === 'published' ? '✅ Publicado' : '📦 Arquivado'}
+                    </span>
                     <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
                       {book.collection === 'amazon' ? '🌿 Amazon' : '🎨 Culture'}
                     </span>
