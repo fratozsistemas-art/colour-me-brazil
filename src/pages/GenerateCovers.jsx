@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
+import { BrowserRouter as Router, useInRouterContext } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Wand2, Image, CheckCircle2, Loader2 } from 'lucide-react';
 
-export default function GenerateCovers() {
+function GenerateCoversContent() {
   const [generating, setGenerating] = useState({});
   const [completed, setCompleted] = useState({});
   const queryClient = useQueryClient();
@@ -146,5 +147,19 @@ export default function GenerateCovers() {
         ))}
       </div>
     </div>
+  );
+}
+
+export default function GenerateCovers() {
+  const inRouter = useInRouterContext();
+
+  if (inRouter) {
+    return <GenerateCoversContent />;
+  }
+
+  return (
+    <Router>
+      <GenerateCoversContent />
+    </Router>
   );
 }
