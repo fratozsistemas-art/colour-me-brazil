@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import DailyChallengeCard from '@/components/gamification/DailyChallengeCard';
 import DailyQuestCard from '@/components/gamification/DailyQuestCard';
 import StreakWidget from '@/components/gamification/StreakWidget';
+import ShareButton from '@/components/social/ShareButton';
 
 export default function Dashboard() {
   const [profile, setProfile] = useState(null);
@@ -418,6 +419,14 @@ export default function Dashboard() {
                   <Gift className="w-4 h-4 mr-2" />
                   Loja de Prêmios
                 </Button>
+                <ShareButton
+                  title="Meu Progresso no Colour Me Brazil"
+                  text={`Confira meu progresso no Colour Me Brazil! 📚🎨`}
+                  customMessage={`📊 Meu Progresso no Colour Me Brazil:\n✅ ${profile?.books_completed?.length || 0} livros completados\n🎨 ${profile?.pages_colored?.length || 0} páginas coloridas\n⭐ Nível ${profile?.level || 1}\n🔥 ${profile?.current_streak || 0} dias de sequência\n\nJunte-se a mim explorando a cultura brasileira! 🇧🇷`}
+                  variant="outline"
+                  className="w-full justify-start"
+                  showText={true}
+                />
               </CardContent>
             </Card>
           </motion.div>

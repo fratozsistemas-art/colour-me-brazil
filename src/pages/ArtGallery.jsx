@@ -488,9 +488,10 @@ export default function ArtGallery() {
                       Download
                     </Button>
                     <ShareButton
-                      title="Check out my artwork!"
-                      text={`I colored this on Colour Me Brazil! 🎨`}
-                      url={selectedArtwork.artwork_url}
+                      title="Minha Arte"
+                      text={`Confira minha arte do ${books.find(b => b.id === selectedArtwork.book_id)?.title_pt || 'livro'}! 🎨`}
+                      imageUrl={selectedArtwork.artwork_url}
+                      customMessage={`Criei esta linda arte no Colour Me Brazil! Tempo gasto: ${formatTime(selectedArtwork.coloring_time_seconds || 0)} ⏱️🎨`}
                       variant="outline"
                     />
                     <Button
