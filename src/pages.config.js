@@ -1,3 +1,4 @@
+import AIArtStudio from './pages/AIArtStudio';
 import ArtGallery from './pages/ArtGallery';
 import AudioGenerator from './pages/AudioGenerator';
 import BrandGuidelines from './pages/BrandGuidelines';
@@ -7,6 +8,7 @@ import Contact from './pages/Contact';
 import ContentModeration from './pages/ContentModeration';
 import CookiePolicy from './pages/CookiePolicy';
 import CuratorDashboard from './pages/CuratorDashboard';
+import CustomBookStudio from './pages/CustomBookStudio';
 import Dashboard from './pages/Dashboard';
 import Events from './pages/Events';
 import FAQ from './pages/FAQ';
@@ -25,6 +27,7 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import ProductDetails from './pages/ProductDetails';
 import Profile from './pages/Profile';
 import ProfileSettings from './pages/ProfileSettings';
+import PublishedBooks from './pages/PublishedBooks';
 import ReadingPaths from './pages/ReadingPaths';
 import ReadingSettings from './pages/ReadingSettings';
 import RewardsShop from './pages/RewardsShop';
@@ -34,13 +37,11 @@ import Showcase from './pages/Showcase';
 import SubmitContent from './pages/SubmitContent';
 import TermsOfService from './pages/TermsOfService';
 import UserProfileManagement from './pages/UserProfileManagement';
-import AIArtStudio from './pages/AIArtStudio';
-import CustomBookStudio from './pages/CustomBookStudio';
-import PublishedBooks from './pages/PublishedBooks';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
+    "AIArtStudio": AIArtStudio,
     "ArtGallery": ArtGallery,
     "AudioGenerator": AudioGenerator,
     "BrandGuidelines": BrandGuidelines,
@@ -50,6 +51,7 @@ export const PAGES = {
     "ContentModeration": ContentModeration,
     "CookiePolicy": CookiePolicy,
     "CuratorDashboard": CuratorDashboard,
+    "CustomBookStudio": CustomBookStudio,
     "Dashboard": Dashboard,
     "Events": Events,
     "FAQ": FAQ,
@@ -68,6 +70,7 @@ export const PAGES = {
     "ProductDetails": ProductDetails,
     "Profile": Profile,
     "ProfileSettings": ProfileSettings,
+    "PublishedBooks": PublishedBooks,
     "ReadingPaths": ReadingPaths,
     "ReadingSettings": ReadingSettings,
     "RewardsShop": RewardsShop,
@@ -77,9 +80,6 @@ export const PAGES = {
     "SubmitContent": SubmitContent,
     "TermsOfService": TermsOfService,
     "UserProfileManagement": UserProfileManagement,
-    "AIArtStudio": AIArtStudio,
-    "CustomBookStudio": CustomBookStudio,
-    "PublishedBooks": PublishedBooks,
 }
 
 export const pagesConfig = {
