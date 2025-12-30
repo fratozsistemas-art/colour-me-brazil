@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Bookmark, Trash2, Book, ExternalLink, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { createPageUrl } from '../utils';
+import { createPageUrl } from '../../utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function BookmarksManager({ profile, onUpdate }) {

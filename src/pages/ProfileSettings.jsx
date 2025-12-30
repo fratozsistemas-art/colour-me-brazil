@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { User, Book, Bell, Palette, ArrowLeft, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { createPageUrl } from './utils';
+import { createPageUrl } from '../utils';
 import ReadingPreferences from '../components/profile/ReadingPreferences';
 import BookmarksManager from '../components/profile/BookmarksManager';
 import ReadingHistoryView from '../components/profile/ReadingHistoryView';
