@@ -16,6 +16,9 @@ import ContentApprovalQueue from '../components/parent/ContentApprovalQueue';
 import ChildSettingsManager from '../components/parent/ChildSettingsManager';
 import DetailedProgressReport from '../components/parent/DetailedProgressReport';
 import InterestTopicsManager from '../components/parent/InterestTopicsManager';
+import SharedReadingList from '../components/family/SharedReadingList';
+import FamilyArtGallery from '../components/family/FamilyArtGallery';
+import FamilyMessaging from '../components/family/FamilyMessaging';
 
 export default function ParentPortal() {
   const [parentAccount, setParentAccount] = useState(null);
@@ -244,7 +247,7 @@ export default function ParentPortal() {
       </div>
 
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-8">
+        <TabsList className="grid w-full grid-cols-5 md:grid-cols-11 gap-1">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="report">Report</TabsTrigger>
           <TabsTrigger value="activity">Activity</TabsTrigger>
@@ -252,6 +255,9 @@ export default function ParentPortal() {
           <TabsTrigger value="quizzes">Quizzes</TabsTrigger>
           <TabsTrigger value="goals">Goals</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsTrigger value="readinglist">📚 Lista</TabsTrigger>
+          <TabsTrigger value="gallery">🎨 Galeria</TabsTrigger>
+          <TabsTrigger value="messages">💌 Mensagens</TabsTrigger>
           <TabsTrigger value="guardians">
             <UserCog className="w-4 h-4 mr-1" />
             Responsáveis
@@ -294,6 +300,33 @@ export default function ParentPortal() {
               parentAccount={parentAccount}
             />
           </div>
+        </TabsContent>
+
+        <TabsContent value="readinglist" className="mt-6">
+          <SharedReadingList 
+            childProfile={selectedChild}
+            parentAccount={parentAccount}
+            isParentView={true}
+          />
+        </TabsContent>
+
+        <TabsContent value="gallery" className="mt-6">
+          <Card className="p-6">
+            <p className="text-gray-600 mb-4">
+              A galeria familiar mostra obras de todas as crianças. Veja a galeria completa na página principal.
+            </p>
+            <Button onClick={() => window.location.href = '/Dashboard'}>
+              Ver Galeria Completa
+            </Button>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="messages" className="mt-6">
+          <FamilyMessaging
+            childProfile={selectedChild}
+            parentAccount={parentAccount}
+            isParentView={true}
+          />
         </TabsContent>
 
         <TabsContent value="guardians" className="mt-6">
