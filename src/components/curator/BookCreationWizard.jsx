@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -12,12 +11,15 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { 
-  Upload, BookOpen, FileText, Palette, Volume2, 
-  Eye, Save, ChevronRight, ChevronLeft, CheckCircle2, X 
+  Upload, BookOpen, Palette, Volume2, 
+  Eye, ChevronRight, ChevronLeft, CheckCircle2, X 
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import BatchPageUploader from './BatchPageUploader';
+import RichTextEditor from './RichTextEditor';
+import AudioSelector from './AudioSelector';
 
 export default function BookCreationWizard({ onComplete, onCancel }) {
   const [step, setStep] = useState(1);
@@ -31,20 +33,15 @@ export default function BookCreationWizard({ onComplete, onCancel }) {
     cover_image_url: '',
     cultural_tags: [],
     age_recommendation: '6-12 years',
+    status: 'draft',
     is_locked: false,
     page_count: 12,
     order_index: 0
   });
   const [pages, setPages] = useState([]);
-  const [currentPage, setCurrentPage] = useState({
-    page_number: 1,
-    page_type: 'story',
-    story_text_en: '',
-    story_text_pt: '',
-    illustration_url: ''
-  });
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editingPageIndex, setEditingPageIndex] = useState(null);
 
   const culturalTagOptions = [
     'Folclore', 'Amazônia', 'Carnaval', 'Capoeira', 'Samba',
@@ -67,48 +64,49 @@ export default function BookCreationWizard({ onComplete, onCancel }) {
     }
   };
 
-  const handleIllustrationUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const handleBatchUpload = (uploadedPages) => {
+    const newPages = uploadedPages.map(up => ({
+      page_number: up.pageNumber,
+      illustration_url: up.illustrationUrl,
+      story_text_en: up.storyText || '',
+      story_text_pt: '',
+      page_type: 'story',
+      audio_narration_en_url: '',
+      audio_narration_pt_url: ''
+    }));
 
-    setUploading(true);
-    try {
-      const result = await base44.integrations.Core.UploadFile({ file });
-      setCurrentPage(prev => ({ ...prev, illustration_url: result.file_url }));
-      toast.success('Ilustração enviada!');
-    } catch (error) {
-      toast.error('Erro ao enviar ilustração');
-    } finally {
-      setUploading(false);
-    }
+    setPages(prev => {
+      const combined = [...prev, ...newPages];
+      return combined.sort((a, b) => a.page_number - b.page_number);
+    });
+
+    setBookData(prev => ({
+      ...prev,
+      page_count: Math.max(prev.page_count, pages.length + newPages.length)
+    }));
+
+    toast.success(`${newPages.length} páginas adicionadas!`);
   };
 
-  const addPage = () => {
-    if (!currentPage.story_text_en && !currentPage.story_text_pt) {
-      toast.error('Adicione pelo menos um texto de história');
-      return;
-    }
-    
-    setPages([...pages, currentPage]);
-    setCurrentPage({
-      page_number: pages.length + 2,
-      page_type: 'story',
-      story_text_en: '',
-      story_text_pt: '',
-      illustration_url: ''
-    });
-    toast.success(`Página ${pages.length + 1} adicionada!`);
+  const updatePage = (index, field, value) => {
+    setPages(prev => prev.map((page, i) => 
+      i === index ? { ...page, [field]: value } : page
+    ));
   };
 
   const removePage = (index) => {
-    setPages(pages.filter((_, i) => i !== index));
+    setPages(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handlePublish = async () => {
+  const handlePublish = async (isDraft = false) => {
     setSaving(true);
     try {
       // Create book
-      const createdBook = await base44.entities.Book.create(bookData);
+      const createdBook = await base44.entities.Book.create({
+        ...bookData,
+        status: isDraft ? 'draft' : 'published',
+        page_count: pages.length
+      });
 
       // Create pages
       for (const page of pages) {
@@ -118,24 +116,22 @@ export default function BookCreationWizard({ onComplete, onCancel }) {
         });
       }
 
-      toast.success('Livro publicado com sucesso! 🎉');
+      toast.success(isDraft ? '💾 Rascunho salvo!' : '🚀 Livro publicado com sucesso!');
       onComplete && onComplete(createdBook);
     } catch (error) {
       console.error('Error publishing book:', error);
-      toast.error('Erro ao publicar livro');
+      toast.error('Erro ao publicar livro: ' + error.message);
     } finally {
       setSaving(false);
     }
   };
 
-  const totalSteps = 4;
-
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-5xl mx-auto">
       {/* Progress Bar */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-2">
-          {[1, 2, 3, 4].map((s) => (
+          {[1, 2, 3, 4, 5].map((s) => (
             <div key={s} className="flex items-center flex-1">
               <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all ${
                 step >= s 
@@ -144,17 +140,18 @@ export default function BookCreationWizard({ onComplete, onCancel }) {
               }`}>
                 {step > s ? <CheckCircle2 className="w-6 h-6" /> : s}
               </div>
-              {s < 4 && (
+              {s < 5 && (
                 <div className={`flex-1 h-1 mx-2 ${step > s ? 'bg-blue-500' : 'bg-gray-200'}`} />
               )}
             </div>
           ))}
         </div>
-        <div className="flex justify-between text-xs text-gray-600 px-2">
-          <span>Info Básica</span>
-          <span>Configurações</span>
-          <span>Páginas</span>
-          <span>Pré-visualização</span>
+        <div className="flex justify-between text-xs text-gray-600 px-1">
+          <span>Info</span>
+          <span>Config</span>
+          <span>Upload</span>
+          <span>Editar</span>
+          <span>Preview</span>
         </div>
       </div>
 
@@ -168,7 +165,7 @@ export default function BookCreationWizard({ onComplete, onCancel }) {
             exit={{ opacity: 0, x: -20 }}
           >
             <Card className="p-6 space-y-4">
-              <h2 className="text-2xl font-bold mb-4">📖 Informações Básicas do Livro</h2>
+              <h2 className="text-2xl font-bold mb-4">📖 Informações Básicas</h2>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -224,13 +221,13 @@ export default function BookCreationWizard({ onComplete, onCancel }) {
                       <img 
                         src={bookData.cover_image_url} 
                         alt="Book cover" 
-                        className="max-h-48 mx-auto rounded-lg"
+                        className="max-h-64 mx-auto rounded-lg shadow-lg"
                       />
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => setBookData({ ...bookData, cover_image_url: '' })}
-                        className="mt-2"
+                        className="mt-3"
                       >
                         <X className="w-4 h-4 mr-2" />
                         Remover
@@ -251,7 +248,7 @@ export default function BookCreationWizard({ onComplete, onCancel }) {
                         <p className="font-semibold">
                           {uploading ? 'Enviando...' : 'Clique para enviar capa'}
                         </p>
-                        <p className="text-sm text-gray-500">PNG ou JPG - Recomendado 800x1200px</p>
+                        <p className="text-sm text-gray-500">PNG ou JPG</p>
                       </label>
                     </>
                   )}
@@ -270,7 +267,7 @@ export default function BookCreationWizard({ onComplete, onCancel }) {
             exit={{ opacity: 0, x: -20 }}
           >
             <Card className="p-6 space-y-4">
-              <h2 className="text-2xl font-bold mb-4">⚙️ Configurações e Tags</h2>
+              <h2 className="text-2xl font-bold mb-4">⚙️ Configurações</h2>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -315,7 +312,7 @@ export default function BookCreationWizard({ onComplete, onCancel }) {
                     <Badge
                       key={tag}
                       variant={bookData.cultural_tags.includes(tag) ? 'default' : 'outline'}
-                      className="cursor-pointer"
+                      className="cursor-pointer hover:bg-blue-100"
                       onClick={() => {
                         setBookData(prev => ({
                           ...prev,
@@ -330,9 +327,6 @@ export default function BookCreationWizard({ onComplete, onCancel }) {
                     </Badge>
                   ))}
                 </div>
-                <p className="text-xs text-gray-500">
-                  Tags selecionadas: {bookData.cultural_tags.length}
-                </p>
               </div>
 
               <div className="flex items-center gap-2 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -351,7 +345,7 @@ export default function BookCreationWizard({ onComplete, onCancel }) {
           </motion.div>
         )}
 
-        {/* Step 3: Pages */}
+        {/* Step 3: Batch Upload */}
         {step === 3 && (
           <motion.div
             key="step3"
@@ -360,126 +354,25 @@ export default function BookCreationWizard({ onComplete, onCancel }) {
             exit={{ opacity: 0, x: -20 }}
           >
             <Card className="p-6">
-              <h2 className="text-2xl font-bold mb-4">📝 Adicionar Páginas</h2>
+              <h2 className="text-2xl font-bold mb-4">⬆️ Upload em Lote</h2>
+              <p className="text-gray-600 mb-6">
+                Arraste múltiplas imagens para criar páginas rapidamente
+              </p>
 
-              {/* Current Page Form */}
-              <div className="space-y-4 mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold">Nova Página #{currentPage.page_number}</h3>
-                  <Select
-                    value={currentPage.page_type}
-                    onValueChange={(value) => setCurrentPage({ ...currentPage, page_type: value })}
-                  >
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="story">📖 História</SelectItem>
-                      <SelectItem value="coloring">🎨 Colorir</SelectItem>
-                      <SelectItem value="about">ℹ️ Sobre</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <BatchPageUploader onPagesUploaded={handleBatchUpload} />
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Texto (Inglês)</label>
-                    <Textarea
-                      value={currentPage.story_text_en}
-                      onChange={(e) => setCurrentPage({ ...currentPage, story_text_en: e.target.value })}
-                      rows={4}
-                      placeholder="Once upon a time in the Amazon..."
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Texto (Português)</label>
-                    <Textarea
-                      value={currentPage.story_text_pt}
-                      onChange={(e) => setCurrentPage({ ...currentPage, story_text_pt: e.target.value })}
-                      rows={4}
-                      placeholder="Era uma vez na Amazônia..."
-                    />
-                  </div>
-                </div>
-
-                {/* Illustration Upload */}
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Ilustração {currentPage.page_type === 'coloring' && '(Para colorir - PNG transparente)'}
-                  </label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                    {currentPage.illustration_url ? (
-                      <div>
-                        <img 
-                          src={currentPage.illustration_url} 
-                          alt="Page illustration" 
-                          className="max-h-32 mx-auto rounded mb-2"
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setCurrentPage({ ...currentPage, illustration_url: '' })}
-                        >
-                          Remover
-                        </Button>
-                      </div>
-                    ) : (
-                      <>
-                        <input
-                          type="file"
-                          id="illustration-upload"
-                          accept="image/*"
-                          onChange={handleIllustrationUpload}
-                          className="hidden"
-                        />
-                        <label htmlFor="illustration-upload" className="cursor-pointer">
-                          <Palette className="w-8 h-8 mx-auto text-gray-400 mb-2" />
-                          <p className="text-sm">
-                            {uploading ? 'Enviando...' : 'Enviar ilustração'}
-                          </p>
-                        </label>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                <Button onClick={addPage} className="w-full bg-green-600 hover:bg-green-700">
-                  Adicionar Página
-                </Button>
-              </div>
-
-              {/* Pages List */}
-              <div className="space-y-2">
-                <h3 className="font-semibold mb-2">Páginas Adicionadas ({pages.length})</h3>
-                {pages.length === 0 ? (
-                  <p className="text-sm text-gray-500 text-center py-4">
-                    Nenhuma página adicionada ainda
+              {pages.length > 0 && (
+                <Card className="p-4 bg-green-50 border-green-200 mt-4">
+                  <p className="text-sm text-green-800">
+                    ✓ {pages.length} páginas carregadas. Continue para editar.
                   </p>
-                ) : (
-                  pages.map((page, idx) => (
-                    <div key={idx} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                      <span className="font-semibold text-gray-700">Pág. {page.page_number}</span>
-                      <Badge>{page.page_type}</Badge>
-                      <p className="flex-1 text-sm text-gray-600 truncate">
-                        {page.story_text_pt || page.story_text_en || 'Sem texto'}
-                      </p>
-                      {page.illustration_url && <Palette className="w-4 h-4 text-green-500" />}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removePage(idx)}
-                      >
-                        <X className="w-4 h-4 text-red-500" />
-                      </Button>
-                    </div>
-                  ))
-                )}
-              </div>
+                </Card>
+              )}
             </Card>
           </motion.div>
         )}
 
-        {/* Step 4: Preview */}
+        {/* Step 4: Edit Pages */}
         {step === 4 && (
           <motion.div
             key="step4"
@@ -488,13 +381,131 @@ export default function BookCreationWizard({ onComplete, onCancel }) {
             exit={{ opacity: 0, x: -20 }}
           >
             <Card className="p-6">
+              <h2 className="text-2xl font-bold mb-4">✏️ Editar Páginas</h2>
+
+              {pages.length === 0 ? (
+                <div className="text-center py-12">
+                  <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500">Volte e adicione páginas primeiro</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {pages.map((page, index) => (
+                    <Card key={index} className="p-4">
+                      <div className="flex items-start gap-3 mb-3">
+                        {page.illustration_url && (
+                          <img
+                            src={page.illustration_url}
+                            alt={`Page ${page.page_number}`}
+                            className="w-24 h-24 object-cover rounded"
+                          />
+                        )}
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-2">
+                            <div>
+                              <span className="font-semibold">Página {page.page_number}</span>
+                              <Badge className="ml-2">{page.page_type}</Badge>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant={editingPageIndex === index ? 'default' : 'outline'}
+                                onClick={() => setEditingPageIndex(editingPageIndex === index ? null : index)}
+                              >
+                                {editingPageIndex === index ? 'Minimizar' : 'Editar'}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => removePage(index)}
+                              >
+                                <X className="w-4 h-4 text-red-500" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {editingPageIndex === index && (
+                        <div className="space-y-4 pt-4 border-t">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium mb-2">Texto (Inglês)</label>
+                              <RichTextEditor
+                                value={page.story_text_en || ''}
+                                onChange={(value) => updatePage(index, 'story_text_en', value)}
+                                language="en"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-2">Texto (Português)</label>
+                              <RichTextEditor
+                                value={page.story_text_pt || ''}
+                                onChange={(value) => updatePage(index, 'story_text_pt', value)}
+                                language="pt"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium mb-2">Áudio (EN)</label>
+                              <AudioSelector
+                                selectedAudioUrl={page.audio_narration_en_url || ''}
+                                onAudioSelected={(url) => updatePage(index, 'audio_narration_en_url', url)}
+                                language="en"
+                                audioType="narration"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-2">Áudio (PT)</label>
+                              <AudioSelector
+                                selectedAudioUrl={page.audio_narration_pt_url || ''}
+                                onAudioSelected={(url) => updatePage(index, 'audio_narration_pt_url', url)}
+                                language="pt"
+                                audioType="narration"
+                              />
+                            </div>
+                          </div>
+
+                          <Select
+                            value={page.page_type}
+                            onValueChange={(value) => updatePage(index, 'page_type', value)}
+                          >
+                            <SelectTrigger className="w-[200px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="story">📖 História</SelectItem>
+                              <SelectItem value="coloring">🎨 Colorir</SelectItem>
+                              <SelectItem value="about">ℹ️ Sobre</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Step 5: Preview */}
+        {step === 5 && (
+          <motion.div
+            key="step5"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+          >
+            <Card className="p-6">
               <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
                 <Eye className="w-6 h-6 text-purple-500" />
-                Pré-visualização do Livro
+                Pré-visualização
               </h2>
 
               <div className="grid md:grid-cols-2 gap-6">
-                {/* Book Info */}
                 <div>
                   {bookData.cover_image_url && (
                     <img 
@@ -518,7 +529,7 @@ export default function BookCreationWizard({ onComplete, onCancel }) {
 
                   {bookData.cultural_tags.length > 0 && (
                     <div>
-                      <p className="text-sm font-medium mb-2">Tags Culturais:</p>
+                      <p className="text-sm font-medium mb-2">Tags:</p>
                       <div className="flex flex-wrap gap-1">
                         {bookData.cultural_tags.map((tag, idx) => (
                           <Badge key={idx} variant="secondary" className="text-xs">
@@ -530,10 +541,9 @@ export default function BookCreationWizard({ onComplete, onCancel }) {
                   )}
                 </div>
 
-                {/* Pages Preview */}
                 <div>
                   <h4 className="font-semibold mb-3">Páginas ({pages.length})</h4>
-                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                  <div className="space-y-2 max-h-[500px] overflow-y-auto">
                     {pages.map((page, idx) => (
                       <Card key={idx} className="p-3">
                         <div className="flex items-start gap-3">
@@ -549,9 +559,10 @@ export default function BookCreationWizard({ onComplete, onCancel }) {
                               <span className="text-sm font-semibold">Pág. {page.page_number}</span>
                               <Badge variant="outline" className="text-xs">{page.page_type}</Badge>
                             </div>
-                            <p className="text-xs text-gray-600 line-clamp-2">
-                              {page.story_text_pt || page.story_text_en}
-                            </p>
+                            <div 
+                              className="text-xs text-gray-600 line-clamp-2 prose-sm"
+                              dangerouslySetInnerHTML={{ __html: page.story_text_pt || page.story_text_en || 'Sem texto' }}
+                            />
                           </div>
                         </div>
                       </Card>
@@ -560,27 +571,23 @@ export default function BookCreationWizard({ onComplete, onCancel }) {
                 </div>
               </div>
 
-              {/* Publish Button */}
-              <div className="mt-6 pt-6 border-t">
+              {/* Publish Buttons */}
+              <div className="mt-6 pt-6 border-t space-y-3">
                 <Button
-                  onClick={handlePublish}
-                  disabled={saving || pages.length === 0 || !bookData.title_en || !bookData.title_pt}
-                  className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-lg py-6"
+                  onClick={() => handlePublish(false)}
+                  disabled={saving || pages.length === 0}
+                  className="w-full bg-gradient-to-r from-green-500 to-green-600 text-lg py-6"
                 >
-                  {saving ? (
-                    'Publicando...'
-                  ) : (
-                    <>
-                      <CheckCircle2 className="w-5 h-5 mr-2" />
-                      Publicar Livro
-                    </>
-                  )}
+                  {saving ? 'Publicando...' : '🚀 Publicar Livro'}
                 </Button>
-                {pages.length === 0 && (
-                  <p className="text-xs text-red-500 text-center mt-2">
-                    Adicione pelo menos uma página antes de publicar
-                  </p>
-                )}
+                <Button
+                  onClick={() => handlePublish(true)}
+                  disabled={saving}
+                  variant="outline"
+                  className="w-full"
+                >
+                  💾 Salvar como Rascunho
+                </Button>
               </div>
             </Card>
           </motion.div>
@@ -598,15 +605,11 @@ export default function BookCreationWizard({ onComplete, onCancel }) {
           {step === 1 ? 'Cancelar' : 'Voltar'}
         </Button>
         
-        {step < 4 && (
+        {step < 5 && (
           <Button
             onClick={() => {
               if (step === 1 && (!bookData.title_en || !bookData.title_pt || !bookData.cover_image_url)) {
-                toast.error('Preencha título e envie uma capa');
-                return;
-              }
-              if (step === 3 && pages.length === 0) {
-                toast.error('Adicione pelo menos uma página');
+                toast.error('Preencha títulos e envie uma capa');
                 return;
               }
               setStep(step + 1);

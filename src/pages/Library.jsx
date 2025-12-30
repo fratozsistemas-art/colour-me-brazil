@@ -135,12 +135,13 @@ export default function Library() {
     staleTime: 1000 * 60 * 5,
   });
 
-  // Fetch books with error handling
+  // Fetch books with error handling (only published books)
   const { data: books = [], isLoading: booksLoading, error: booksError } = useQuery({
     queryKey: ['books'],
     queryFn: async () => {
       try {
-        return await base44.entities.Book.list('order_index');
+        const allBooks = await base44.entities.Book.list('order_index');
+        return allBooks.filter(book => book.status === 'published');
       } catch (error) {
         console.error('Failed to load books:', error);
         return [];
