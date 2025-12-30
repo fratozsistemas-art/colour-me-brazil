@@ -37,6 +37,7 @@ import Showcase from './pages/Showcase';
 import SubmitContent from './pages/SubmitContent';
 import TermsOfService from './pages/TermsOfService';
 import UserProfileManagement from './pages/UserProfileManagement';
+import FamilyHub from './pages/FamilyHub';
 import __Layout from './Layout.jsx';
 
 
@@ -80,6 +81,7 @@ export const PAGES = {
     "SubmitContent": SubmitContent,
     "TermsOfService": TermsOfService,
     "UserProfileManagement": UserProfileManagement,
+    "FamilyHub": FamilyHub,
 }
 
 export const pagesConfig = {

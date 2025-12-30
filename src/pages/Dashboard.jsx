@@ -13,14 +13,19 @@ import {
 import { createPageUrl } from '../utils';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import DailyChallengeCard from '@/components/gamification/DailyChallengeCard';
 import DailyQuestCard from '@/components/gamification/DailyQuestCard';
 import StreakWidget from '@/components/gamification/StreakWidget';
 import ShareButton from '@/components/social/ShareButton';
+import SharedReadingList from '@/components/family/SharedReadingList';
+import FamilyMessaging from '@/components/family/FamilyMessaging';
+import { Link } from 'react-router-dom';
 
 export default function Dashboard() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [parentAccount, setParentAccount] = useState(null);
 
   useEffect(() => {
     loadProfile();
@@ -38,6 +43,14 @@ export default function Dashboard() {
       const profiles = await base44.entities.UserProfile.filter({ id: profileId });
       if (profiles.length > 0) {
         setProfile(profiles[0]);
+        
+        // Load parent account
+        const accounts = await base44.entities.ParentAccount.filter({
+          id: profiles[0].parent_account_id
+        });
+        if (accounts.length > 0) {
+          setParentAccount(accounts[0]);
+        }
       }
     } catch (error) {
       console.error('Error loading profile:', error);
@@ -76,6 +89,15 @@ export default function Dashboard() {
     queryKey: ['books'],
     queryFn: () => base44.entities.Book.list(),
     enabled: !!profile
+  });
+
+  // Family messages (unread count)
+  const { data: messages = [] } = useQuery({
+    queryKey: ['familyMessages', profile?.id],
+    queryFn: () => base44.entities.FamilyMessage.filter({
+      recipient_profile_id: profile.id
+    }),
+    enabled: !!profile,
   });
 
   if (loading) {
@@ -118,6 +140,8 @@ export default function Dashboard() {
     !profile.books_completed?.includes(book.id)
   );
 
+  const unreadMessages = messages.filter(m => !m.is_read);
+
   return (
     <div className="max-w-7xl mx-auto pb-24">
       {/* Welcome Header */}
@@ -130,14 +154,57 @@ export default function Dashboard() {
           <div className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-400 to-pink-500 flex items-center justify-center text-4xl border-4 border-white shadow-lg">
             {profile.avatar_icon}
           </div>
-          <div>
+          <div className="flex-1">
             <h1 className="text-3xl font-bold text-gray-800">
               Olá, {profile.child_name}! 👋
             </h1>
             <p className="text-gray-600">Continue sua aventura pelo Brasil</p>
           </div>
+          {unreadMessages.length > 0 && (
+            <Badge className="bg-pink-500 text-white text-lg px-4 py-2 animate-pulse">
+              {unreadMessages.length} {unreadMessages.length === 1 ? 'Mensagem Nova' : 'Mensagens Novas'}! 💌
+            </Badge>
+          )}
         </div>
       </motion.div>
+
+      {/* Family Collaboration Section */}
+      {parentAccount && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="mb-8"
+        >
+          <Tabs defaultValue="messages" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="messages" className="gap-2">
+                💌 Mensagens
+                {unreadMessages.length > 0 && (
+                  <Badge className="bg-red-500 text-white ml-1">{unreadMessages.length}</Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="readinglist">📚 Pedir Livros</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="messages">
+              <FamilyMessaging
+                childProfile={profile}
+                parentAccount={parentAccount}
+                isParentView={false}
+              />
+            </TabsContent>
+
+            <TabsContent value="readinglist">
+              <SharedReadingList
+                childProfile={profile}
+                parentAccount={parentAccount}
+                isParentView={false}
+              />
+            </TabsContent>
+          </Tabs>
+        </motion.div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
