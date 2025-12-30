@@ -233,15 +233,15 @@ export default function Library() {
       // New profile created - get or create parent account first
       const user = await base44.auth.me();
       let parentAccount = await base44.entities.ParentAccount.filter({ 
-        parent_email: user.email 
+        owner_email: user.email 
       });
       
       if (parentAccount.length === 0) {
         // Create parent account if it doesn't exist
         parentAccount = [await base44.entities.ParentAccount.create({
-          parent_user_id: user.id,
-          parent_email: user.email,
-          parent_name: user.full_name || user.email,
+          owner_user_id: user.id,
+          owner_email: user.email,
+          owner_name: user.full_name || user.email,
           child_profiles: [],
           content_approval_required: false,
           screen_time_limit: 0,

@@ -12,6 +12,7 @@ import CustomBookStudio from './pages/CustomBookStudio';
 import Dashboard from './pages/Dashboard';
 import Events from './pages/Events';
 import FAQ from './pages/FAQ';
+import FamilyHub from './pages/FamilyHub';
 import Forum from './pages/Forum';
 import GenerateCovers from './pages/GenerateCovers';
 import Home from './pages/Home';
@@ -37,7 +38,6 @@ import Showcase from './pages/Showcase';
 import SubmitContent from './pages/SubmitContent';
 import TermsOfService from './pages/TermsOfService';
 import UserProfileManagement from './pages/UserProfileManagement';
-import FamilyHub from './pages/FamilyHub';
 import __Layout from './Layout.jsx';
 
 
@@ -56,6 +56,7 @@ export const PAGES = {
     "Dashboard": Dashboard,
     "Events": Events,
     "FAQ": FAQ,
+    "FamilyHub": FamilyHub,
     "Forum": Forum,
     "GenerateCovers": GenerateCovers,
     "Home": Home,
@@ -81,7 +82,6 @@ export const PAGES = {
     "SubmitContent": SubmitContent,
     "TermsOfService": TermsOfService,
     "UserProfileManagement": UserProfileManagement,
-    "FamilyHub": FamilyHub,
 }
 
 export const pagesConfig = {
