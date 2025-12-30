@@ -4,7 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Users, TrendingUp, Award, Calendar, Settings } from 'lucide-react';
+import { ArrowLeft, Users, TrendingUp, Award, Calendar, Settings, UserCog } from 'lucide-react';
+import GuardianManager from '../components/parent/GuardianManager';
 import ChildProgressCard from '../components/parent/ChildProgressCard';
 import ChildProgressOverview from '../components/parentportal/ChildProgressOverview';
 import ChildActivityFeed from '../components/parentportal/ChildActivityFeed';
@@ -20,6 +21,7 @@ export default function ParentPortal() {
   const [parentAccount, setParentAccount] = useState(null);
   const [selectedChild, setSelectedChild] = useState(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [currentUser, setCurrentUser] = useState(null);
 
   // Check authentication
   useEffect(() => {
@@ -31,14 +33,18 @@ export default function ParentPortal() {
           return;
         }
         const user = await base44.auth.me();
+        setCurrentUser(user);
         
-        // Find parent account for this user
-        const accounts = await base44.entities.ParentAccount.filter({ 
-          parent_email: user.email 
-        });
+        // Find parent account for this user (owner or co-guardian)
+        const allAccounts = await base44.entities.ParentAccount.list();
         
-        if (accounts.length > 0) {
-          setParentAccount(accounts[0]);
+        const account = allAccounts.find(acc => 
+          acc.owner_email === user.email || 
+          acc.co_guardians?.some(g => g.email === user.email && g.status === 'active')
+        );
+        
+        if (account) {
+          setParentAccount(account);
         }
       } catch (error) {
         base44.auth.redirectToLogin(window.location.pathname);
@@ -238,7 +244,7 @@ export default function ParentPortal() {
       </div>
 
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="report">Report</TabsTrigger>
           <TabsTrigger value="activity">Activity</TabsTrigger>
@@ -246,6 +252,10 @@ export default function ParentPortal() {
           <TabsTrigger value="quizzes">Quizzes</TabsTrigger>
           <TabsTrigger value="goals">Goals</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsTrigger value="guardians">
+            <UserCog className="w-4 h-4 mr-1" />
+            Responsáveis
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-6">
@@ -284,6 +294,13 @@ export default function ParentPortal() {
               parentAccount={parentAccount}
             />
           </div>
+        </TabsContent>
+
+        <TabsContent value="guardians" className="mt-6">
+          <GuardianManager 
+            parentAccount={parentAccount} 
+            currentUser={currentUser}
+          />
         </TabsContent>
       </Tabs>
     </div>
