@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Heart, MessageCircle, Share2, Star, Plus, Filter, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { awardPoints } from '../components/achievementManager';
+import QuickReportButton from '../components/moderation/QuickReportButton';
 
 export default function Showcase() {
   const [selectedItem, setSelectedItem] = useState(null);
@@ -245,6 +246,13 @@ export default function Showcase() {
                     <Share2 className="w-4 h-4 mr-2" />
                     Share
                   </Button>
+                  <QuickReportButton
+                    contentType="showcase_item"
+                    contentId={selectedItem.id}
+                    reportedUserId={selectedItem.profile_id}
+                    variant="outline"
+                    size="default"
+                  />
                 </div>
 
                 {/* Comments Section */}
