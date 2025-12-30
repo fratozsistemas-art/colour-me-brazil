@@ -1040,19 +1040,37 @@ export default function ColoringCanvas({
 
   const handleSave = async () => {
     const canvas = canvasRef.current;
-    const thumbnail = canvas.toDataURL('image/jpeg', 0.5);
-    const coloringTime = Math.floor((Date.now() - startTime) / 1000);
-    const isCompleted = strokes.length > 10 || fillHistory.length > 5;
     
-    if (onSave) {
-      await onSave({
-        strokes: JSON.stringify({ strokes, fillHistory }),
-        thumbnail_data: thumbnail,
-        coloring_time: coloringTime,
-        is_completed: isCompleted,
-        canvas: canvas,
-        basename: effectiveImageUrl || illustrationUrl // Include basename
-      });
+    if (!canvas || canvas.width === 0 || canvas.height === 0) {
+      console.error('❌ Canvas not ready for saving');
+      alert('Não foi possível salvar: aguarde o carregamento da imagem.');
+      return;
+    }
+
+    if (!backgroundImage) {
+      console.error('❌ Background image not loaded');
+      alert('Aguarde o carregamento da ilustração antes de salvar.');
+      return;
+    }
+
+    try {
+      const thumbnail = canvas.toDataURL('image/jpeg', 0.5);
+      const coloringTime = Math.floor((Date.now() - startTime) / 1000);
+      const isCompleted = strokes.length > 10 || fillHistory.length > 5;
+      
+      if (onSave) {
+        await onSave({
+          strokes: JSON.stringify({ strokes, fillHistory }),
+          thumbnail_data: thumbnail,
+          coloring_time: coloringTime,
+          is_completed: isCompleted,
+          canvas: canvas,
+          basename: effectiveImageUrl || illustrationUrl
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error saving canvas:', error);
+      alert('Erro ao salvar. Tente novamente.');
     }
   };
 
@@ -1067,11 +1085,32 @@ export default function ColoringCanvas({
 
   const handleShareInApp = async () => {
     const canvas = canvasRef.current;
+    
+    if (!canvas || canvas.width === 0 || canvas.height === 0) {
+      console.error('❌ Canvas not ready for sharing');
+      alert('Não foi possível compartilhar: aguarde o carregamento da imagem.');
+      return;
+    }
+
+    if (!backgroundImage) {
+      console.error('❌ Background image not loaded');
+      alert('Aguarde o carregamento da ilustração antes de compartilhar.');
+      return;
+    }
+
     try {
       // Convert canvas to blob
-      const blob = await new Promise(resolve => 
-        canvas.toBlob(resolve, 'image/png', 1.0)
-      );
+      const blob = await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('Timeout converting canvas')), 10000);
+        canvas.toBlob((blob) => {
+          clearTimeout(timeout);
+          if (!blob) {
+            reject(new Error('Failed to create blob'));
+          } else {
+            resolve(blob);
+          }
+        }, 'image/png', 1.0);
+      });
       
       // Upload the artwork
       const uploadResult = await base44.integrations.Core.UploadFile({
@@ -1091,8 +1130,8 @@ export default function ColoringCanvas({
       // Navigate to showcase or gallery
       window.location.href = '/ArtGallery';
     } catch (error) {
-      console.error('Error sharing artwork:', error);
-      alert('Failed to share artwork. Please try again.');
+      console.error('❌ Error sharing artwork:', error);
+      alert('Falha ao compartilhar. Tente novamente: ' + error.message);
     }
   };
 
@@ -1676,10 +1715,11 @@ export default function ColoringCanvas({
             <div className="space-y-2">
               <Button
                 onClick={handleSave}
-                className="w-full bg-green-600 hover:bg-green-700"
+                disabled={isLoading || imageLoadError || !backgroundImage}
+                className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save className="w-4 h-4 mr-2" />
-                Save Progress
+                {isLoading ? 'Aguarde...' : 'Save Progress'}
               </Button>
               <div className="space-y-2">
                 <div className="grid grid-cols-2 gap-2">
@@ -1704,10 +1744,11 @@ export default function ColoringCanvas({
                 <Button
                   variant="outline"
                   onClick={handleShareInApp}
-                  className="w-full bg-purple-50 hover:bg-purple-100 border-purple-300"
+                  disabled={isLoading || imageLoadError || !backgroundImage}
+                  className="w-full bg-purple-50 hover:bg-purple-100 border-purple-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Upload className="w-4 h-4 mr-2" />
-                  Share to Gallery
+                  {isLoading ? 'Aguarde...' : 'Share to Gallery'}
                 </Button>
               </div>
             </div>
