@@ -967,8 +967,8 @@ export default function StoryReader({
               </div>
             )}
             
-            {/* Color This Page Button - Only show if illustration exists */}
-            {currentPage.illustration_url && (
+            {/* Color This Page Button - Only show if illustration exists AND page_type is coloring */}
+            {currentPage.illustration_url && currentPage.page_type === 'coloring' && (
               <Button
                 onClick={() => onColorPage(currentPage)}
                 className="absolute bottom-4 right-4 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 shadow-xl"
