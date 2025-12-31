@@ -5,9 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
-import { Plus, Edit, Trash2, Save, X, BookOpen, Palette, Volume2, Loader2, Wand2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Plus, Edit, Trash2, Save, X, BookOpen, Palette, Volume2, Loader2, Wand2, Search, Filter, CheckSquare, XSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BookCreationWizard from '../components/curator/BookCreationWizard';
+import { toast } from 'sonner';
 import {
   Select,
   SelectContent,
@@ -15,6 +18,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 export default function ManageBooks() {
   const [editingBook, setEditingBook] = useState(null);
@@ -26,16 +37,48 @@ export default function ManageBooks() {
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const queryClient = useQueryClient();
 
+  // Advanced filters
+  const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [collectionFilter, setCollectionFilter] = useState('all');
+  const [authorFilter, setAuthorFilter] = useState('');
+  
+  // Bulk edit
+  const [selectedBooks, setSelectedBooks] = useState([]);
+  const [showBulkEditDialog, setShowBulkEditDialog] = useState(false);
+  const [bulkEditData, setBulkEditData] = useState({
+    status: '',
+    collection: '',
+    tags: '',
+    is_locked: null
+  });
 
   const { data: allBooks = [], isLoading } = useQuery({
     queryKey: ['books'],
     queryFn: () => base44.entities.Book.list()
   });
 
-  const books = statusFilter === 'all' 
-    ? allBooks 
-    : allBooks.filter(b => b.status === statusFilter);
+  // Apply all filters
+  const filteredBooks = allBooks.filter(book => {
+    // Search query (title, author)
+    const matchesSearch = !searchQuery || 
+      book.title_en?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      book.title_pt?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      book.author?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // Status filter
+    const matchesStatus = statusFilter === 'all' || book.status === statusFilter;
+    
+    // Collection filter
+    const matchesCollection = collectionFilter === 'all' || book.collection === collectionFilter;
+    
+    // Author filter
+    const matchesAuthor = !authorFilter || book.author?.toLowerCase().includes(authorFilter.toLowerCase());
+    
+    return matchesSearch && matchesStatus && matchesCollection && matchesAuthor;
+  });
+
+  const books = filteredBooks;
 
   const { data: pages = [] } = useQuery({
     queryKey: ['pages', selectedBook?.id],
@@ -135,6 +178,61 @@ export default function ManageBooks() {
     } finally {
       setIsGeneratingAudio(false);
       setAudioGenerationBookId(null);
+    }
+  };
+
+  // Toggle book selection for bulk edit
+  const toggleBookSelection = (bookId) => {
+    setSelectedBooks(prev => 
+      prev.includes(bookId) ? prev.filter(id => id !== bookId) : [...prev, bookId]
+    );
+  };
+
+  // Select/deselect all visible books
+  const toggleSelectAll = () => {
+    if (selectedBooks.length === books.length) {
+      setSelectedBooks([]);
+    } else {
+      setSelectedBooks(books.map(b => b.id));
+    }
+  };
+
+  // Apply bulk edit
+  const applyBulkEdit = async () => {
+    if (selectedBooks.length === 0) {
+      toast.error('No books selected');
+      return;
+    }
+
+    try {
+      for (const bookId of selectedBooks) {
+        const book = allBooks.find(b => b.id === bookId);
+        if (!book) continue;
+
+        const updates = {};
+        
+        if (bulkEditData.status) updates.status = bulkEditData.status;
+        if (bulkEditData.collection) updates.collection = bulkEditData.collection;
+        if (bulkEditData.is_locked !== null) updates.is_locked = bulkEditData.is_locked;
+        
+        if (bulkEditData.tags) {
+          const newTags = bulkEditData.tags.split(',').map(t => t.trim()).filter(Boolean);
+          updates.cultural_tags = [...new Set([...(book.cultural_tags || []), ...newTags])];
+        }
+
+        if (Object.keys(updates).length > 0) {
+          await base44.entities.Book.update(bookId, updates);
+        }
+      }
+
+      queryClient.invalidateQueries(['books']);
+      setSelectedBooks([]);
+      setShowBulkEditDialog(false);
+      setBulkEditData({ status: '', collection: '', tags: '', is_locked: null });
+      toast.success(`${selectedBooks.length} books updated successfully!`);
+    } catch (error) {
+      console.error('Error bulk updating books:', error);
+      toast.error('Failed to update books');
     }
   };
 
@@ -326,30 +424,125 @@ export default function ManageBooks() {
         </div>
       </div>
 
-      {/* Status Filter */}
-      <div className="flex gap-2 mb-6">
-        <Button
-          variant={statusFilter === 'all' ? 'default' : 'outline'}
-          onClick={() => setStatusFilter('all')}
-          size="sm"
+      {/* Advanced Search & Filters */}
+      <Card className="p-4 mb-6">
+        <div className="flex items-center gap-3 mb-4">
+          <Search className="w-5 h-5 text-gray-400" />
+          <h3 className="font-semibold text-gray-700">Busca e Filtros</h3>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+          {/* Search */}
+          <div className="md:col-span-2">
+            <Input
+              placeholder="Buscar por título ou autor..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full"
+            />
+          </div>
+
+          {/* Collection Filter */}
+          <Select value={collectionFilter} onValueChange={setCollectionFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Coleção" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas Coleções</SelectItem>
+              <SelectItem value="amazon">🌿 Amazon</SelectItem>
+              <SelectItem value="culture">🎨 Culture</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Status Filter */}
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos Status</SelectItem>
+              <SelectItem value="draft">📝 Rascunhos</SelectItem>
+              <SelectItem value="published">✅ Publicados</SelectItem>
+              <SelectItem value="archived">📦 Arquivados</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Results Summary */}
+        <div className="flex items-center justify-between pt-3 border-t">
+          <p className="text-sm text-gray-600">
+            Exibindo <strong>{books.length}</strong> de <strong>{allBooks.length}</strong> livros
+          </p>
+          
+          {/* Clear Filters */}
+          {(searchQuery || statusFilter !== 'all' || collectionFilter !== 'all') && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSearchQuery('');
+                setStatusFilter('all');
+                setCollectionFilter('all');
+                setAuthorFilter('');
+              }}
+            >
+              <X className="w-4 h-4 mr-2" />
+              Limpar Filtros
+            </Button>
+          )}
+        </div>
+      </Card>
+
+      {/* Bulk Actions */}
+      {selectedBooks.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-4"
         >
-          Todos ({allBooks.length})
-        </Button>
-        <Button
-          variant={statusFilter === 'draft' ? 'default' : 'outline'}
-          onClick={() => setStatusFilter('draft')}
-          size="sm"
-        >
-          📝 Rascunhos ({allBooks.filter(b => b.status === 'draft').length})
-        </Button>
-        <Button
-          variant={statusFilter === 'published' ? 'default' : 'outline'}
-          onClick={() => setStatusFilter('published')}
-          size="sm"
-        >
-          ✅ Publicados ({allBooks.filter(b => b.status === 'published').length})
-        </Button>
-      </div>
+          <Card className="p-4 bg-blue-50 border-blue-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <CheckSquare className="w-5 h-5 text-blue-600" />
+                <span className="font-semibold text-blue-900">
+                  {selectedBooks.length} {selectedBooks.length === 1 ? 'livro selecionado' : 'livros selecionados'}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => setShowBulkEditDialog(true)}
+                  size="sm"
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Editar em Massa
+                </Button>
+                <Button
+                  onClick={() => setSelectedBooks([])}
+                  size="sm"
+                  variant="outline"
+                >
+                  <XSquare className="w-4 h-4 mr-2" />
+                  Desmarcar Todos
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </motion.div>
+      )}
+
+      {/* Select All */}
+      {books.length > 0 && (
+        <div className="mb-4 flex items-center gap-2">
+          <Checkbox
+            checked={selectedBooks.length === books.length && books.length > 0}
+            onCheckedChange={toggleSelectAll}
+          />
+          <span className="text-sm text-gray-600">
+            Selecionar todos os {books.length} livros visíveis
+          </span>
+        </div>
+      )}
 
       <AnimatePresence>
         {isCreating && (
@@ -368,7 +561,7 @@ export default function ManageBooks() {
 
       <div className="space-y-4">
         {books.map((book) => (
-          <Card key={book.id} className="p-6">
+          <Card key={book.id} className={`p-6 ${selectedBooks.includes(book.id) ? 'ring-2 ring-blue-500' : ''}`}>
             {editingBook?.id === book.id ? (
               <BookForm
                 book={editingBook}
@@ -377,6 +570,13 @@ export default function ManageBooks() {
               />
             ) : (
               <div className="flex items-start gap-4">
+                {/* Selection Checkbox */}
+                <Checkbox
+                  checked={selectedBooks.includes(book.id)}
+                  onCheckedChange={() => toggleBookSelection(book.id)}
+                  className="mt-1"
+                />
+                
                 {book.cover_image_url && (
                   <img
                     src={book.cover_image_url}
@@ -593,6 +793,92 @@ export default function ManageBooks() {
           </Card>
         ))}
       </div>
+
+      {/* Bulk Edit Dialog */}
+      <Dialog open={showBulkEditDialog} onOpenChange={setShowBulkEditDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar {selectedBooks.length} Livros</DialogTitle>
+            <DialogDescription>
+              As mudanças serão aplicadas a todos os livros selecionados. Deixe em branco para não alterar.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Status</label>
+              <Select value={bulkEditData.status} onValueChange={(value) => setBulkEditData({...bulkEditData, status: value})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Não alterar" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={null}>Não alterar</SelectItem>
+                  <SelectItem value="draft">📝 Rascunho</SelectItem>
+                  <SelectItem value="published">✅ Publicado</SelectItem>
+                  <SelectItem value="archived">📦 Arquivado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Coleção</label>
+              <Select value={bulkEditData.collection} onValueChange={(value) => setBulkEditData({...bulkEditData, collection: value})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Não alterar" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={null}>Não alterar</SelectItem>
+                  <SelectItem value="amazon">🌿 Amazon</SelectItem>
+                  <SelectItem value="culture">🎨 Culture</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Adicionar Tags (separadas por vírgula)
+              </label>
+              <Input
+                placeholder="Folclore, Amazônia, Cultura"
+                value={bulkEditData.tags}
+                onChange={(e) => setBulkEditData({...bulkEditData, tags: e.target.value})}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                As tags serão adicionadas às tags existentes
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Acesso</label>
+              <Select 
+                value={bulkEditData.is_locked === null ? '' : bulkEditData.is_locked ? 'locked' : 'unlocked'} 
+                onValueChange={(value) => setBulkEditData({
+                  ...bulkEditData, 
+                  is_locked: value === '' ? null : value === 'locked'
+                })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Não alterar" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={null}>Não alterar</SelectItem>
+                  <SelectItem value="locked">🔒 Bloqueado (Premium)</SelectItem>
+                  <SelectItem value="unlocked">🔓 Desbloqueado (Grátis)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBulkEditDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={applyBulkEdit} className="bg-blue-600 hover:bg-blue-700">
+              Aplicar Alterações
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
     </>
   );
